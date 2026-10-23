@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ko" data-style="pencil">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>이카운트 길잡이 E7 · 기초등록 길</title>
+<!--
+  이카운트 길잡이 · E7 「거래처에서 단가까지」 — 팔기 전에 한 번 등록하는 것들을 이카운트에서 누르는 순서.
+  상자 = 화면, 아래로 가는 화살표 = 다음 등록, 오른쪽 점선 = 그 화면의 조회 · 현황(고치기 · 지우기 · 보기).
+  글자는 HTML, 선은 svg.over 에 sketch-kit.js 가 자리를 재서 긋는다. 교재 쪽수는 이카운트 공식 교재(초급 재고 · 유통 / 중급 회계)에 찍힌 쪽 번호.
+  회사 계정에만 있는 설정은 (추정), 회사가 정해야 쓰는 것은 「회사가 채움」. 교재 0장의 「지금 · 이카운트」 카드가 이 길로 이어진다.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Brush+Script&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f8f4ea; --ink: #36332d; --ink-soft: #5d584e; --ink-faint: #8b8476;
+    --marker: rgba(255, 214, 64, 0.55); --find: #2f5d87; --talk: #b5523b; --db: #4f7d4a;
+    --mono: ui-monospace, 'Cascadia Mono', Consolas, 'D2Coding', monospace;
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.3  0 0 0 0 0.22  0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--paper); }
+  body { min-height: 100vh; color: var(--ink); font-family: 'Gaegu', cursive; background-color: var(--paper); background-image: var(--grain); padding: 18px 16px 28px; word-break: keep-all; overflow-wrap: anywhere; }
+  .page { max-width: 900px; margin: 0 auto; }
+  .brush { font-family: 'Nanum Brush Script', 'Gaegu', cursive; font-weight: 400; }
+  a { color: inherit; }
+  button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+  svg.over { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+  .spot { cursor: pointer; }
+  .spot:focus-visible, button:focus-visible { outline: 2px dashed var(--find); outline-offset: 2px; }
+
+  .pick { display: flex; justify-content: center; align-items: center; gap: 6px; margin-bottom: 14px; font-family: system-ui, sans-serif; }
+  .pick button { font-size: 13px; border: 1px solid #c9ced6; background: #fff; border-radius: 999px; padding: 5px 12px; }
+  .pick button.on { background: #1f2937; border-color: #1f2937; color: #fff; }
+  .pick a { font-size: 13px; color: var(--ink-soft); margin-left: 10px; text-decoration: none; }
+
+  .hero { text-align: center; }
+  .hero .kick { font-size: clamp(14px, 1.7vw, 17px); color: var(--ink-soft); letter-spacing: 0.04em; }
+  .hero h1 { font-size: clamp(34px, 6vw, 52px); line-height: 1.05; margin-top: 2px; }
+  .hero p { margin-top: 4px; font-size: clamp(15px, 1.9vw, 18px); color: var(--ink-soft); }
+
+  /* 걸음 단추 */
+  .walk { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 8px; margin-top: 12px; }
+  .walk button { font-size: 17px; line-height: 1; padding: 6px 9px 4px; border-radius: 6px; }
+  .walk button:nth-child(odd) { transform: rotate(-1.5deg); }
+  .walk button:nth-child(even) { transform: rotate(1.2deg); }
+  .walk button.on { background: var(--marker); }
+  .walk .nm { display: none; }
+  @media (min-width: 760px) { .walk .nm { display: inline; } }
+  .n { font-style: normal; font-weight: 700; }
+  .n.t { color: var(--talk); } .n.f { color: var(--find); } .n.d { color: var(--db); }
+
+  /* 화면 순서도 — 왼쪽 메뉴 경로 · 가운데 화면 · 오른쪽 조회 · 현황 */
+  .map { position: relative; margin-top: 14px; }
+  .flow { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(120px, 170px) minmax(0, 1fr) minmax(150px, 230px); column-gap: 26px; align-items: center; }
+  /* 칸 자리를 못 박는다 — .act 뒤의 .path 가 3칸으로 밀리지 않게 */
+  .path { grid-column: 1; text-align: right; font-size: clamp(12px, 1.5vw, 14px); color: var(--ink-soft); line-height: 1.25; padding-right: 4px; }
+  .path b { display: block; color: var(--ink); font-weight: 700; }
+  .scr { grid-column: 2; position: relative; padding: 12px 14px 12px; min-height: 76px; }
+  .side { grid-column: 3; }
+  .pad { grid-column: 1 / -1; }
+  .scr .nm { display: inline-block; font-size: clamp(20px, 2.8vw, 27px); line-height: 1.05; padding: 0 3px; }
+  .scr .code { margin-left: 6px; font-size: 12px; color: var(--ink-faint); font-family: var(--mono); }
+  .scr .sub { display: block; margin-top: 2px; font-size: clamp(12px, 1.6vw, 14.5px); color: var(--ink-soft); line-height: 1.25; }
+  .scr .fields { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 9px; }
+  .scr .fld { position: relative; font-size: clamp(12.5px, 1.5vw, 14px); line-height: 1; padding: 6px 8px 5px; }
+  .scr .fld.must::after { content: '*'; color: var(--talk); font-weight: 700; margin-left: 2px; }
+  .scr .btn { position: relative; font-size: clamp(12.5px, 1.5vw, 14px); font-weight: 700; line-height: 1; padding: 6px 10px 5px; color: var(--find); }
+  .scr:hover .nm, .scr:focus-visible .nm { text-decoration: underline wavy rgba(54, 51, 45, 0.35); text-underline-offset: 5px; }
+  .scr.now .nm { background: linear-gradient(transparent 52%, var(--marker) 52%, var(--marker) 94%, transparent 94%); }
+  .scr.later .nm, .scr.later .sub, .scr.later .fld, .scr.later .btn { color: var(--ink-faint); }
+  .scr.done .sub, .scr.done .fld { color: var(--ink-faint); }
+  .act { grid-column: 2; text-align: left; padding: 10px 0 10px calc(50% + 16px); font-size: clamp(12.5px, 1.6vw, 15px); color: var(--ink-soft); line-height: 1.25; min-height: 38px; }
+  .act b { color: var(--ink); }
+  .side { font-size: clamp(12px, 1.5vw, 14px); line-height: 1.3; padding: 8px 10px; color: var(--ink-soft); }
+  .side b { display: block; color: var(--ink); font-size: clamp(13.5px, 1.7vw, 16px); }
+  .side.later { opacity: 0.45; }
+  .pad { height: 6px; }
+  @media (max-width: 640px) {
+    .flow { grid-template-columns: minmax(0, 1fr); column-gap: 0; }
+    .path, .scr, .side, .act { grid-column: 1; }
+    .path { text-align: left; padding: 0 4px 2px; }
+    .side { margin: 2px 0 8px 24px; }
+  }
+
+  /* 설명 공책 */
+  .panel { position: relative; margin-top: 18px; padding: 14px 18px 14px 28px; }
+  .panel > div { position: relative; z-index: 1; }
+  .panel h3 { font-size: clamp(28px, 4vw, 36px); line-height: 1.05; }
+  .cols { display: grid; gap: 14px 26px; margin-top: 6px; }
+  @media (min-width: 760px) { .cols.two { grid-template-columns: minmax(0, 1fr) minmax(240px, 320px); align-items: start; } }
+  .one { font-size: clamp(16px, 1.9vw, 18px); line-height: 1.38; }
+  .rows { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 5px 10px; margin-top: 9px; font-size: clamp(14.5px, 1.7vw, 16.5px); line-height: 1.35; color: var(--ink-soft); }
+  .rows dt { font-weight: 700; color: var(--ink); }
+  .rows dd { margin: 0; }
+  .rows dd b { color: var(--ink); }
+  .steps { list-style: none; display: grid; gap: 4px; margin-top: 8px; }
+  .steps button { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; text-align: left; font-size: clamp(15px, 1.8vw, 17px); line-height: 1.3; padding: 2px 4px; border-radius: 4px; }
+  .steps button:hover { background: var(--marker); }
+  .steps b { white-space: nowrap; }
+  .card { position: relative; padding: 12px 14px 11px; }
+  .card .ct { display: block; font-size: 16px; font-weight: 700; color: var(--ink-soft); line-height: 1.1; margin-bottom: 7px; }
+  .card .ln { font-size: clamp(14px, 1.6vw, 15.5px); line-height: 1.4; color: var(--ink); padding-left: 14px; text-indent: -14px; }
+  .card .ln::before { content: '› '; color: var(--ink-faint); }
+  .card .cap { font-size: 14px; color: var(--ink-soft); line-height: 1.3; margin-top: 6px; }
+  .card .rep { font-size: clamp(15px, 1.8vw, 17px); line-height: 1.45; }
+  .ref { margin-top: 8px; font-size: 13px; color: var(--ink-faint); }
+  .try { font-family: 'Nanum Pen Script', cursive; font-size: 22px; line-height: 1.15; color: var(--find); margin-top: 10px; }
+  .panel .nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; }
+  .panel .nav button { font-size: 17px; line-height: 1; padding: 6px 9px 4px; border-radius: 6px; }
+  .panel .nav button[disabled] { visibility: hidden; }
+
+  .legend { margin: 16px auto 0; max-width: 800px; display: grid; gap: 4px; font-size: clamp(14px, 1.8vw, 16px); color: var(--ink-soft); text-align: center; line-height: 1.3; }
+  .legend .f { color: var(--find); font-weight: 700; } .legend .t { color: var(--talk); font-weight: 700; } .legend .d { color: var(--db); font-weight: 700; }
+
+  .grad { position: relative; margin-top: 22px; padding: 14px 18px 12px; }
+  .grad > * { position: relative; z-index: 1; }
+  .grad h3 { font-size: clamp(24px, 3.4vw, 30px); line-height: 1.05; margin-bottom: 6px; }
+  .grad label { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; font-size: clamp(15px, 1.9vw, 17px); line-height: 1.3; cursor: pointer; }
+  .grad input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .grad .bx { display: block; flex: none; width: 20px; height: 20px; margin-top: 1px; }
+  .grad .on { color: var(--ink-faint); text-decoration: line-through; text-decoration-color: rgba(54, 51, 45, 0.3); }
+  .grad .sign { margin-top: 8px; font-size: clamp(13px, 1.6vw, 15px); color: var(--ink-soft); }
+  .foot { margin-top: 14px; text-align: center; font-size: clamp(12px, 1.4vw, 13.5px); color: var(--ink-faint); line-height: 1.4; }
+
+  /* ---------- 교과서 도식 ---------- */
+  html[data-style="textbook"] { --paper: #ffffff; --ink: #1f2937; --ink-soft: #4b5563; --ink-faint: #a3aab5; --find: #1f5fae; --talk: #b8432f; --db: #2f7d4f; --marker: rgba(31, 95, 174, 0.14); }
+  html[data-style="textbook"] body { font-family: 'Noto Sans KR', system-ui, sans-serif; background: #fff; background-image: none; letter-spacing: -0.01em; }
+  html[data-style="textbook"] .brush { font-family: 'Noto Sans KR', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; }
+  html[data-style="textbook"] .hero h1 { font-size: clamp(24px, 3.6vw, 32px); }
+  html[data-style="textbook"] .hero p, html[data-style="textbook"] .hero .kick { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="textbook"] .walk button, html[data-style="textbook"] .panel .nav button { font-size: 13.5px; border-radius: 999px; border: 1px solid var(--ink-faint); padding: 5px 11px; transform: none; }
+  html[data-style="textbook"] .walk button.on { border-color: var(--find); }
+  html[data-style="textbook"] .scr .nm { font-size: clamp(15px, 2.1vw, 19px); font-weight: 800; }
+  html[data-style="textbook"] .scr .sub, html[data-style="textbook"] .path, html[data-style="textbook"] .act, html[data-style="textbook"] .side { font-size: clamp(11.5px, 1.35vw, 13px); }
+  html[data-style="textbook"] .side b { font-size: clamp(12.5px, 1.5vw, 14px); }
+  html[data-style="textbook"] .scr .fld, html[data-style="textbook"] .scr .btn { font-size: 12px; }
+  html[data-style="textbook"] .panel h3 { font-size: clamp(19px, 2.6vw, 24px); }
+  html[data-style="textbook"] .one { font-size: clamp(13.5px, 1.55vw, 15.5px); }
+  html[data-style="textbook"] .rows, html[data-style="textbook"] .steps button, html[data-style="textbook"] .card .rep { font-size: clamp(12.5px, 1.45vw, 14px); }
+  html[data-style="textbook"] .card .ln { font-size: clamp(12px, 1.35vw, 13.5px); }
+  html[data-style="textbook"] .card .cap, html[data-style="textbook"] .card .ct { font-size: 12.5px; }
+  html[data-style="textbook"] .try { font-family: inherit; font-size: clamp(12.5px, 1.45vw, 14px); font-weight: 700; }
+  html[data-style="textbook"] .legend { font-size: clamp(12px, 1.5vw, 13.5px); }
+  html[data-style="textbook"] .grad h3 { font-size: clamp(17px, 2.4vw, 21px); }
+  html[data-style="textbook"] .grad label { font-size: clamp(12.5px, 1.55vw, 14.5px); }
+
+  /* ---------- 설계 도면 ---------- */
+  html[data-style="blueprint"] { --paper: #f6f8fb; --ink: #16365c; --ink-soft: #3d5878; --ink-faint: #9db0c6; --find: #1d6fb8; --talk: #c23b2e; --db: #2b7a5a; --marker: rgba(29, 111, 184, 0.13); --mono: 'IBM Plex Mono', 'IBM Plex Sans KR', ui-monospace, Consolas, monospace; }
+  html[data-style="blueprint"] body { font-family: 'IBM Plex Sans KR', system-ui, sans-serif; background-color: var(--paper);
+    background-image: linear-gradient(rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(rgba(29, 111, 184, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.045) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px; }
+  html[data-style="blueprint"] .page { border: 1.5px solid var(--ink); outline: 1px solid var(--ink); outline-offset: 5px; padding: 16px; background: rgba(246, 248, 251, 0.6); }
+  html[data-style="blueprint"] .brush { font-family: 'IBM Plex Sans KR', sans-serif; font-weight: 700; letter-spacing: 0.01em; }
+  html[data-style="blueprint"] .hero .kick::before { content: 'FIG. E7  '; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.2em; color: var(--ink-soft); }
+  html[data-style="blueprint"] .hero h1 { font-size: clamp(22px, 3.4vw, 30px); }
+  html[data-style="blueprint"] .hero p, html[data-style="blueprint"] .hero .kick { font-size: clamp(13px, 1.45vw, 14.5px); }
+  html[data-style="blueprint"] .walk button, html[data-style="blueprint"] .panel .nav button { font-size: 13px; border-radius: 0; border: 1px solid var(--ink-faint); padding: 5px 10px; letter-spacing: 0.02em; transform: none; }
+  html[data-style="blueprint"] .walk button.on { background: none; border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  html[data-style="blueprint"] .scr .nm { font-size: clamp(14px, 2vw, 18px); font-weight: 700; }
+  html[data-style="blueprint"] .scr.now .nm { background: none; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  html[data-style="blueprint"] .scr .sub, html[data-style="blueprint"] .path, html[data-style="blueprint"] .act, html[data-style="blueprint"] .side { font-size: clamp(11px, 1.3vw, 12.5px); }
+  html[data-style="blueprint"] .side b { font-size: clamp(12px, 1.45vw, 13.5px); }
+  html[data-style="blueprint"] .scr .fld, html[data-style="blueprint"] .scr .btn { font-size: 11.5px; }
+  html[data-style="blueprint"] .panel h3 { font-size: clamp(17px, 2.4vw, 22px); }
+  html[data-style="blueprint"] .one { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="blueprint"] .rows, html[data-style="blueprint"] .steps button, html[data-style="blueprint"] .card .rep { font-size: clamp(12px, 1.4vw, 13.5px); }
+  html[data-style="blueprint"] .card .ln { font-size: clamp(11.5px, 1.3vw, 13px); }
+  html[data-style="blueprint"] .card .cap, html[data-style="blueprint"] .card .ct { font-size: 12px; }
+  html[data-style="blueprint"] .try { font-family: inherit; font-size: clamp(12px, 1.4vw, 13.5px); font-weight: 600; }
+  html[data-style="blueprint"] .legend { font-size: clamp(11.5px, 1.4vw, 13px); }
+  html[data-style="blueprint"] .grad h3 { font-size: clamp(16px, 2.2vw, 19px); }
+  html[data-style="blueprint"] .grad label { font-size: clamp(12px, 1.5vw, 14px); }
+
+  @media print { .pick, .panel .nav { display: none !important; } body { padding: 0; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="pick" id="pick">
+    <button type="button" data-s="pencil">연필 손그림</button>
+    <button type="button" data-s="textbook">교과서 도식</button>
+    <button type="button" data-s="blueprint">설계 도면</button>
+    <a href="ecount.html" id="back">← 길잡이 목차</a>
+  </div>
+
+  <header class="hero">
+    <div class="kick">이카운트 길잡이 · E7 · 기초등록 길 (교재 0장의 「지금 · 이카운트」)</div>
+    <h1 class="brush">거래처에서 단가까지</h1>
+    <p>팔기 전에 한 번 등록하는 것들의 순서. 상자 = 화면, 아래 화살표 = 다음 등록, 오른쪽 점선 = 그 화면의 조회 · 현황.</p>
+  </header>
+
+  <nav class="walk" id="walk" aria-label="걸음 고르기">
+    <button type="button" data-k="all">전체</button>
+    <button type="button" data-k="1"><span class="n d">①</span><span class="nm"> 거래처등록</span></button>
+    <button type="button" data-k="2"><span class="n d">②</span><span class="nm"> 품목등록</span></button>
+    <button type="button" data-k="3"><span class="n d">③</span><span class="nm"> 창고등록</span></button>
+    <button type="button" data-k="4"><span class="n d">④</span><span class="nm"> 사원 · 사용자</span></button>
+    <button type="button" data-k="5"><span class="n f">⑤</span><span class="nm"> 단가 일곱 가지</span></button>
+    <button type="button" data-k="6"><span class="n f">⑥</span><span class="nm"> 엑셀 자료올리기 · 코드 바꾸기</span></button>
+  </nav>
+
+  <section class="map" id="map">
+    <svg class="over" id="lines" aria-hidden="true"></svg>
+    <div class="flow" id="flow">
+      <div class="path"><b>재고Ⅰ › 기초등록</b>› 거래처등록 › 신규</div>
+      <div class="scr spot" id="s1" data-k="1" tabindex="0" role="button"><span class="nm brush">거래처등록</span><span class="code">E010101</span><span class="sub">팔 곳 · 살 곳을 먼저. 같은 화면이 재고Ⅰ · 회계Ⅰ · 그룹웨어 세 곳에 걸려 있다</span>
+        <div class="fields"><span class="fld must">거래처코드</span><span class="fld must">거래처명</span><span class="fld">사업자번호</span><span class="fld">대표</span><span class="fld">Email</span><span class="fld">검색창내용</span><span class="fld">통화</span><span class="fld">담당자 · 조정률 (여신/단가 탭)</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d1"><b>거래처 명부 · 명함관리</b>거래처등록 목록에서 고치기 · 지우기 · 하단 [웹자료올리기]. 그룹웨어 › 거래처 · 명함 › 명함관리도 같은 명부를 본다</div>
+
+      <div class="act" id="a1">거래처가 섰으면 → <b>팔 물건을 품목등록</b>에 — 코드 규칙부터 정한다</div>
+
+      <div class="path"><b>재고Ⅰ › 기초등록</b>› 품목등록 › 신규</div>
+      <div class="scr spot" id="s2" data-k="2" tabindex="0" role="button"><span class="nm brush">품목등록</span><span class="code">E040103</span><span class="sub">우리가 파는 상품. 들고 나가는 기록(수불)은 품목코드마다 생긴다 — 코드가 곧 그 상품</span>
+        <div class="fields"><span class="fld must">품목코드</span><span class="fld must">품목명</span><span class="fld">규격</span><span class="fld">품목구분 = 상품</span><span class="fld">재고수량관리 사용 / 사용안함</span><span class="fld">세트여부</span><span class="fld">바코드 · 품목그룹</span><span class="fld">안전재고수량 (수량 탭)</span><span class="fld">입 · 출고단가 · 단가A~J (단가 탭)</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d2"><b>관리항목등록 · 하단 [변경]</b>관리항목등록 E040104 으로 칸을 더한다. 이미 등록한 품목은 하단 [변경]으로 한 번에 고친다 — 품목코드는 못 바꾼다</div>
+
+      <div class="act" id="a2">품목이 섰으면 → <b>어디에 둘지 창고등록</b> — 가상 창고도 하나씩</div>
+
+      <div class="path"><b>재고Ⅰ › 기초등록</b>› 창고등록 › 신규</div>
+      <div class="scr spot" id="s3" data-k="3" tabindex="0" role="button"><span class="nm brush">창고등록</span><span class="code">E040102</span><span class="sub">재고를 두는 자리. 진짜 창고만이 아니라 불량 · 출고대기 · 운송중 같은 가상 창고도 여기</span>
+        <div class="fields"><span class="fld must">창고코드</span><span class="fld must">창고명</span><span class="fld must">구분 — 창고 / 공장 / 공장(외주비관리)</span><span class="fld">영업단가그룹</span><span class="fld">거래처 연결 (외주비관리 공장만, 추정)</span><span class="fld">사용여부 (추정)</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d3"><b>창고별재고현황</b>재고Ⅰ › 출력물 › 창고별재고현황 — 창고마다 무엇이 몇 개. 창고 목록에서 고치기 · 지우기 (전표가 붙은 창고는 못 지운다, 추정)</div>
+
+      <div class="act" id="a3">자리가 섰으면 → <b>누가 쓰나, 사원 · 사용자</b> — 전표의 담당자와 로그인 ID 는 따로</div>
+
+      <div class="path"><b>재고Ⅰ › 기초등록</b>› 부서등록 · 사원(담당)등록 / Self-Customizing › 사용자관리 › 사용자등록</div>
+      <div class="scr spot" id="s4" data-k="4" tabindex="0" role="button"><span class="nm brush">사원 · 사용자</span><span class="code">E010105 · E010110</span><span class="sub">전표에 적히는 담당자(사원)와 로그인하는 사람(사용자 ID)은 따로 등록한다. 급여용 사원등록은 또 따로</span>
+        <div class="fields"><span class="fld">부서 (부서등록)</span><span class="fld">계층그룹 (부서등록 하단)</span><span class="fld must">사원코드</span><span class="fld must">사원명 (사원(담당)등록, 추정)</span><span class="fld must">사용자ID</span><span class="fld">허용권한 (권한 탭)</span><span class="fld">허용부서 = 허용그룹만</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d4"><b>사원연락처 · 조직도</b>그룹웨어 › 사내관리 › 사원연락처 E070202 · 조직도현황 E090220. 사용자 목록과 권한 고치기는 Self-Customizing › 사용자관리</div>
+
+      <div class="act" id="a4">사람이 섰으면 → <b>값은 어떻게 매기나</b> — 단가 일곱 가지 중 회사 것을 확인한다</div>
+
+      <div class="path"><b>재고Ⅰ › 기초등록</b>› 단가관리 › 단가적용순서설정 · 특별단가등록 · 거래처특별단가그룹등록 · 품목별단가</div>
+      <div class="scr spot" id="s5" data-k="5" tabindex="0" role="button"><span class="nm brush">단가 일곱 가지</span><span class="code">E040125 · E040124 · E040120 · E040122</span><span class="sub">한 품목의 값이 거래처 · 창고 · 그날에 따라 다를 수 있다. 어느 것이 이기는지는 단가적용순서설정이 정한다</span>
+        <div class="fields"><span class="fld">단가적용순서설정 › 적용순서</span><span class="fld">최종단가 사용 (영업관리 · 구매관리)</span><span class="fld">특별단가등록 › 특별단가그룹 탭</span><span class="fld">특별단가등록 › 품목별 탭</span><span class="fld">거래처특별단가그룹등록</span><span class="fld">품목별단가</span><span class="fld">창고등록 › 영업단가그룹</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d5"><b>단가적용순서설정</b>지금 어느 단가가 먼저 적용되는지 읽는 자리. 바꾸면 그 뒤 전표부터 — 지난 전표는 안 변한다</div>
+
+      <div class="act" id="a5">하나씩 치기엔 많으면 → <b>엑셀로 올린다</b> · 코드가 틀렸으면 바꾸는 길이 둘</div>
+
+      <div class="path"><b>거래처등록 · 품목등록</b>› 하단 [웹자료올리기] / 재고Ⅰ · 회계Ⅰ › 기초등록 › 각종코드변경</div>
+      <div class="scr spot" id="s6" data-k="6" tabindex="0" role="button"><span class="nm brush">엑셀 자료올리기 · 코드 바꾸기</span><span class="code">E040113 · E010111</span><span class="sub">많으면 엑셀로 한 번에. 코드를 바꾸는 길은 둘 — 코드변경(코드 자체) · 각종코드변경(기간 자료만 옮김)</span>
+        <div class="fields"><span class="btn">웹자료올리기</span><span class="fld">자료올리기 형식 다운</span><span class="fld">엑셀에 작성 → 복사</span><span class="fld">팝업에 붙여넣기 → 업로드</span><span class="fld">오류 사유 확인</span><span class="fld">등록자료변경하기 탭 (기존 코드 수정)</span><span class="fld">각종코드변경 › 기존 코드 → 새 코드 · 기간</span><span class="btn">잔액재집계 (회계Ⅰ › 출력물)</span></div></div>
+      <div class="side" id="d6"><b>설치형 엑셀 자료올리기</b>Self-Customizing › 다운로드 › 엑셀 자료올리기 기능 — 엑셀 위에 [이카운트] 메뉴가 생긴다. 신규 코드 · 기존 코드 수정 · 전표 업로드 · 백업</div>
+      <div class="pad"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel" aria-live="polite">
+    <svg class="over" id="panelLines" aria-hidden="true"></svg>
+    <div id="panelBody"></div>
+  </section>
+
+  <footer class="legend">
+    <div><span class="d">초록</span> = 저장하면 기초 명부(거래처 · 품목 · 창고 · 사원)가 바뀌는 화면 — 모든 전표가 이것을 읽는다 · <span class="f">파랑</span> = 보기 · 확인 · 설정 읽기</div>
+    <div>칸 뒤의 <span class="t">*</span> = 꼭 넣는 칸 (추정 — 회사 계정의 필수 칸 설정은 확인 전)</div>
+  </footer>
+
+  <section class="grad" id="grad">
+    <svg class="over" id="gradLines" aria-hidden="true"></svg>
+    <h3 class="brush">해 보기 · E7 졸업</h3>
+    <label><input type="checkbox" data-k="g1"><i class="bx"></i><span>연습 거래처 1개를 코드 규칙대로 등록했다 (코드 규칙은 회사가 채움)</span></label>
+    <label><input type="checkbox" data-k="g2"><i class="bx"></i><span>연습 품목 1개를 등록했다 — 재고수량관리 「사용」 · 안전재고수량을 넣고 재고현황에서 찾았다</span></label>
+    <label><input type="checkbox" data-k="g3"><i class="bx"></i><span>창고 · 공장 · 공장(외주비관리) 셋의 차이를 말했다</span></label>
+    <label><input type="checkbox" data-k="g4"><i class="bx"></i><span>우리 회사가 단가 일곱 가지 중 무엇을 쓰는지 말했다 (회사가 채움)</span></label>
+    <p class="sign">옆에서 본 선배 ____________ · 날짜 ____________</p>
+  </section>
+
+  <p class="foot">연습은 회사가 정한 연습 거래처 · 연습 품목으로만 (실제 거래처 · 사업자번호를 넣지 않는다) · 주소는 회사 안에서만 나눈다 · 교재 = 이카운트 공식 교재(초급 재고 · 유통 / 중급 회계)</p>
+</div>
+
+<script src="sketch-kit.js"></script>
+<script>
+(function () {
+  'use strict';
+  var STEPS = ['1', '2', '3', '4', '5', '6'];
+  var NUM = { 1: '①', 2: '②', 3: '③', 4: '④', 5: '⑤', 6: '⑥' };
+  var NAME = { 1: '거래처등록', 2: '품목등록', 3: '창고등록', 4: '사원 · 사용자', 5: '단가 일곱 가지', 6: '엑셀 자료올리기 · 코드 바꾸기' };
+  var KIND = { 1: 'db', 2: 'db', 3: 'db', 4: 'db', 5: 'find', 6: 'find' };
+
+  // 설명 — one 한 줄 · rows [이름표, 내용] · card 「틀렸을 때」 · ref 교재 쪽 (교재에 찍힌 쪽 번호)
+  var INFO = {
+    all: { title: '거래처에서 단가까지',
+      one: '팔기 전에 한 번 등록하는 것 여섯. 거래처 · 품목 · 창고 · 사원이 서야 전표를 칠 수 있고, 단가는 그 위에 층으로 얹힌다. 많으면 엑셀로 올린다.',
+      list: { 1: '팔 곳 · 살 곳 — 코드는 사업자번호로', 2: '파는 상품 — 코드 · 재고수량관리 · 안전재고', 3: '재고를 두는 자리 — 가상 창고까지', 4: '전표의 담당자와 로그인 ID 는 따로', 5: '한 품목 값이 여럿일 때 누가 이기나', 6: '많으면 엑셀로, 코드가 틀렸으면 길 둘' },
+      card: { t: '한 줄로', html: '<p class="rep"><b>코드부터</b> — 거래처 · 품목 · 창고의 코드는 전표가 한 번 붙으면 바꾸기 어렵다. 규칙을 먼저 정하고(회사가 채움), 지금은 5계정에 같은 것을 다섯 번 등록한다 (추정).</p>' } },
+    1: { title: '① 거래처등록',
+      one: '팔 곳과 살 곳을 한 명부에. 같은 화면이 재고Ⅰ · 회계Ⅰ · 그룹웨어 세 곳에 걸려 있어 어디서 열어도 같은 명부다.',
+      rows: [['경로', '재고Ⅰ › 기초등록 › 거래처등록 › 신규 (회계Ⅰ › 기초등록 · 그룹웨어 › 거래처 · 명함에도 같은 화면)'], ['넣는 칸', '거래처코드(사업자번호 권장 · 영숫자만, 임의번호도 됨) · 거래처명 · 사업자번호 · 대표 · Email(여러 개 가능) · 검색창내용(나중에 찾는 키워드) · 통화(외화 거래 때, 외화등록에서 화폐 먼저)'], ['여신/단가 탭', '담당자 — 채권 · 채무를 담당자별로 본다 · 조정률 — 이 거래처는 전 품목 몇 % (⑤의 방법 3)'], ['저장 뒤', '견적 · 주문 · 판매 · 구매 · 회계 전표 어디서나 검색된다. 자주 쓰는 칸은 Option › 입력화면설정으로 기본 탭에 올린다 — 엑셀 올리기는 기본 탭 칸만 받는다'], ['조심', '코드는 나중에 못 바꾼다고 생각하고 짓는다 · 전자세금계산서를 발행한 거래처는 코드변경 금지 · 5계정이면 다섯 번 등록 (추정)']],
+      card: { t: '틀렸을 때', lines: ['이름 · Email 같은 내용: 거래처등록 목록에서 열어 고친다', '코드가 틀렸고 전표가 없으면 지우고 다시 — 전표가 붙었으면 ⑥ 각종코드변경', '세금계산서를 발행한 코드는 못 바꾼다 — 새 코드를 만들고 기간 자료만 옮긴다'], cap: '거래처를 지워도 재고 · 돈은 안 변한다. 전표가 붙어 있으면 지워지지 않는다 (추정)' },
+      ref: '교재 초급 p.4 (거래처 등록) · 회계 p.6 (코드변경 금지) · 메뉴 지도',
+      tryit: '연습 거래처 1개 — 코드 규칙대로 넣고 검색창내용에 키워드 하나' },
+    2: { title: '② 품목등록',
+      one: '우리가 파는 상품 하나하나. 들고 나가는 기록(수불)은 품목코드마다 생기니, 코드가 곧 그 상품이다.',
+      rows: [['경로', '재고Ⅰ › 기초등록 › 품목등록 › 신규'], ['넣는 칸', '품목코드(영숫자 20자, 특수문자는 - _ 만) · 품목명 · 규격(색상 · 사이즈 · 용량) · 품목구분 = 상품(유통은 상품만) · 재고수량관리 사용 / 사용안함 · 세트여부 · 바코드 · 품목그룹'], ['수량 · 단가 탭', '안전재고수량 — 이 아래로 떨어지면 재고현황에 붉게 · 입 · 출고단가(기본값) · 단가A~J(이름은 Option › 입력화면설정 › 단가 탭에서)'], ['저장 뒤', '판매 · 구매에서 검색된다. 품목명은 전표에서 고칠 수 있어도 수불은 코드로 쌓인다. 세트면 생산/외주 › BOM(소요량) › 세트 탭에 구성품'], ['조심', '운송비 · 수리비 · 에누리는 재고수량관리 「사용안함」 · 코드에 특수문자 · 같은 상품을 코드 둘로 — 재고가 갈라진다']],
+      card: { t: '틀렸을 때', lines: ['내용 고치기: 목록에서 열어 고친다 · 여럿이면 하단 [변경]으로 한 번에 (코드는 불가)', '엑셀로 한 번에: [웹자료올리기] › 품목 등록자료변경하기 탭 (⑥)', '코드가 틀렸으면 전표 없을 때 지우고 다시 — 전표가 있으면 각종코드변경 (⑥)'], cap: '세트 구성품이 빠지는 시점은 회사가 아직 정하지 않았다 (E5 ⑥)' },
+      ref: '교재 초급 p.7~9 (품목등록 · 등록자료 변경하기)',
+      tryit: '연습 품목 1개 — 재고수량관리 「사용」 · 안전재고수량을 넣고 재고현황에서 붉은 줄로 뜨는지 본다' },
+    3: { title: '③ 창고등록',
+      one: '재고를 두는 자리마다 하나. 진짜 창고만이 아니라 불량 · 출고대기 · 운송중 같은 「상태」도 지금은 창고로 나눈다.',
+      rows: [['경로', '재고Ⅰ › 기초등록 › 창고등록 › 신규'], ['넣는 칸', '창고코드(5자리, 영숫자 권고) · 창고명(한글 20자) · 구분 — 창고 / 공장 / 공장(외주비관리)'], ['구분 셋', '창고 = 입출고만 · 공장 = 입출고 + 우리 생산 · 공장(외주비관리) = 거래처 공장, 외주비까지 — 이 공장은 거래처등록도 돼 있어야 한다'], ['영업단가그룹', '이 창고(매장)에서 나갈 때 쓰는 단가표를 건다 — ⑤의 방법 6 (직영점별 가격 · 기간 세일가)'], ['조심', '가상 창고(불량 · 출고대기 · 운송중 · 사은품 · A/S)를 어떤 것으로 쓰는지 — 회사가 채움 · 다른 업체 계정의 창고는 이름이 같아도 다른 것 (추정)']],
+      card: { t: '틀렸을 때', lines: ['이름 · 구분: 목록에서 열어 고친다', '전표가 없는 창고는 지운다 · 전표가 있으면 못 지운다 — 창고이동으로 비우고 쓰지 않는다 (추정)', '엉뚱한 창고에 넣은 재고는 재고Ⅰ › 기타이동 › 창고이동 (E2 ③)'], cap: '기초재고(실사)는 창고가 서야 넣을 수 있다 — E2 ⑤' },
+      ref: '교재 초급 p.6 (창고등록) · p.33 (영업단가그룹)' },
+    4: { title: '④ 사원 · 사용자',
+      one: '전표에 적히는 담당자(사원)와 로그인하는 사람(사용자 ID)은 따로 등록한다. 급여용 사원등록은 또 따로다.',
+      rows: [['경로', '재고Ⅰ › 기초등록 › 부서등록 → 사원(담당)등록 → Self-Customizing › 사용자관리 › 사용자등록'], ['넣는 칸', '부서(필요하면 하단 [계층그룹]으로 묶는다) · 사원코드 · 사원명 · 부서 (추정) · 사용자ID · 권한 탭 › 허용권한 · 허용부서(허용그룹만 체크 → 부서그룹 고르기)'], ['허용부서', '그 ID 가 넣고 볼 수 있는 부서를 제한한다 — 부서등록 하단 계층그룹을 먼저 만들고 ID 에 건다'], ['저장 뒤', '사원은 전표의 담당 칸 · 거래처별채권의 담당자별 보기에 뜬다. 사용자는 그 계정에 로그인한다 — 과장님 목록 「직원이 ERP 사용할 때 세팅」'], ['조심', '급여는 관리 › 급여관리 › 사원등록 E090101 에 또 등록한다(급여통장) · 5계정이면 ID 도 다섯 (추정) · 비밀번호는 적어 두지 않는다']],
+      card: { t: '틀렸을 때', lines: ['권한이 모자라거나 넘치면 사용자등록 › 권한 탭에서 고친다', '퇴사자는 ID 를 지우지 않고 사용 중지 (추정) — 전표의 담당 기록이 남아야 한다', '사원 이름 · 부서는 사원(담당)등록에서 고친다'], cap: '누구에게 어느 권한 · 결재선 — 회사가 채움' },
+      ref: '교재 회계 p.2 (사용자ID별 허용부서) · 메뉴 지도' },
+    5: { title: '⑤ 단가 일곱 가지',
+      one: '한 품목의 값이 거래처 · 창고 · 그날에 따라 다를 수 있다. 이카운트는 일곱 가지 길을 두고, 여럿이 겹치면 단가적용순서설정이 누가 이기는지 정한다.',
+      rows: [['1 기본판매가', '품목등록 › 기본 탭 출고단가. 값이 거의 하나면 이것만 — 다른 설정이 없으면 늘 이것이 뜬다'], ['2 단가 A~J', '품목등록 › 단가 탭 단가A~J. 거래처마다 어느 등급인지 알 때 — 이름은 Option › 입력화면설정에서 바꾸고, 전표에서 골라 쓴다'], ['3 조정률', '거래처등록 › 여신/단가 탭 조정률(%). 그 거래처는 전 품목 같은 요율 — 할인은 마이너스, 품목별로는 못 한다'], ['4 최종단가', '단가관리 › 단가적용순서설정 › 최종단가 사용(영업관리 · 구매관리). 그 거래처에 직전에 판 값을 불러온다'], ['5 특별단가 1', '거래처별 단가표 — 특별단가등록 › 특별단가그룹 탭에 표 코드 → 품목별 탭에 값 → 거래처특별단가그룹등록에서 거래처에 연결'], ['6 특별단가 2', '창고별 단가표 — 5의 표를 창고등록 › 영업단가그룹에 연결. 직영점마다 다른 값 · 기간 세일가'], ['7 직접입력', '판매입력에서 직접 — [단가변경] · [조정], [구매] 단추로 최종매입가 확인. 매번 다르거나 시세를 보는 경우'], ['겹치면', '특별단가가 기본단가보다 먼저. 전부 켜면 단가적용순서설정의 순서대로 · 설정을 바꿔도 지난 전표는 안 변하고 그 뒤 전표부터']],
+      card: { t: '틀렸을 때', lines: ['뜬 단가가 이상하면 단가적용순서설정부터 — 어느 층이 이겼나', '단가표 값 고치기: 특별단가등록 › 품목별 탭 · 거래처 연결 고치기: 거래처특별단가그룹등록', '이미 저장한 전표의 단가는 그 전표를 열어 고친다 (판매단가일괄변경 E040224 도 있다 — 추정)'], cap: '우리 회사가 일곱 중 무엇을 쓰는지 — 회사가 채움' },
+      ref: '교재 초급 p.8 (최종단가 · 특별단가) · p.31~33 (단가설정방법 정리)',
+      tryit: '단가적용순서설정을 열어 지금 순서를 읽고, 연습 품목 하나가 견적서입력에서 어느 값으로 뜨는지 본다' },
+    6: { title: '⑥ 엑셀 자료올리기 · 코드 바꾸기',
+      one: '거래처 · 품목이 많으면 엑셀로 한 번에 올린다. 코드를 잘못 지었을 때 바꾸는 길은 둘인데, 뜻이 다르다.',
+      rows: [['웹자료올리기', '거래처등록 · 품목등록 하단 [웹자료올리기] — 형식 다운 → 엑셀에 작성 → 팝업에 복사 · 붙여넣기 → 업로드. 오류 사유를 바로 보여 준다 · 설치 없음 · 백업 지원'], ['설치형', 'Self-Customizing › 다운로드 › 엑셀 자료올리기 기능 — 엑셀 위에 [이카운트] 메뉴가 생긴다. 신규 코드 · 기존 코드 수정(등록자료변경하기) · 주문 · 판매 · 발주 · 구매 · 재고실사 전표 · 백업. MS 엑셀 2007 이상'], ['코드변경', '기존 코드가 없어지고 새 코드로 — 전표 내역도 전부 바뀐다. 전자세금계산서를 발행한 거래처는 금지'], ['각종코드변경', '재고Ⅰ · 회계Ⅰ › 기초등록 › 각종코드변경 — 기존 코드는 두고, 기간을 정해 그 자료만 다른 코드로 옮긴다(거래처 · 계정 · 부서 · 프로젝트). 거래처는 재고 · 회계 양쪽에서 해야 한다'], ['조심', '엑셀 올리기는 기본 탭의 칸만 받는다(①의 입력화면설정) · 각종코드변경 뒤 회계Ⅰ › 출력물 › 잔액재집계 · 잔액조정 내역은 안 옮겨진다']],
+      card: { t: '나중 · UBO ONE', lines: ['거래처 · 품목 · 창고 · 직원을 한 번만 등록한다 — 5계정에 다섯 번이 아니라 (CORE-01~06)', '고객 명부는 하나, 거래 조건은 업체별 (CORE-04)', '엑셀 올리기는 틀린 줄을 짚어 준다 (PLT-05)'], cap: '이 길 전체가 교재 0장의 「지금 · 이카운트」 카드다' },
+      ref: '교재 초급 p.5 (엑셀 자료올리기) · p.9 (등록자료 변경하기) · 회계 p.6 (코드변경 vs 각종코드변경)' }
+  };
+
+  var K;
+  var map = document.getElementById('map');
+  var flow = document.getElementById('flow');
+  var walk = document.getElementById('walk');
+  var panel = document.getElementById('panel');
+  var panelBody = document.getElementById('panelBody');
+  var grad = document.getElementById('grad');
+  var scrs = Array.prototype.slice.call(map.querySelectorAll('.scr'));
+  var picked = 'all';
+  var esc = function (s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var label = function (k) { return k === 'all' ? '전체' : NUM[k] + ' ' + NAME[k]; };
+  var color = function (k) { var c = k === 'all' ? 'ink' : KIND[k]; return c === 'ink' ? K.C.ink : K.C[c]; };
+
+  function select(k) {
+    picked = k;
+    var i = STEPS.indexOf(k);
+    scrs.forEach(function (el) {
+      var n = STEPS.indexOf(el.dataset.k);
+      el.classList.toggle('now', i >= 0 && n === i);
+      el.classList.toggle('done', i >= 0 && n < i);
+      el.classList.toggle('later', i >= 0 && n > i);
+      el.setAttribute('aria-pressed', String(n === i));
+      var side = document.getElementById('d' + el.dataset.k);
+      if (side) side.classList.toggle('later', i >= 0 && n > i);
+    });
+    Array.prototype.forEach.call(walk.querySelectorAll('button'), function (b) {
+      b.classList.toggle('on', b.dataset.k === k);
+      b.setAttribute('aria-pressed', String(b.dataset.k === k));
+    });
+    var info = INFO[k], col = color(k);
+    var h = '<h3 class="brush" style="color:' + col + '">' + info.title + '</h3>';
+    h += '<div class="cols' + (info.card ? ' two' : '') + '"><div>';
+    h += '<p class="one">' + info.one + '</p>';
+    if (info.rows) h += '<dl class="rows">' + info.rows.map(function (r) { return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join('') + '</dl>';
+    if (info.list) {
+      h += '<ul class="steps">' + STEPS.map(function (s) {
+        return '<li><button type="button" data-go="' + s + '"><b style="color:' + color(s) + '">' + NUM[s] + ' ' + NAME[s] + '</b>' + info.list[s] + '</button></li>';
+      }).join('') + '</ul>';
+    }
+    if (info.tryit) h += '<p class="try">해 보기: ' + info.tryit + '</p>';
+    if (info.ref) h += '<p class="ref">' + info.ref + '</p>';
+    h += '</div>';
+    var prev = i < 0 ? null : (i === 0 ? 'all' : STEPS[i - 1]);
+    var next = i < 0 ? '1' : (i === STEPS.length - 1 ? 'all' : STEPS[i + 1]);
+    var nav = '<div class="nav"><button type="button" data-go="' + (prev || '') + '"' + (prev ? '' : ' disabled') + '>← ' + (prev ? label(prev) : '') + '</button>' +
+      '<button type="button" data-go="' + next + '">' + (i < 0 ? '① 거래처등록부터' : label(next)) + ' →</button></div>';
+    if (info.card) {
+      var body = info.card.html || '';
+      if (info.card.lines) body += info.card.lines.map(function (l) { return '<div class="ln">' + esc(l) + '</div>'; }).join('');
+      if (info.card.cap) body += '<p class="cap">' + info.card.cap + '</p>';
+      h += '<div><div class="card" id="card"><span class="ct">' + info.card.t + '</span>' + body + '</div>' + nav + '</div></div>';
+    } else {
+      h += '</div>' + nav;
+    }
+    panelBody.innerHTML = h;
+    schedule();
+  }
+
+  function inState(g, st, col, fn) {
+    var gg = st === 'done' ? K.el(g, 'g', { opacity: 0.5 }) : g;
+    fn(gg, st === 'later' ? K.C.faint : col, st === 'now' ? 2.6 : 1.8);
+  }
+  // 세로 화살표 — 몸통은 K.line, 촉은 두 획
+  function vArrow(g, x, y1, y2, r, c, w) {
+    K.line(g, x, y1, x + (r() - 0.5) * 1.5, y2 - 2, r, c, w);
+    K.line(g, x, y2, x - 6, y2 - 9, r, c, Math.max(1.4, w * 0.8));
+    K.line(g, x, y2, x + 6, y2 - 9, r, c, Math.max(1.4, w * 0.8));
+  }
+
+  function draw() {
+    var g = K.fresh(document.getElementById('lines'));
+    var box = K.rel(map);
+    var i = STEPS.indexOf(picked);
+    var state = function (k) { var n = STEPS.indexOf(k); return i < 0 ? 'all' : n === i ? 'now' : n < i ? 'done' : 'later'; };
+    var narrow = flow.offsetWidth < 640;
+
+    STEPS.forEach(function (k, n) {
+      var el = document.getElementById('s' + k), b = box(el), st = state(k), c = color(k);
+      var r = K.rng(10 + n), hot = st === 'now';
+      // 화면 상자 — 지금 보는 화면은 두 겹
+      K.rect(g, b.x, b.y, b.w, b.h, r, st === 'later' ? K.C.faint : c, hot ? 2.4 : 1.5);
+      if (hot) K.rect(g, b.x + 3, b.y + 3, b.w - 6, b.h - 6, r, c, 1);
+      // 칸 · 단추 — 칸은 가는 네모, 단추는 알약처럼 두 겹
+      Array.prototype.forEach.call(el.querySelectorAll('.fld, .btn'), function (f, m) {
+        var fb = box(f), rr = K.rng(100 + n * 20 + m), isBtn = f.classList.contains('btn');
+        var fc = st === 'later' ? K.C.faint : (isBtn ? K.C.find : K.C.ink);
+        K.rect(g, fb.x, fb.y, fb.w, fb.h, rr, fc, isBtn ? 1.5 : 1);
+        if (isBtn) K.hatch(g, fb.x, fb.y, fb.w, fb.h, rr, 6, K.C.find, 0.08);
+      });
+      // 아래 화살표 — 다음 화면으로
+      if (n < STEPS.length - 1) {
+        var nb = box(document.getElementById('s' + STEPS[n + 1]));
+        inState(g, state(STEPS[n + 1]), color(STEPS[n + 1]), function (gg, cc, w) { vArrow(gg, b.cx, b.b + 3, nb.y - 3, K.rng(40 + n), cc, w); });
+      }
+      // 오른쪽 점선 — 조회 · 현황
+      var side = document.getElementById('d' + k);
+      if (side && !narrow) {
+        var sb = box(side), rs = K.rng(60 + n), sc = st === 'later' ? K.C.faint : K.C.find;
+        K.rect(g, sb.x, sb.y, sb.w, sb.h, rs, sc, 1.1, '5 4');
+        var y = Math.min(b.cy, sb.cy);
+        K.line(g, b.rt + 4, y, sb.x - 6, y, rs, sc, 1.2, '4 4');
+        K.head(g, sb.x - 4, y, 1, rs, sc, 1.2);
+      }
+    });
+
+    // 설명 공책 테두리 + 색 줄 + 카드
+    var pg = K.fresh(document.getElementById('panelLines'));
+    var pw = panel.offsetWidth, ph = panel.offsetHeight, r9 = K.rng(9);
+    K.rect(pg, 2, 2, pw - 4, ph - 4, r9, K.C.ink, 1.4);
+    K.line(pg, 13, 7, 13, ph - 7, r9, color(picked), 2.2);
+    var card = document.getElementById('card');
+    if (card) {
+      var cb = K.rel(panel)(card), rc = K.rng(19), ccol = color(picked);
+      K.rect(pg, cb.x, cb.y, cb.w, cb.h, rc, ccol, 1.4);
+      K.hatch(pg, cb.x + 1, cb.y + 1, cb.w - 2, 6, rc, 6, ccol, 0.2);
+    }
+
+    // 해 보기
+    var gg2 = K.fresh(document.getElementById('gradLines')), gb = K.rel(grad), r8 = K.rng(8);
+    K.rect(gg2, 2, 2, grad.offsetWidth - 4, grad.offsetHeight - 4, r8, K.C.ink, 1.4);
+    Array.prototype.forEach.call(grad.querySelectorAll('label'), function (lb, n) {
+      var b = gb(lb.querySelector('.bx')), r = K.rng(130 + n), on = lb.querySelector('input').checked;
+      K.rect(gg2, b.x, b.y, b.w, b.h, r, K.C.ink, 1.3);
+      if (on) K.curve(gg2, 'M' + (b.x + 4) + ' ' + (b.cy + 1) + ' L' + (b.x + 8) + ' ' + (b.b - 4) + ' L' + (b.rt - 2) + ' ' + (b.y + 2), r, K.C.find, 2.2);
+    });
+  }
+
+  var queued = false;
+  function schedule() { if (queued) return; queued = true; setTimeout(function () { queued = false; draw(); }, 40); }
+  function use(style) {
+    K = SketchKit(style);
+    document.documentElement.dataset.style = K.style;
+    Array.prototype.forEach.call(document.querySelectorAll('#pick button'), function (b) { b.classList.toggle('on', b.dataset.s === K.style); });
+    var back = document.getElementById('back'); back.href = back.getAttribute('href').split('#')[0] + '#' + K.style;
+    select(picked);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+  }
+
+  document.getElementById('pick').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-s]');
+    if (b) { use(b.dataset.s); if (history.replaceState) history.replaceState(null, '', '#' + b.dataset.s); }
+  });
+  walk.addEventListener('click', function (e) { var b = e.target.closest('button[data-k]'); if (b) select(b.dataset.k); });
+  map.addEventListener('click', function (e) { var s = e.target.closest('.spot'); if (s) select(s.dataset.k); });
+  map.addEventListener('keydown', function (e) { var s = e.target.closest('.spot'); if (s && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(s.dataset.k); } });
+  panel.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-go]');
+    if (b && b.dataset.go) { select(b.dataset.go); walk.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
+
+  var GK = 'ubo-ecount-e7';
+  var boxes = grad.querySelectorAll('input');
+  try { var saved = JSON.parse(localStorage.getItem(GK) || '{}'); Array.prototype.forEach.call(boxes, function (b) { b.checked = !!saved[b.dataset.k]; }); } catch (e) {}
+  function paintGrad() { Array.prototype.forEach.call(boxes, function (b) { b.parentNode.querySelector('span').classList.toggle('on', b.checked); }); }
+  grad.addEventListener('change', function () {
+    paintGrad();
+    try { var o = {}; Array.prototype.forEach.call(boxes, function (b) { o[b.dataset.k] = b.checked; }); localStorage.setItem(GK, JSON.stringify(o)); } catch (e) {}
+    schedule();
+  });
+  paintGrad();
+
+  function fromHash() { var h = (location.hash || '').slice(1); use(['pencil', 'textbook', 'blueprint'].indexOf(h) >= 0 ? h : 'pencil'); }
+  fromHash();
+  window.addEventListener('hashchange', fromHash);
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', schedule);
+  window.addEventListener('load', schedule);
+  window.addEventListener('resize', schedule);
+  if (window.ResizeObserver) { var ro = new ResizeObserver(schedule); ro.observe(map); ro.observe(panel); ro.observe(grad); }
+})();
+</script>
+</body>
+</html>

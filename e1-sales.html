@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ko" data-style="pencil">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>이카운트 길잡이 E1 · 영업 길</title>
+<!--
+  이카운트 길잡이 · E1 「견적서에서 거래명세서까지」 — 영업이 이카운트에서 누르는 순서.
+  상자 = 화면, 아래로 가는 화살표 = 누르는 단추, 오른쪽 점선 = 그 화면의 조회 · 현황(고치기 · 지우기 · 보기).
+  글자는 HTML, 선은 svg.over 에 sketch-kit.js 가 자리를 재서 긋는다. 교재 쪽수는 이카운트 공식 교재(초급 재고 · 유통 / 중급 회계).
+  회사 계정에만 있는 설정은 (추정). 교재 1~9장의 「지금 · 이카운트」 카드가 이 길로 이어진다.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Brush+Script&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f8f4ea; --ink: #36332d; --ink-soft: #5d584e; --ink-faint: #8b8476;
+    --marker: rgba(255, 214, 64, 0.55); --find: #2f5d87; --talk: #b5523b; --db: #4f7d4a;
+    --mono: ui-monospace, 'Cascadia Mono', Consolas, 'D2Coding', monospace;
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.3  0 0 0 0 0.22  0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--paper); }
+  body { min-height: 100vh; color: var(--ink); font-family: 'Gaegu', cursive; background-color: var(--paper); background-image: var(--grain); padding: 18px 16px 28px; word-break: keep-all; overflow-wrap: anywhere; }
+  .page { max-width: 900px; margin: 0 auto; }
+  .brush { font-family: 'Nanum Brush Script', 'Gaegu', cursive; font-weight: 400; }
+  a { color: inherit; }
+  button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+  svg.over { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+  .spot { cursor: pointer; }
+  .spot:focus-visible, button:focus-visible { outline: 2px dashed var(--find); outline-offset: 2px; }
+
+  .pick { display: flex; justify-content: center; align-items: center; gap: 6px; margin-bottom: 14px; font-family: system-ui, sans-serif; }
+  .pick button { font-size: 13px; border: 1px solid #c9ced6; background: #fff; border-radius: 999px; padding: 5px 12px; }
+  .pick button.on { background: #1f2937; border-color: #1f2937; color: #fff; }
+  .pick a { font-size: 13px; color: var(--ink-soft); margin-left: 10px; text-decoration: none; }
+
+  .hero { text-align: center; }
+  .hero .kick { font-size: clamp(14px, 1.7vw, 17px); color: var(--ink-soft); letter-spacing: 0.04em; }
+  .hero h1 { font-size: clamp(34px, 6vw, 52px); line-height: 1.05; margin-top: 2px; }
+  .hero p { margin-top: 4px; font-size: clamp(15px, 1.9vw, 18px); color: var(--ink-soft); }
+
+  /* 걸음 단추 */
+  .walk { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 8px; margin-top: 12px; }
+  .walk button { font-size: 17px; line-height: 1; padding: 6px 9px 4px; border-radius: 6px; }
+  .walk button:nth-child(odd) { transform: rotate(-1.5deg); }
+  .walk button:nth-child(even) { transform: rotate(1.2deg); }
+  .walk button.on { background: var(--marker); }
+  .walk .nm { display: none; }
+  @media (min-width: 760px) { .walk .nm { display: inline; } }
+  .n { font-style: normal; font-weight: 700; }
+  .n.t { color: var(--talk); } .n.f { color: var(--find); } .n.d { color: var(--db); }
+
+  /* 화면 순서도 — 왼쪽 메뉴 경로 · 가운데 화면 · 오른쪽 조회 · 현황 */
+  .map { position: relative; margin-top: 14px; }
+  .flow { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(120px, 170px) minmax(0, 1fr) minmax(150px, 230px); column-gap: 26px; align-items: center; }
+  /* 칸 자리를 못 박는다 — .act 뒤의 .path 가 3칸으로 밀리지 않게 */
+  .path { grid-column: 1; text-align: right; font-size: clamp(12px, 1.5vw, 14px); color: var(--ink-soft); line-height: 1.25; padding-right: 4px; }
+  .path b { display: block; color: var(--ink); font-weight: 700; }
+  .scr { grid-column: 2; position: relative; padding: 12px 14px 12px; min-height: 76px; }
+  .side { grid-column: 3; }
+  .pad { grid-column: 1 / -1; }
+  .scr .nm { display: inline-block; font-size: clamp(20px, 2.8vw, 27px); line-height: 1.05; padding: 0 3px; }
+  .scr .code { margin-left: 6px; font-size: 12px; color: var(--ink-faint); font-family: var(--mono); }
+  .scr .sub { display: block; margin-top: 2px; font-size: clamp(12px, 1.6vw, 14.5px); color: var(--ink-soft); line-height: 1.25; }
+  .scr .fields { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 9px; }
+  .scr .fld { position: relative; font-size: clamp(12.5px, 1.5vw, 14px); line-height: 1; padding: 6px 8px 5px; }
+  .scr .fld.must::after { content: '*'; color: var(--talk); font-weight: 700; margin-left: 2px; }
+  .scr .btn { position: relative; font-size: clamp(12.5px, 1.5vw, 14px); font-weight: 700; line-height: 1; padding: 6px 10px 5px; color: var(--find); }
+  .scr:hover .nm, .scr:focus-visible .nm { text-decoration: underline wavy rgba(54, 51, 45, 0.35); text-underline-offset: 5px; }
+  .scr.now .nm { background: linear-gradient(transparent 52%, var(--marker) 52%, var(--marker) 94%, transparent 94%); }
+  .scr.later .nm, .scr.later .sub, .scr.later .fld, .scr.later .btn { color: var(--ink-faint); }
+  .scr.done .sub, .scr.done .fld { color: var(--ink-faint); }
+  .act { grid-column: 2; text-align: left; padding: 10px 0 10px calc(50% + 16px); font-size: clamp(12.5px, 1.6vw, 15px); color: var(--ink-soft); line-height: 1.25; min-height: 38px; }
+  .act b { color: var(--ink); }
+  .side { font-size: clamp(12px, 1.5vw, 14px); line-height: 1.3; padding: 8px 10px; color: var(--ink-soft); }
+  .side b { display: block; color: var(--ink); font-size: clamp(13.5px, 1.7vw, 16px); }
+  .side.later { opacity: 0.45; }
+  .pad { height: 6px; }
+  @media (max-width: 640px) {
+    .flow { grid-template-columns: minmax(0, 1fr); column-gap: 0; }
+    .path, .scr, .side, .act { grid-column: 1; }
+    .path { text-align: left; padding: 0 4px 2px; }
+    .side { margin: 2px 0 8px 24px; }
+  }
+
+  /* 설명 공책 */
+  .panel { position: relative; margin-top: 18px; padding: 14px 18px 14px 28px; }
+  .panel > div { position: relative; z-index: 1; }
+  .panel h3 { font-size: clamp(28px, 4vw, 36px); line-height: 1.05; }
+  .cols { display: grid; gap: 14px 26px; margin-top: 6px; }
+  @media (min-width: 760px) { .cols.two { grid-template-columns: minmax(0, 1fr) minmax(240px, 320px); align-items: start; } }
+  .one { font-size: clamp(16px, 1.9vw, 18px); line-height: 1.38; }
+  .rows { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 5px 10px; margin-top: 9px; font-size: clamp(14.5px, 1.7vw, 16.5px); line-height: 1.35; color: var(--ink-soft); }
+  .rows dt { font-weight: 700; color: var(--ink); }
+  .rows dd { margin: 0; }
+  .rows dd b { color: var(--ink); }
+  .steps { list-style: none; display: grid; gap: 4px; margin-top: 8px; }
+  .steps button { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; text-align: left; font-size: clamp(15px, 1.8vw, 17px); line-height: 1.3; padding: 2px 4px; border-radius: 4px; }
+  .steps button:hover { background: var(--marker); }
+  .steps b { white-space: nowrap; }
+  .card { position: relative; padding: 12px 14px 11px; }
+  .card .ct { display: block; font-size: 16px; font-weight: 700; color: var(--ink-soft); line-height: 1.1; margin-bottom: 7px; }
+  .card .ln { font-size: clamp(14px, 1.6vw, 15.5px); line-height: 1.4; color: var(--ink); padding-left: 14px; text-indent: -14px; }
+  .card .ln::before { content: '› '; color: var(--ink-faint); }
+  .card .cap { font-size: 14px; color: var(--ink-soft); line-height: 1.3; margin-top: 6px; }
+  .card .rep { font-size: clamp(15px, 1.8vw, 17px); line-height: 1.45; }
+  .ref { margin-top: 8px; font-size: 13px; color: var(--ink-faint); }
+  .try { font-family: 'Nanum Pen Script', cursive; font-size: 22px; line-height: 1.15; color: var(--find); margin-top: 10px; }
+  .panel .nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; }
+  .panel .nav button { font-size: 17px; line-height: 1; padding: 6px 9px 4px; border-radius: 6px; }
+  .panel .nav button[disabled] { visibility: hidden; }
+
+  .legend { margin: 16px auto 0; max-width: 800px; display: grid; gap: 4px; font-size: clamp(14px, 1.8vw, 16px); color: var(--ink-soft); text-align: center; line-height: 1.3; }
+  .legend .f { color: var(--find); font-weight: 700; } .legend .t { color: var(--talk); font-weight: 700; } .legend .d { color: var(--db); font-weight: 700; }
+
+  .grad { position: relative; margin-top: 22px; padding: 14px 18px 12px; }
+  .grad > * { position: relative; z-index: 1; }
+  .grad h3 { font-size: clamp(24px, 3.4vw, 30px); line-height: 1.05; margin-bottom: 6px; }
+  .grad label { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; font-size: clamp(15px, 1.9vw, 17px); line-height: 1.3; cursor: pointer; }
+  .grad input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .grad .bx { display: block; flex: none; width: 20px; height: 20px; margin-top: 1px; }
+  .grad .on { color: var(--ink-faint); text-decoration: line-through; text-decoration-color: rgba(54, 51, 45, 0.3); }
+  .grad .sign { margin-top: 8px; font-size: clamp(13px, 1.6vw, 15px); color: var(--ink-soft); }
+  .foot { margin-top: 14px; text-align: center; font-size: clamp(12px, 1.4vw, 13.5px); color: var(--ink-faint); line-height: 1.4; }
+
+  /* ---------- 교과서 도식 ---------- */
+  html[data-style="textbook"] { --paper: #ffffff; --ink: #1f2937; --ink-soft: #4b5563; --ink-faint: #a3aab5; --find: #1f5fae; --talk: #b8432f; --db: #2f7d4f; --marker: rgba(31, 95, 174, 0.14); }
+  html[data-style="textbook"] body { font-family: 'Noto Sans KR', system-ui, sans-serif; background: #fff; background-image: none; letter-spacing: -0.01em; }
+  html[data-style="textbook"] .brush { font-family: 'Noto Sans KR', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; }
+  html[data-style="textbook"] .hero h1 { font-size: clamp(24px, 3.6vw, 32px); }
+  html[data-style="textbook"] .hero p, html[data-style="textbook"] .hero .kick { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="textbook"] .walk button, html[data-style="textbook"] .panel .nav button { font-size: 13.5px; border-radius: 999px; border: 1px solid var(--ink-faint); padding: 5px 11px; transform: none; }
+  html[data-style="textbook"] .walk button.on { border-color: var(--find); }
+  html[data-style="textbook"] .scr .nm { font-size: clamp(15px, 2.1vw, 19px); font-weight: 800; }
+  html[data-style="textbook"] .scr .sub, html[data-style="textbook"] .path, html[data-style="textbook"] .act, html[data-style="textbook"] .side { font-size: clamp(11.5px, 1.35vw, 13px); }
+  html[data-style="textbook"] .side b { font-size: clamp(12.5px, 1.5vw, 14px); }
+  html[data-style="textbook"] .scr .fld, html[data-style="textbook"] .scr .btn { font-size: 12px; }
+  html[data-style="textbook"] .panel h3 { font-size: clamp(19px, 2.6vw, 24px); }
+  html[data-style="textbook"] .one { font-size: clamp(13.5px, 1.55vw, 15.5px); }
+  html[data-style="textbook"] .rows, html[data-style="textbook"] .steps button, html[data-style="textbook"] .card .rep { font-size: clamp(12.5px, 1.45vw, 14px); }
+  html[data-style="textbook"] .card .ln { font-size: clamp(12px, 1.35vw, 13.5px); }
+  html[data-style="textbook"] .card .cap, html[data-style="textbook"] .card .ct { font-size: 12.5px; }
+  html[data-style="textbook"] .try { font-family: inherit; font-size: clamp(12.5px, 1.45vw, 14px); font-weight: 700; }
+  html[data-style="textbook"] .legend { font-size: clamp(12px, 1.5vw, 13.5px); }
+  html[data-style="textbook"] .grad h3 { font-size: clamp(17px, 2.4vw, 21px); }
+  html[data-style="textbook"] .grad label { font-size: clamp(12.5px, 1.55vw, 14.5px); }
+
+  /* ---------- 설계 도면 ---------- */
+  html[data-style="blueprint"] { --paper: #f6f8fb; --ink: #16365c; --ink-soft: #3d5878; --ink-faint: #9db0c6; --find: #1d6fb8; --talk: #c23b2e; --db: #2b7a5a; --marker: rgba(29, 111, 184, 0.13); --mono: 'IBM Plex Mono', 'IBM Plex Sans KR', ui-monospace, Consolas, monospace; }
+  html[data-style="blueprint"] body { font-family: 'IBM Plex Sans KR', system-ui, sans-serif; background-color: var(--paper);
+    background-image: linear-gradient(rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(rgba(29, 111, 184, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.045) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px; }
+  html[data-style="blueprint"] .page { border: 1.5px solid var(--ink); outline: 1px solid var(--ink); outline-offset: 5px; padding: 16px; background: rgba(246, 248, 251, 0.6); }
+  html[data-style="blueprint"] .brush { font-family: 'IBM Plex Sans KR', sans-serif; font-weight: 700; letter-spacing: 0.01em; }
+  html[data-style="blueprint"] .hero .kick::before { content: 'FIG. E1  '; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.2em; color: var(--ink-soft); }
+  html[data-style="blueprint"] .hero h1 { font-size: clamp(22px, 3.4vw, 30px); }
+  html[data-style="blueprint"] .hero p, html[data-style="blueprint"] .hero .kick { font-size: clamp(13px, 1.45vw, 14.5px); }
+  html[data-style="blueprint"] .walk button, html[data-style="blueprint"] .panel .nav button { font-size: 13px; border-radius: 0; border: 1px solid var(--ink-faint); padding: 5px 10px; letter-spacing: 0.02em; transform: none; }
+  html[data-style="blueprint"] .walk button.on { background: none; border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  html[data-style="blueprint"] .scr .nm { font-size: clamp(14px, 2vw, 18px); font-weight: 700; }
+  html[data-style="blueprint"] .scr.now .nm { background: none; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  html[data-style="blueprint"] .scr .sub, html[data-style="blueprint"] .path, html[data-style="blueprint"] .act, html[data-style="blueprint"] .side { font-size: clamp(11px, 1.3vw, 12.5px); }
+  html[data-style="blueprint"] .side b { font-size: clamp(12px, 1.45vw, 13.5px); }
+  html[data-style="blueprint"] .scr .fld, html[data-style="blueprint"] .scr .btn { font-size: 11.5px; }
+  html[data-style="blueprint"] .panel h3 { font-size: clamp(17px, 2.4vw, 22px); }
+  html[data-style="blueprint"] .one { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="blueprint"] .rows, html[data-style="blueprint"] .steps button, html[data-style="blueprint"] .card .rep { font-size: clamp(12px, 1.4vw, 13.5px); }
+  html[data-style="blueprint"] .card .ln { font-size: clamp(11.5px, 1.3vw, 13px); }
+  html[data-style="blueprint"] .card .cap, html[data-style="blueprint"] .card .ct { font-size: 12px; }
+  html[data-style="blueprint"] .try { font-family: inherit; font-size: clamp(12px, 1.4vw, 13.5px); font-weight: 600; }
+  html[data-style="blueprint"] .legend { font-size: clamp(11.5px, 1.4vw, 13px); }
+  html[data-style="blueprint"] .grad h3 { font-size: clamp(16px, 2.2vw, 19px); }
+  html[data-style="blueprint"] .grad label { font-size: clamp(12px, 1.5vw, 14px); }
+
+  @media print { .pick, .panel .nav { display: none !important; } body { padding: 0; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="pick" id="pick">
+    <button type="button" data-s="pencil">연필 손그림</button>
+    <button type="button" data-s="textbook">교과서 도식</button>
+    <button type="button" data-s="blueprint">설계 도면</button>
+    <a href="ecount.html" id="back">← 길잡이 목차</a>
+  </div>
+
+  <header class="hero">
+    <div class="kick">이카운트 길잡이 · E1 · 영업 길 (교재 1장 · 2장의 「지금 · 이카운트」)</div>
+    <h1 class="brush">견적서에서 거래명세서까지</h1>
+    <p>손님 주문 하나를 이카운트에 넣는 순서. 상자 = 화면, 아래 화살표 = 누르는 단추, 오른쪽 점선 = 그 화면의 조회 · 현황.</p>
+  </header>
+
+  <nav class="walk" id="walk" aria-label="걸음 고르기">
+    <button type="button" data-k="all">전체</button>
+    <button type="button" data-k="1"><span class="n">①</span><span class="nm"> 계정 고르기</span></button>
+    <button type="button" data-k="2"><span class="n d">②</span><span class="nm"> 견적서입력</span></button>
+    <button type="button" data-k="3"><span class="n d">③</span><span class="nm"> 주문서입력</span></button>
+    <button type="button" data-k="4"><span class="n d">④</span><span class="nm"> 판매입력</span></button>
+    <button type="button" data-k="5"><span class="n t">⑤</span><span class="nm"> 거래명세서 · 수금 · 반품</span></button>
+    <button type="button" data-k="6"><span class="n f">⑥</span><span class="nm"> 확인 · 넘기기</span></button>
+  </nav>
+
+  <section class="map" id="map">
+    <svg class="over" id="lines" aria-hidden="true"></svg>
+    <div class="flow" id="flow">
+      <div class="path"><b>login.ecount.com</b>5계정 중 팔 업체 것</div>
+      <div class="scr spot" id="s1" data-k="1" tabindex="0" role="button"><span class="nm brush">계정 고르기</span><span class="sub">회사코드 · ID · 비밀번호 — 어느 업체 명의로 파나가 여기서 정해진다</span>
+        <div class="fields"><span class="fld must">회사코드</span><span class="fld must">ID</span><span class="fld must">비밀번호</span><span class="btn">로그인</span></div></div>
+      <div class="side" id="d1"><b>왼쪽 메뉴</b>재고Ⅰ › 영업관리 가 영업의 자리. 메뉴마다 입력 · 조회 · 현황이 한 벌</div>
+
+      <div class="act" id="a1"><b>재고Ⅰ › 영업관리</b> 로 들어간다</div>
+
+      <div class="path"><b>재고Ⅰ › 영업관리</b>› 견적서입력 › 신규</div>
+      <div class="scr spot" id="s2" data-k="2" tabindex="0" role="button"><span class="nm brush">견적서입력</span><span class="code">E040201</span><span class="sub">손님이 값을 물었을 때. 몇 장이어도 된다</span>
+        <div class="fields"><span class="fld must">일자</span><span class="fld must">거래처</span><span class="fld">담당</span><span class="fld">창고</span><span class="fld must">품목</span><span class="fld must">수량</span><span class="fld must">단가</span><span class="fld">적요</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d2"><b>견적서조회 · 견적서현황</b>고치기 · 지우기 · 인쇄(양식) · 메일 발송 · PDF</div>
+
+      <div class="act" id="a2">저장 → 손님이 「그걸로」 하면 <b>주문서입력에서 [견적] 단추로 불러온다</b></div>
+
+      <div class="path"><b>재고Ⅰ › 영업관리</b>› 주문서입력</div>
+      <div class="scr spot" id="s3" data-k="3" tabindex="0" role="button"><span class="nm brush">주문서입력</span><span class="code">E040203</span><span class="sub">약속. 견적을 불러와 납기 · 창고 · 수량을 다시 확인한다</span>
+        <div class="fields"><span class="btn">견적 불러오기</span><span class="fld must">일자</span><span class="fld must">거래처</span><span class="fld must">납기일자</span><span class="fld must">창고</span><span class="fld must">품목 · 수량</span><span class="fld">단가</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d3"><b>주문서조회 · 미주문현황</b>진행중 / 완료(종결처리). 미주문현황 = 견적은 있는데 주문 안 된 것</div>
+
+      <div class="act" id="a3">물건이 나갈 때 → <b>판매입력에서 [주문] 단추로 불러온다</b> (출고 수량을 고칠 수 있다)</div>
+
+      <div class="path"><b>재고Ⅰ › 영업관리</b>› 판매입력</div>
+      <div class="scr spot" id="s4" data-k="4" tabindex="0" role="button"><span class="nm brush">판매입력</span><span class="code">E040205</span><span class="sub">저장하는 순간 재고가 줄고 받을 돈(채권)이 는다. 일부만 나가면 잔량이 남는다</span>
+        <div class="fields"><span class="btn">주문 불러오기</span><span class="fld must">일자</span><span class="fld must">거래처</span><span class="fld must">창고</span><span class="fld must">품목 · 출고수량</span><span class="fld must">단가</span><span class="fld">현금수금 · 어음수금</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d4"><b>판매조회 · 미판매현황</b>고치기 · 지우기 · 거래명세서 인쇄 · 메일 · PDF. 미판매현황 = 주문했는데 아직 안 나간 잔량</div>
+
+      <div class="act" id="a4">저장 → <b>판매조회에서 거래명세서</b>를 뽑는다</div>
+
+      <div class="path"><b>재고Ⅰ › 영업관리</b>› 판매조회 · 거래명세서인쇄</div>
+      <div class="scr spot" id="s5" data-k="5" tabindex="0" role="button"><span class="nm brush">거래명세서 · 수금 · 반품</span><span class="sub">손님에게 가는 종이, 받은 돈, 되돌아온 물건을 같은 자리에서</span>
+        <div class="fields"><span class="btn">인쇄</span><span class="btn">메일</span><span class="btn">PDF</span><span class="fld">현금수금 · 어음수금 (판매입력 하단)</span><span class="fld">반품 = 수량을 −로 (단가는 판 날 그대로)</span></div></div>
+      <div class="side" id="d5"><b>판매현황 · 반품현황</b>오늘 판 것 · 돌아온 것. 메일 · 팩스 보낸 기록도 판매조회에서</div>
+
+      <div class="act" id="a5">끝내기 전에 <b>세 군데를 본다</b></div>
+
+      <div class="path"><b>재고Ⅰ › 영업관리</b>› 현황 · 출력물</div>
+      <div class="scr spot" id="s6" data-k="6" tabindex="0" role="button"><span class="nm brush">확인 · 넘기기</span><span class="sub">남은 주문이 없나, 받을 돈이 맞나. 세금계산서는 경리에게(E5)</span>
+        <div class="fields"><span class="fld">미주문현황</span><span class="fld">미판매현황</span><span class="fld">거래처별채권 → 거래처명 클릭 = 거래처원장</span><span class="fld">거래처관리대장1 (메일 발송)</span></div></div>
+      <div class="side" id="d6"><b>경리에게 넘어가는 것</b>판매전표의 회계반영 · 세금계산서 발행 → E5 세금 · 장부 길</div>
+      <div class="pad"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel" aria-live="polite">
+    <svg class="over" id="panelLines" aria-hidden="true"></svg>
+    <div id="panelBody"></div>
+  </section>
+
+  <footer class="legend">
+    <div><span class="d">초록</span> = 저장하면 재고 · 돈이 바뀌는 화면 · <span class="t">붉은 갈색</span> = 바깥으로 보내기(인쇄 · 메일) · <span class="f">파랑</span> = 보기 · 확인</div>
+    <div>칸 뒤의 <span class="t">*</span> = 꼭 넣는 칸 (추정 — 회사 계정의 필수 칸 설정은 확인 전)</div>
+  </footer>
+
+  <section class="grad" id="grad">
+    <svg class="over" id="gradLines" aria-hidden="true"></svg>
+    <h3 class="brush">해 보기 · E1 졸업</h3>
+    <label><input type="checkbox" data-k="g1"><i class="bx"></i><span>연습 거래처로 견적서 1장을 넣고 PDF 로 뽑았다</span></label>
+    <label><input type="checkbox" data-k="g2"><i class="bx"></i><span>그 견적을 [견적] 단추로 불러와 주문서로 저장했다 — 저장은 한 번</span></label>
+    <label><input type="checkbox" data-k="g3"><i class="bx"></i><span>[주문] 단추로 불러와 일부만 판매입력하고, 미판매현황에서 잔량을 찾았다</span></label>
+    <label><input type="checkbox" data-k="g4"><i class="bx"></i><span>거래명세서를 뽑고, 거래처별채권에서 그 거래처의 미수를 찾았다</span></label>
+    <p class="sign">옆에서 본 선배 ____________ · 날짜 ____________</p>
+  </section>
+
+  <p class="foot">연습은 회사가 정한 연습 거래처 · 연습 품목으로만 (실제 거래처에 넣지 않는다) · 주소는 회사 안에서만 나눈다 · 교재 = 이카운트 공식 교재(초급 재고 · 유통)</p>
+</div>
+
+<script src="sketch-kit.js"></script>
+<script>
+(function () {
+  'use strict';
+  var STEPS = ['1', '2', '3', '4', '5', '6'];
+  var NUM = { 1: '①', 2: '②', 3: '③', 4: '④', 5: '⑤', 6: '⑥' };
+  var NAME = { 1: '계정 고르기', 2: '견적서입력', 3: '주문서입력', 4: '판매입력', 5: '거래명세서 · 수금 · 반품', 6: '확인 · 넘기기' };
+  var KIND = { 1: 'ink', 2: 'db', 3: 'db', 4: 'db', 5: 'talk', 6: 'find' };
+
+  // 설명 — one 한 줄 · rows [이름표, 내용] · card 「틀렸을 때」 · ref 교재 쪽
+  var INFO = {
+    all: { title: '견적서에서 거래명세서까지',
+      one: '영업이 누르는 화면 여섯. 저장할 때마다 무엇이 바뀌는지가 핵심이다 — 견적은 아무것도, 주문은 잔량 관리, 판매는 재고와 돈.',
+      list: { 1: '팔 업체의 계정으로 들어간다', 2: '손님이 값을 물으면 견적서', 3: '그걸로 하면 견적을 불러와 주문서', 4: '물건이 나가면 주문을 불러와 판매입력', 5: '거래명세서 인쇄 · 수금 · 반품', 6: '미주문 · 미판매 · 거래처별채권을 보고 경리에게' },
+      card: { t: '한 줄로', html: '<p class="rep"><b>불러오기</b>로 잇는다 — 견적 → [견적] → 주문 → [주문] → 판매. 다시 치지 않으면 잔량(미주문 · 미판매)이 저절로 맞는다.</p>' } },
+    1: { title: '① 계정 고르기',
+      one: '이카운트는 업체마다 계정이 따로다(5계정). 들어간 계정이 곧 판매 명의 — 양식 · 계좌 · 사업자번호가 여기서 정해진다.',
+      rows: [['언제', '일을 시작할 때, 그리고 다른 업체 명의 거래를 넣을 때마다'], ['넣는 칸', '회사코드 · ID · 비밀번호 (사람마다 다르다, 적어 두지 않는다)'], ['조심', '다른 업체 계정에서 넣으면 견적서 양식 · 입금 계좌가 다 틀어진다. 새 창(Ctrl+N)으로 두 계정을 동시에 띄우면 헷갈린다 (추정)']],
+      card: { t: '틀렸을 때', lines: ['로그아웃 → 맞는 계정으로 다시', '이미 저장했으면 그 계정의 조회 화면에서 지우고, 맞는 계정에 다시 넣는다'], cap: '계정을 넘나드는 복사 기능은 없다 (추정)' },
+      ref: '교재 초급 p.1 · 5계정 운영은 회사 현황(추정)' },
+    2: { title: '② 견적서입력',
+      one: '손님이 값을 물었을 때. 재고도 돈도 안 바뀌는 「약속 전」 서류라 몇 장을 넣어도 된다.',
+      rows: [['경로', '재고Ⅰ › 영업관리 › 견적서입력 › 신규'], ['넣는 칸', '일자 · 거래처(검색) · 담당 · 창고(나갈 곳) · 품목 · 수량 · 단가 · 적요'], ['단가', '품목에 둔 기본 출고단가가 먼저 뜨고, 거래처 단가표(특별단가) · 최종단가가 있으면 그것이 이긴다 (E7 기초등록 길)'], ['저장 뒤', '견적서조회에서 인쇄(양식) · 메일 · PDF. 보낸 기록도 여기서'], ['조심', '거래처를 비슷한 이름으로 잘못 고른다 · 기본 단가로 그냥 저장한다 · 어느 장이 확정인지 적요에 안 남긴다']],
+      card: { t: '틀렸을 때', lines: ['고치기 · 지우기: 견적서조회에서 그 전표를 열어 [수정] · [삭제]', '전자결재를 쓰는 회사면 결재 중 전표는 못 고친다 (추정)'], cap: '견적은 지워도 재고 · 돈에 영향이 없다' },
+      ref: '교재 초급 p.12~13 (영업관리 기본흐름 · 입력 / 조회 / 현황)',
+      tryit: '연습 거래처로 견적서 1장 → 견적서조회에서 PDF' },
+    3: { title: '③ 주문서입력',
+      one: '손님이 「그걸로 할게요」 하면. 견적을 다시 치지 않고 [견적] 단추로 불러온다 — 그래야 미주문현황이 맞는다.',
+      rows: [['경로', '재고Ⅰ › 영업관리 › 주문서입력 › [견적] 불러오기'], ['넣는 칸', '일자 · 거래처 · 납기일자(언제 나가나) · 창고(어디서 나가나) · 품목 · 수량 · 단가'], ['진행', '진행중 / 완료 — 다 나가면 완료, 못 나가는 건은 강제로 종결처리'], ['저장 뒤', '재고는 아직 안 변한다 (추정). 주문서조회 · 미주문현황 · 주문서현황에서 본다'], ['조심', '저장을 두 번 누르면 주문서 두 장 — 막아 주지 않는다 · 창고를 안 고르면 판매입력에서 다시 고른다']],
+      card: { t: '틀렸을 때', lines: ['두 장이면 주문서조회에서 하나 [삭제]', '수량 · 납기 고치기는 주문서조회에서 열어 [수정]', '안 나갈 주문은 [종결처리]로 완료 — 지우지 않는다'], cap: '판매까지 넘어간 주문서를 지우면 미판매현황이 어긋난다' },
+      ref: '교재 초급 p.12 (주문서 · 종결처리 · 미주문)',
+      tryit: '[견적] 단추로 불러와 저장 — 한 번만' },
+    4: { title: '④ 판매입력',
+      one: '물건이 나갈 때. 저장하는 순간 재고가 줄고, 거래처별채권(받을 돈)이 는다. 세금계산서도 이 전표에서 시작한다.',
+      rows: [['경로', '재고Ⅰ › 영업관리 › 판매입력 › [주문] 불러오기'], ['넣는 칸', '일자 · 거래처 · 창고 · 품목 · 출고수량(일부만이면 줄인다) · 단가 · 운송비 같은 품목'], ['저장 뒤', '재고 감소 · 채권 증가 · 거래명세서 인쇄 가능. 남은 수량은 미판매현황에'], ['수금', '판매입력 하단 [현금수금] · [어음수금], 또는 경리가 회계Ⅰ › FastEntry › 입금보고서(외상매출금)'], ['조심', '치는 시점이 회사마다 다르다 — 출고 때인지, 거래명세서 낼 때인지: 회사가 채움 (회사법 나-3). 단가를 주문서와 다르게 치면 채권이 어긋난다']],
+      card: { t: '틀렸을 때', lines: ['고치기 · 지우기: 판매조회에서 열어 [수정] · [삭제]', '회계반영(세금계산서)까지 된 전표는 매출전표를 먼저 떼야 지워진다 (E5)', '국세청에 신고된 전표는 수정 · 삭제 불가 — 수정세금계산서로'], cap: '지운 전표는 재고Ⅰ › 출력물 › 거래이력조회에서 복구할 수 있다' },
+      ref: '교재 초급 p.13~15 (판매 · 미판매 · 수금 · 반품)',
+      tryit: '주문의 절반만 출고로 저장 → 미판매현황에서 잔량 확인' },
+    5: { title: '⑤ 거래명세서 · 수금 · 반품',
+      one: '손님에게 가는 종이, 받은 돈, 되돌아온 물건. 셋 다 판매전표에 붙는다.',
+      rows: [['거래명세서', '판매조회에서 인쇄 · 메일 · 팩스 · PDF. 양식은 계정(업체)마다 설정된 것 (추정)'], ['수금', '현금 · 어음은 판매입력 하단 단추. 통장 입금은 경리가 입금보고서로 (E4)'], ['반품', '판매입력에 수량을 마이너스로 — 단가는 판 날 금액 그대로. 또는 판매전표 하단 [반품처리]. 돌아온 물건은 불량창고 같은 창고로 (추정)'], ['조심', '반품 단가를 오늘 단가로 치면 채권이 안 맞는다 · 메일 보낸 뒤 전표를 고치면 손님 종이와 달라진다']],
+      card: { t: '틀렸을 때', lines: ['잘못 보낸 거래명세서: 전표를 고치고 다시 보낸다, 보낸 기록은 판매조회에 남는다', '반품을 잘못 넣었으면 그 마이너스 전표를 판매조회에서 지운다'], cap: '교환은 반품(−) 한 줄 + 판매(+) 한 줄' },
+      ref: '교재 초급 p.15~16 (수금처리 · 반품처리 · 판매조회)',
+      tryit: '연습 판매 1건을 반품(−)으로 되돌려 보고 반품현황에서 찾기' },
+    6: { title: '⑥ 확인 · 넘기기',
+      one: '퇴근 전 세 군데. 남은 주문이 없나(미주문 · 미판매), 받을 돈이 맞나(거래처별채권). 세금계산서는 경리 몫이다.',
+      rows: [['미주문 · 미판매', '견적만 있는 것 · 주문만 있는 것. 잔량이 0이면 종결처리'], ['거래처별채권', '재고Ⅰ › 영업관리(또는 출력물) › 거래처별채권 — 거래처명을 누르면 거래처원장. 과장님이 「중요!!」'], ['거래처관리대장1', '한 거래처와의 채권 · 수금을 한 장으로, 메일 발송'], ['경리에게', '판매전표의 회계반영 · 세금계산서 발행은 E5 세금 · 장부 길. 영업은 전표를 맞게 넣는 데까지'], ['조심', '거래처별채권은 계정마다 따로다 — 5계정을 돌며 본다 (추정)']],
+      card: { t: '나중 · UBO ONE', lines: ['확인 단추 하나로 주문 1건 + 창고 요청, 미수는 고객 찾기에 바로 보인다 (ORD-01 · ORD-04)', '5계정을 돌지 않는다 — 업체는 칸 하나'], cap: '이 길 전체가 교재 1장 · 2장의 「지금 · 이카운트」 카드다' },
+      ref: '교재 초급 p.24 · p.30 (출력물 · 사용순서와 메뉴정리)',
+      tryit: '거래처별채권에서 연습 거래처 → 거래처원장 열어 보기' }
+  };
+
+  var K;
+  var map = document.getElementById('map');
+  var flow = document.getElementById('flow');
+  var walk = document.getElementById('walk');
+  var panel = document.getElementById('panel');
+  var panelBody = document.getElementById('panelBody');
+  var grad = document.getElementById('grad');
+  var scrs = Array.prototype.slice.call(map.querySelectorAll('.scr'));
+  var picked = 'all';
+  var esc = function (s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var label = function (k) { return k === 'all' ? '전체' : NUM[k] + ' ' + NAME[k]; };
+  var color = function (k) { var c = k === 'all' ? 'ink' : KIND[k]; return c === 'ink' ? K.C.ink : K.C[c]; };
+
+  function select(k) {
+    picked = k;
+    var i = STEPS.indexOf(k);
+    scrs.forEach(function (el) {
+      var n = STEPS.indexOf(el.dataset.k);
+      el.classList.toggle('now', i >= 0 && n === i);
+      el.classList.toggle('done', i >= 0 && n < i);
+      el.classList.toggle('later', i >= 0 && n > i);
+      el.setAttribute('aria-pressed', String(n === i));
+      var side = document.getElementById('d' + el.dataset.k);
+      if (side) side.classList.toggle('later', i >= 0 && n > i);
+    });
+    Array.prototype.forEach.call(walk.querySelectorAll('button'), function (b) {
+      b.classList.toggle('on', b.dataset.k === k);
+      b.setAttribute('aria-pressed', String(b.dataset.k === k));
+    });
+    var info = INFO[k], col = color(k);
+    var h = '<h3 class="brush" style="color:' + col + '">' + info.title + '</h3>';
+    h += '<div class="cols' + (info.card ? ' two' : '') + '"><div>';
+    h += '<p class="one">' + info.one + '</p>';
+    if (info.rows) h += '<dl class="rows">' + info.rows.map(function (r) { return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join('') + '</dl>';
+    if (info.list) {
+      h += '<ul class="steps">' + STEPS.map(function (s) {
+        return '<li><button type="button" data-go="' + s + '"><b style="color:' + color(s) + '">' + NUM[s] + ' ' + NAME[s] + '</b>' + info.list[s] + '</button></li>';
+      }).join('') + '</ul>';
+    }
+    if (info.tryit) h += '<p class="try">해 보기: ' + info.tryit + '</p>';
+    if (info.ref) h += '<p class="ref">' + info.ref + '</p>';
+    h += '</div>';
+    var prev = i < 0 ? null : (i === 0 ? 'all' : STEPS[i - 1]);
+    var next = i < 0 ? '1' : (i === STEPS.length - 1 ? 'all' : STEPS[i + 1]);
+    var nav = '<div class="nav"><button type="button" data-go="' + (prev || '') + '"' + (prev ? '' : ' disabled') + '>← ' + (prev ? label(prev) : '') + '</button>' +
+      '<button type="button" data-go="' + next + '">' + (i < 0 ? '① 계정 고르기부터' : label(next)) + ' →</button></div>';
+    if (info.card) {
+      var body = info.card.html || '';
+      if (info.card.lines) body += info.card.lines.map(function (l) { return '<div class="ln">' + esc(l) + '</div>'; }).join('');
+      if (info.card.cap) body += '<p class="cap">' + info.card.cap + '</p>';
+      h += '<div><div class="card" id="card"><span class="ct">' + info.card.t + '</span>' + body + '</div>' + nav + '</div></div>';
+    } else {
+      h += '</div>' + nav;
+    }
+    panelBody.innerHTML = h;
+    schedule();
+  }
+
+  function inState(g, st, col, fn) {
+    var gg = st === 'done' ? K.el(g, 'g', { opacity: 0.5 }) : g;
+    fn(gg, st === 'later' ? K.C.faint : col, st === 'now' ? 2.6 : 1.8);
+  }
+  // 세로 화살표 — 몸통은 K.line, 촉은 두 획
+  function vArrow(g, x, y1, y2, r, c, w) {
+    K.line(g, x, y1, x + (r() - 0.5) * 1.5, y2 - 2, r, c, w);
+    K.line(g, x, y2, x - 6, y2 - 9, r, c, Math.max(1.4, w * 0.8));
+    K.line(g, x, y2, x + 6, y2 - 9, r, c, Math.max(1.4, w * 0.8));
+  }
+
+  function draw() {
+    var g = K.fresh(document.getElementById('lines'));
+    var box = K.rel(map);
+    var i = STEPS.indexOf(picked);
+    var state = function (k) { var n = STEPS.indexOf(k); return i < 0 ? 'all' : n === i ? 'now' : n < i ? 'done' : 'later'; };
+    var narrow = flow.offsetWidth < 640;
+
+    STEPS.forEach(function (k, n) {
+      var el = document.getElementById('s' + k), b = box(el), st = state(k), c = color(k);
+      var r = K.rng(10 + n), hot = st === 'now';
+      // 화면 상자 — 지금 보는 화면은 두 겹
+      K.rect(g, b.x, b.y, b.w, b.h, r, st === 'later' ? K.C.faint : c, hot ? 2.4 : 1.5);
+      if (hot) K.rect(g, b.x + 3, b.y + 3, b.w - 6, b.h - 6, r, c, 1);
+      // 칸 · 단추 — 칸은 가는 네모, 단추는 알약처럼 두 겹
+      Array.prototype.forEach.call(el.querySelectorAll('.fld, .btn'), function (f, m) {
+        var fb = box(f), rr = K.rng(100 + n * 20 + m), isBtn = f.classList.contains('btn');
+        var fc = st === 'later' ? K.C.faint : (isBtn ? K.C.find : K.C.ink);
+        K.rect(g, fb.x, fb.y, fb.w, fb.h, rr, fc, isBtn ? 1.5 : 1);
+        if (isBtn) K.hatch(g, fb.x, fb.y, fb.w, fb.h, rr, 6, K.C.find, 0.08);
+      });
+      // 아래 화살표 — 다음 화면으로
+      if (n < STEPS.length - 1) {
+        var nb = box(document.getElementById('s' + STEPS[n + 1]));
+        inState(g, state(STEPS[n + 1]), color(STEPS[n + 1]), function (gg, cc, w) { vArrow(gg, b.cx, b.b + 3, nb.y - 3, K.rng(40 + n), cc, w); });
+      }
+      // 오른쪽 점선 — 조회 · 현황
+      var side = document.getElementById('d' + k);
+      if (side && !narrow) {
+        var sb = box(side), rs = K.rng(60 + n), sc = st === 'later' ? K.C.faint : K.C.find;
+        K.rect(g, sb.x, sb.y, sb.w, sb.h, rs, sc, 1.1, '5 4');
+        var y = Math.min(b.cy, sb.cy);
+        K.line(g, b.rt + 4, y, sb.x - 6, y, rs, sc, 1.2, '4 4');
+        K.head(g, sb.x - 4, y, 1, rs, sc, 1.2);
+      }
+    });
+
+    // 설명 공책 테두리 + 색 줄 + 카드
+    var pg = K.fresh(document.getElementById('panelLines'));
+    var pw = panel.offsetWidth, ph = panel.offsetHeight, r9 = K.rng(9);
+    K.rect(pg, 2, 2, pw - 4, ph - 4, r9, K.C.ink, 1.4);
+    K.line(pg, 13, 7, 13, ph - 7, r9, color(picked), 2.2);
+    var card = document.getElementById('card');
+    if (card) {
+      var cb = K.rel(panel)(card), rc = K.rng(19), ccol = color(picked);
+      K.rect(pg, cb.x, cb.y, cb.w, cb.h, rc, ccol, 1.4);
+      K.hatch(pg, cb.x + 1, cb.y + 1, cb.w - 2, 6, rc, 6, ccol, 0.2);
+    }
+
+    // 해 보기
+    var gg2 = K.fresh(document.getElementById('gradLines')), gb = K.rel(grad), r8 = K.rng(8);
+    K.rect(gg2, 2, 2, grad.offsetWidth - 4, grad.offsetHeight - 4, r8, K.C.ink, 1.4);
+    Array.prototype.forEach.call(grad.querySelectorAll('label'), function (lb, n) {
+      var b = gb(lb.querySelector('.bx')), r = K.rng(130 + n), on = lb.querySelector('input').checked;
+      K.rect(gg2, b.x, b.y, b.w, b.h, r, K.C.ink, 1.3);
+      if (on) K.curve(gg2, 'M' + (b.x + 4) + ' ' + (b.cy + 1) + ' L' + (b.x + 8) + ' ' + (b.b - 4) + ' L' + (b.rt - 2) + ' ' + (b.y + 2), r, K.C.find, 2.2);
+    });
+  }
+
+  var queued = false;
+  function schedule() { if (queued) return; queued = true; setTimeout(function () { queued = false; draw(); }, 40); }
+  function use(style) {
+    K = SketchKit(style);
+    document.documentElement.dataset.style = K.style;
+    Array.prototype.forEach.call(document.querySelectorAll('#pick button'), function (b) { b.classList.toggle('on', b.dataset.s === K.style); });
+    var back = document.getElementById('back'); back.href = back.getAttribute('href').split('#')[0] + '#' + K.style;
+    select(picked);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+  }
+
+  document.getElementById('pick').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-s]');
+    if (b) { use(b.dataset.s); if (history.replaceState) history.replaceState(null, '', '#' + b.dataset.s); }
+  });
+  walk.addEventListener('click', function (e) { var b = e.target.closest('button[data-k]'); if (b) select(b.dataset.k); });
+  map.addEventListener('click', function (e) { var s = e.target.closest('.spot'); if (s) select(s.dataset.k); });
+  map.addEventListener('keydown', function (e) { var s = e.target.closest('.spot'); if (s && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(s.dataset.k); } });
+  panel.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-go]');
+    if (b && b.dataset.go) { select(b.dataset.go); walk.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
+
+  var GK = 'ubo-ecount-e1';
+  var boxes = grad.querySelectorAll('input');
+  try { var saved = JSON.parse(localStorage.getItem(GK) || '{}'); Array.prototype.forEach.call(boxes, function (b) { b.checked = !!saved[b.dataset.k]; }); } catch (e) {}
+  function paintGrad() { Array.prototype.forEach.call(boxes, function (b) { b.parentNode.querySelector('span').classList.toggle('on', b.checked); }); }
+  grad.addEventListener('change', function () {
+    paintGrad();
+    try { var o = {}; Array.prototype.forEach.call(boxes, function (b) { o[b.dataset.k] = b.checked; }); localStorage.setItem(GK, JSON.stringify(o)); } catch (e) {}
+    schedule();
+  });
+  paintGrad();
+
+  function fromHash() { var h = (location.hash || '').slice(1); use(['pencil', 'textbook', 'blueprint'].indexOf(h) >= 0 ? h : 'pencil'); }
+  fromHash();
+  window.addEventListener('hashchange', fromHash);
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', schedule);
+  window.addEventListener('load', schedule);
+  window.addEventListener('resize', schedule);
+  if (window.ResizeObserver) { var ro = new ResizeObserver(schedule); ro.observe(map); ro.observe(panel); ro.observe(grad); }
+})();
+</script>
+</body>
+</html>

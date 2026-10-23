@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ko" data-style="pencil">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>우리가 파는 것 한 장</title>
+<!--
+  신입 교재 · 부록 「우리가 파는 것 한 장」 — 쇼핑몰 분류 45개를 가구 한 짝의 자리 ①~⑩ 으로 묶은 분류표.
+  위 그림은 sketch-kit.js 로 그린 부엌 한 칸, 아래는 초보자용 표. 번호를 누르면 그 묶음만 밝아진다.
+  쇼핑몰 분류 이름은 그대로 두었다(실무자가 쓰는 말). 「(추정)」 은 상품 설명을 아직 확인하지 않은 것.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Brush+Script&family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f8f4ea; --ink: #36332d; --ink-soft: #5d584e; --ink-faint: #8b8476;
+    --marker: rgba(255, 214, 64, 0.55); --find: #2f5d87; --talk: #b5523b; --db: #4f7d4a;
+    --mono: ui-monospace, 'Cascadia Mono', Consolas, 'D2Coding', monospace;
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.3  0 0 0 0 0.22  0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--paper); }
+  body { min-height: 100vh; color: var(--ink); font-family: 'Gaegu', cursive; background-color: var(--paper); background-image: var(--grain); padding: 18px 16px 28px; word-break: keep-all; overflow-wrap: anywhere; }
+  .page { max-width: 960px; margin: 0 auto; }
+  .brush { font-family: 'Nanum Brush Script', 'Gaegu', cursive; font-weight: 400; }
+  a { color: inherit; }
+  button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+  svg.over { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+
+  .pick { display: flex; justify-content: center; gap: 6px; margin-bottom: 14px; font-family: system-ui, sans-serif; }
+  .pick button { font-size: 13px; border: 1px solid #c9ced6; background: #fff; border-radius: 999px; padding: 5px 12px; }
+  .pick button.on { background: #1f2937; border-color: #1f2937; color: #fff; }
+  .pick a { font-size: 13px; color: var(--ink-soft); align-self: center; margin-left: 10px; text-decoration: none; }
+
+  .hero { text-align: center; }
+  .hero .kick { font-size: clamp(14px, 1.7vw, 17px); color: var(--ink-soft); letter-spacing: 0.04em; }
+  .hero h1 { font-size: clamp(36px, 6.4vw, 56px); line-height: 1.05; margin-top: 2px; }
+  .hero p { margin-top: 4px; font-size: clamp(15px, 1.9vw, 18px); color: var(--ink-soft); }
+
+  /* 그림 — 부엌 한 칸. viewBox 좌표로 그린다 */
+  .scene { position: relative; margin-top: 18px; }
+  .scene svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .scene text { font-family: inherit; fill: var(--ink); }
+  .scene .co { cursor: pointer; }
+  .scene .co circle { fill: #fff; stroke: var(--ink); stroke-width: 1.6; }
+  .scene .co text { font-weight: 700; fill: var(--ink); }
+  .scene .co.on circle { fill: var(--marker); stroke-width: 2.4; }
+  .scene .co.dim { opacity: 0.35; }
+  .scene .lb { font-size: 13px; fill: var(--ink-soft); }
+  .scene .lb.dim { opacity: 0.3; }
+
+  /* 묶음 단추 */
+  .walk { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 8px; margin-top: 10px; }
+  .walk button { font-size: 16px; line-height: 1; padding: 6px 9px 4px; border-radius: 6px; }
+  .walk button:nth-child(odd) { transform: rotate(-1.5deg); }
+  .walk button:nth-child(even) { transform: rotate(1.2deg); }
+  .walk button.on { background: var(--marker); }
+  .walk button b { margin-right: 3px; }
+
+  /* 표 */
+  .tbl { position: relative; margin-top: 18px; }
+  table { position: relative; z-index: 1; width: 100%; border-collapse: collapse; font-size: clamp(13.5px, 1.6vw, 15.5px); line-height: 1.35; }
+  th, td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px dashed rgba(139, 132, 118, 0.45); }
+  thead th { font-size: 13px; color: var(--ink-soft); font-weight: 700; border-bottom: 2px solid var(--ink); }
+  tbody.g th { padding-top: 16px; border-bottom: 0; }
+  tbody.g th .gh { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; cursor: pointer; }
+  tbody.g th .gh .n { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 1.6px solid var(--ink); font-size: 14px; font-weight: 700; background: #fff; }
+  tbody.g th .gh .t { font-size: clamp(19px, 2.4vw, 24px); line-height: 1; }
+  tbody.g th .gh .w { font-size: 13.5px; color: var(--ink-soft); font-weight: 400; }
+  tbody.g.on th .gh .n { background: var(--marker); }
+  tbody.g.on th .gh .t { background: linear-gradient(transparent 55%, var(--marker) 55%, var(--marker) 94%, transparent 94%); }
+  tbody.g.dim { opacity: 0.32; }
+  td.nm { width: 24%; font-weight: 700; }
+  td.nm small { display: block; font-weight: 400; color: var(--ink-faint); font-size: 12px; }
+  td.ez { width: 30%; }
+  td.in { color: var(--ink-soft); }
+  td.in b { color: var(--ink); font-weight: 700; }
+  .tag { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--ink-faint); color: var(--ink-soft); margin-left: 4px; vertical-align: 1px; }
+  .tag.b { border-color: var(--find); color: var(--find); }
+  .tag.i { border-color: var(--talk); color: var(--talk); }
+
+  /* 블럼 잇기 */
+  .blum { position: relative; margin-top: 26px; padding: 14px 18px 12px 26px; }
+  .blum > * { position: relative; z-index: 1; }
+  .blum h3 { font-size: clamp(24px, 3.4vw, 30px); line-height: 1.05; }
+  .blum p { font-size: clamp(14px, 1.7vw, 16px); color: var(--ink-soft); margin-top: 2px; }
+  .blum table { margin-top: 8px; }
+  .blum td.nm { width: 30%; }
+  .blum td.ez { width: 32%; }
+
+  .legend { margin: 16px auto 0; max-width: 820px; font-size: clamp(14px, 1.8vw, 16px); color: var(--ink-soft); text-align: center; line-height: 1.35; }
+  .legend .f { color: var(--find); font-weight: 700; } .legend .t { color: var(--talk); font-weight: 700; }
+  .foot { margin-top: 14px; text-align: center; font-size: clamp(12px, 1.4vw, 13.5px); color: var(--ink-faint); line-height: 1.4; }
+
+  html[data-style="textbook"] { --paper: #ffffff; --ink: #1f2937; --ink-soft: #4b5563; --ink-faint: #a3aab5; --find: #1f5fae; --talk: #b8432f; --db: #2f7d4f; --marker: rgba(31, 95, 174, 0.14); }
+  html[data-style="textbook"] body { font-family: 'Noto Sans KR', system-ui, sans-serif; background: #fff; background-image: none; letter-spacing: -0.01em; }
+  html[data-style="textbook"] .brush { font-family: 'Noto Sans KR', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; }
+  html[data-style="textbook"] .hero h1 { font-size: clamp(26px, 4vw, 36px); }
+  html[data-style="textbook"] .hero p, html[data-style="textbook"] .hero .kick { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="textbook"] .walk button { font-size: 13.5px; border-radius: 999px; border: 1px solid var(--ink-faint); transform: none; padding: 5px 11px; }
+  html[data-style="textbook"] .walk button.on { border-color: var(--find); }
+  html[data-style="textbook"] table { font-size: clamp(12.5px, 1.4vw, 14px); }
+  html[data-style="textbook"] th, html[data-style="textbook"] td { border-bottom: 1px solid #e5e7eb; }
+  html[data-style="textbook"] tbody.g th .gh .t { font-size: clamp(15px, 1.9vw, 18px); font-weight: 800; }
+  html[data-style="textbook"] .blum h3 { font-size: clamp(18px, 2.4vw, 22px); }
+  html[data-style="textbook"] .blum p, html[data-style="textbook"] .legend { font-size: clamp(13px, 1.5vw, 14.5px); }
+  html[data-style="textbook"] .scene .lb { font-size: 12px; }
+
+  html[data-style="blueprint"] { --paper: #f6f8fb; --ink: #16365c; --ink-soft: #3d5878; --ink-faint: #9db0c6; --find: #1d6fb8; --talk: #c23b2e; --db: #2b7a5a; --marker: rgba(29, 111, 184, 0.13); --mono: 'IBM Plex Mono', 'IBM Plex Sans KR', ui-monospace, Consolas, monospace; }
+  html[data-style="blueprint"] body { font-family: 'IBM Plex Sans KR', system-ui, sans-serif; background-color: var(--paper);
+    background-image: linear-gradient(rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(rgba(29, 111, 184, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.045) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px; }
+  html[data-style="blueprint"] .page { border: 1.5px solid var(--ink); outline: 1px solid var(--ink); outline-offset: 5px; padding: 16px; background: rgba(246, 248, 251, 0.6); }
+  html[data-style="blueprint"] .brush { font-family: 'IBM Plex Sans KR', sans-serif; font-weight: 700; letter-spacing: 0.01em; }
+  html[data-style="blueprint"] .hero .kick::before { content: 'FIG. A  '; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.2em; color: var(--ink-soft); }
+  html[data-style="blueprint"] .hero h1 { font-size: clamp(24px, 3.6vw, 33px); }
+  html[data-style="blueprint"] .hero p, html[data-style="blueprint"] .hero .kick { font-size: clamp(13px, 1.45vw, 14.5px); }
+  html[data-style="blueprint"] .walk button { font-size: 13px; border-radius: 0; border: 1px solid var(--ink-faint); transform: none; padding: 5px 10px; letter-spacing: 0.02em; }
+  html[data-style="blueprint"] .walk button.on { background: none; border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  html[data-style="blueprint"] table { font-size: clamp(12px, 1.35vw, 13.5px); }
+  html[data-style="blueprint"] th, html[data-style="blueprint"] td { border-bottom: 1px solid rgba(29, 111, 184, 0.25); }
+  html[data-style="blueprint"] tbody.g th .gh .t { font-size: clamp(14px, 1.8vw, 17px); font-weight: 700; }
+  html[data-style="blueprint"] tbody.g.on th .gh .t { background: none; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  html[data-style="blueprint"] .blum h3 { font-size: clamp(17px, 2.2vw, 20px); }
+  html[data-style="blueprint"] .blum p, html[data-style="blueprint"] .legend { font-size: clamp(12.5px, 1.45vw, 14px); }
+  html[data-style="blueprint"] .scene .lb { font-size: 11.5px; }
+
+  @media print { .pick { display: none !important; } body { padding: 0; } tbody.g.dim { opacity: 1; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="pick" id="pick">
+    <button type="button" data-s="pencil">연필 손그림</button>
+    <button type="button" data-s="textbook">교과서 도식</button>
+    <button type="button" data-s="blueprint">설계 도면</button>
+    <a href="textbook.html" id="back">← 교재 목차</a>
+  </div>
+
+  <header class="hero">
+    <div class="kick">우보브랜드샵 신입 교재 · 부록</div>
+    <h1 class="brush">우리가 파는 것 한 장</h1>
+    <p>부엌 한 칸을 뜯어 보면 열 자리가 나온다. 쇼핑몰 분류 45개가 전부 이 열 자리 안에 있다. 번호를 누르면 그 묶음만 밝아진다.</p>
+  </header>
+
+  <section class="scene" id="scene">
+    <svg id="draw" viewBox="0 0 860 440" aria-label="부엌 한 칸 그림"></svg>
+  </section>
+
+  <nav class="walk" id="walk" aria-label="묶음 고르기">
+    <button type="button" data-g="all">전체</button>
+    <button type="button" data-g="1"><b>①</b>문짝 · 판</button>
+    <button type="button" data-g="2"><b>②</b>경첩 · 리프트 · 미닫이</button>
+    <button type="button" data-g="3"><b>③</b>서랍 · 레일</button>
+    <button type="button" data-g="4"><b>④</b>손잡이</button>
+    <button type="button" data-g="5"><b>⑤</b>안쪽 수납 · 선반</button>
+    <button type="button" data-g="6"><b>⑥</b>발 · 걸레받이</button>
+    <button type="button" data-g="7"><b>⑦</b>잠금 · 락카</button>
+    <button type="button" data-g="8"><b>⑧</b>피스 · 전기</button>
+    <button type="button" data-g="9"><b>⑨</b>주방 가전</button>
+    <button type="button" data-g="10"><b>⑩</b>싱크 · 수전 · 욕실</button>
+  </nav>
+
+  <section class="tbl" id="tbl">
+    <table>
+      <thead><tr><th>쇼핑몰 분류 (그대로)</th><th>쉬운 말 — 무엇 · 어디에</th><th>안에 든 것</th></tr></thead>
+
+      <tbody class="g" data-g="1">
+        <tr><th colspan="3"><span class="gh"><span class="n">①</span><span class="t brush">문짝 · 판 — 가구의 얼굴과 뼈대</span><span class="w">색 · 결 · 두께를 고르는 자리. 브랜드 시리즈 이름이 많다</span></span></th></tr>
+        <tr><td class="nm">우드그레인</td><td class="ez">나무결 무늬 문짝 · 판 (추정)</td><td class="in">색상 · 규격별</td></tr>
+        <tr><td class="nm">슬림라인 TU</td><td class="ez">테두리가 얇은 알루미늄 틀 문짝 (추정)</td><td class="in">—</td></tr>
+        <tr><td class="nm">멀티레이어 시리즈</td><td class="ez">여러 겹을 붙여 만든 판 · 문짝 (추정)</td><td class="in">—</td></tr>
+        <tr><td class="nm">하만 · 루시드(LUCID) <span class="tag b">하만</span></td><td class="ez">하만의 루시드 문짝 묶음, 구성품은 따로 (추정)</td><td class="in">HM LUCID · HM LUCID 구성품</td></tr>
+        <tr><td class="nm">하만 · 누오미(NUOMI) <span class="tag b">하만</span></td><td class="ez">하만의 누오미 문짝 시리즈 — 주방용과 붙박이용이 다르다 (추정)</td><td class="in"><b>주방</b> 엔칸토 · 알파 · 팬텀 · 퍼플 · 데바라자 · 카로 / <b>붙박이</b> 헤라 · 제이드 · 바이올렛 · 마타 / 기타</td></tr>
+        <tr><td class="nm">판넬&amp;색상표</td><td class="ez">색을 고를 때 보는 견본</td><td class="in">알루미늄 도어 · 스티커 · 대리석 · 손잡이 색상표 · 기타</td></tr>
+        <tr><td class="nm">합판</td><td class="ez">가구 몸통을 짜는 판재</td><td class="in">—</td></tr>
+      </tbody>
+
+      <tbody class="g" data-g="2">
+        <tr><th colspan="3"><span class="gh"><span class="n">②</span><span class="t brush">경첩 · 리프트 · 미닫이 — 문을 여닫는 쇠붙이</span><span class="w">문짝을 몸통에 붙이고, 부드럽게 열리고 닫히게</span></span></th></tr>
+        <tr><td class="nm">경첩</td><td class="ez">여닫이문의 관절. 댐퍼 = 소리 없이 살살 닫힘</td><td class="in">탈착용 댐퍼 · 사이드 댐퍼 · 인도어, 아웃도어 · 유리경첩 · 경첩 마운틴(받침판) · 기타</td></tr>
+        <tr><td class="nm">블럼 › 경첩 <span class="tag b">블럼</span></td><td class="ez">블럼(오스트리아) 경첩. 살살 닫힘이 들어 있는 것이 BLUMOTION</td><td class="in">CLIP top BLUMOTION · CLIP top · MODUL · 105°</td></tr>
+        <tr><td class="nm">블럼 › 리프트 시스템 <span class="tag b">블럼</span></td><td class="ez">위로 여는 문(상부장 플랩) 장치 — AVENTOS 식구</td><td class="in">HF(접힘) · HS(위로 올림) · HL(평행) · HK(고정) · HK-S · HK-XS(작은 것) · HKi(일체형)</td></tr>
+        <tr><td class="nm">플랩스테이/쇼바</td><td class="ez">위로 여는 문을 받쳐 주는 가스 쇼바 · 플랩스테이 (블럼 리프트의 보통판)</td><td class="in">플랩스테이/쇼바</td></tr>
+        <tr><td class="nm">슬라이딩&amp;미닫이</td><td class="ez">옆으로 미는 문 부속</td><td class="in">슬라이딩 도어 부속 · 헤티히 <span class="tag b">독일</span></td></tr>
+      </tbody>
+
+      <tbody class="g" data-g="3">
+        <tr><th colspan="3"><span class="gh"><span class="n">③</span><span class="t brush">서랍 · 레일 — 서랍이 미끄러지게</span><span class="w">레일(미끄럼틀)과 서랍 통. 언더레일은 밑에 숨고, 볼레일은 옆에 보인다</span></span></th></tr>
+        <tr><td class="nm">서랍재</td><td class="ez">레일 모음. 뎀퍼 = 살살 닫힘, 푸쉬 = 눌러서 열림</td><td class="in">언더레일 · 3단 볼레일 · 레일 뎀퍼 · 3단 볼레일 뎀퍼 · 3단 볼레일 푸쉬 · 롤러 레일(기본) · 텐덤 서랍 · SDS 서랍 · 쿠커언더레일 · 포켓&amp;교탁레일 · 기타</td></tr>
+        <tr><td class="nm">블럼 › 서랍 시스템 <span class="tag b">블럼</span></td><td class="ez">금속 서랍 통 — 옆판까지 한 벌</td><td class="in">LEGRABOX(고급) · TANDEMBOX(기본) · METABOX(단순)</td></tr>
+        <tr><td class="nm">블럼 › 언더레일 <span class="tag b">블럼</span></td><td class="ez">나무 서랍 밑에 다는 레일</td><td class="in">MOVENTO · TANDEM</td></tr>
+        <tr><td class="nm">블럼 › 푸쉬 언더레일 <span class="tag b">블럼</span></td><td class="ez">손잡이 없이 눌러서 여는 언더레일</td><td class="in">TIP-ON</td></tr>
+        <tr><td class="nm">BONA BOX</td><td class="ez">서랍 통 묶음 (추정)</td><td class="in">—</td></tr>
+        <tr><td class="nm">HM 하이드로워 <span class="tag b">하만</span></td><td class="ez">하만의 서랍 시스템 (추정)</td><td class="in">하이드로워 · 하이드로워 악세사리</td></tr>
+      </tbody>
+
+      <tbody class="g" data-g="4">
+        <tr><th colspan="3"><span class="gh"><span class="n">④</span><span class="t brush">손잡이 — 문과 서랍을 잡는 것</span><span class="w">구멍 수(1홀 · 2홀)와 모양(바 · 매립)으로 고른다. 2홀은 구멍 간격을 재야 한다</span></span></th></tr>
+        <tr><td class="nm">가구 손잡이</td><td class="ez">1홀 = 나사 하나, 2홀 = 나사 둘, 매립형 = 파묻힘, 바형 = 긴 막대</td><td class="in">1홀형 · 1홀 도기 · 1홀 콤비 · 2홀형 · 세트손잡이 · 규격&amp;주문제작 · 매립형 · 바형 · 캐릭터 · 시리즈형 · 시즌 베스트 · 기타</td></tr>
+        <tr><td class="nm">스페셜 BAR (포그 그레이, 크림 화이트)</td><td class="ez">색을 맞춘 긴 바 손잡이 (추정)</td><td class="in">—</td></tr>
+        <tr><td class="nm">루시드 T바 <span class="tag b">하만</span></td><td class="ez">루시드 문짝에 맞는 T자 바 손잡이 (추정)</td><td class="in">—</td></tr>
+        <tr><td class="nm">수입 하드웨어 › 손잡이 <span class="tag i">수입</span></td><td class="ez">수입 손잡이 셋</td><td class="in">매립 손잡이 · 1, 2홀 손잡이 · 장바 및 주문 손잡이</td></tr>
+      </tbody>
+
+      <tbody class="g" data-g="5">
+        <tr><th colspan="3"><span class="gh"><span class="n">⑤</span><span class="t brush">안쪽 수납 · 선반 — 문 안에 들어가는 것</span><span class="w">바구니 · 선반 · 걸이 · 드레스룸 뼈대. 어느 장(상부 · 하부 · 키큰장 · 코너)에 넣나로 나뉜다</span></span></th></tr>
+        <tr><td class="nm">주방 악세사리</td><td class="ez">주방장 안팎에 다는 수납 부속. 인출식 = 당겨 빼는 것</td><td class="in">상부용 · 중간 부착용 식기건조대 · 중간 부착용 · 상판용 · 인출식망장 · 인사이드 · 칼꽂이 · 다용도 분리함 · 코너용 · 키큰장용 · 식탁&amp;인출식 부속 · 하이라인&amp;홈바 · 보조주방 · 기타</td></tr>
+        <tr><td class="nm">Total 보조선반</td><td class="ez">상판 위에 세우는 보조 선반</td><td class="in">기둥식 선반 · 클립형 · 식기건조대 · 기타</td></tr>
+        <tr><td class="nm">선반</td><td class="ez">벽이나 가구에 다는 선반</td><td class="in">벽 선반 · 기타 선반</td></tr>
+        <tr><td class="nm">붙박이&amp;신발장</td><td class="ez">붙박이장 · 신발장 안에 넣는 부속</td><td class="in">붙박이용 · 신발장용</td></tr>
+        <tr><td class="nm">드레스 시스템</td><td class="ez">드레스룸 뼈대 — 어디에 붙이나로 나뉜다</td><td class="in">천정형 · 벽붙이형 · 매립형 · 세탁 / 재활용 보관함 · 슬라이딩 도어 · 악세사리 / 구성품</td></tr>
+        <tr><td class="nm">수입 하드웨어 › 수납 <span class="tag i">수입</span></td><td class="ez">수입 수납 부속 셋</td><td class="in">주방 하드웨어 · 붙박이 하드웨어 · 신발장 하드웨어</td></tr>
+      </tbody>
+
+      <tbody class="g" data-g="6">
+        <tr><th colspan="3"><span class="gh"><span class="n">⑥</span><span class="t brush">발 · 걸레받이 · 철제 — 바닥에서 띄우고 수평 맞추기</span><span class="w">가구발은 안 보이는 받침, 다리발은 보이는 다리, 레벨라는 높이 조절 나사</span></span></th></tr>
+        <tr><td class="nm">다리발/가구발/캐스터/레벨라</td><td class="ez">다리 · 받침 · 바퀴 · 높이 조절</td><td class="in">다리발 · 가구발 · 캐스터(바퀴) · 레벨라</td></tr>
+        <tr><td class="nm">싱크다리발&amp;걸레받이부속</td><td class="ez">싱크대 발과 걸레받이(발 가리개) 부속</td><td class="in">싱크다리발&amp;걸레받이 부속</td></tr>
+        <tr><td class="nm">맞춤 철제</td><td class="ez">치수대로 만드는 철제</td><td class="in">진열 · 테이블</td></tr>
+      </tbody>
+
+      <tbody class="g" data-g="7">
+        <tr><th colspan="3"><span class="gh"><span class="n">⑦</span><span class="t brush">잠금 · 락카 · 사무가구 — 잠그는 것</span><span class="w">열쇠 종류로 나뉜다. 락카(사물함) 꾸밈 자재와 사무 가구 부속도 여기</span></span></th></tr>
+        <tr><td class="nm">목재 및 유리 잠금장치</td><td class="ez">가구 · 유리문 자물쇠. 무엇으로 여나로 나뉜다</td><td class="in">디지털키 · 번호키 · 다이얼키 · 락카키 · 슬라이딩키 · 책상키 · 유리 잠금장치 · 기타</td></tr>
+        <tr><td class="nm">락카용 자재</td><td class="ez">사물함에 붙이는 번호 · 이름표</td><td class="in">스티커 · 밴드 · 명찰꽂이 · 번호고리 · 기타</td></tr>
+        <tr><td class="nm">OA 하드웨어</td><td class="ez">사무 가구 부속</td><td class="in">사물함 경첩 · 회전판 · 기타</td></tr>
+      </tbody>
+
+      <tbody class="g" data-g="8">
+        <tr><th colspan="3"><span class="gh"><span class="n">⑧</span><span class="t brush">피스 · 전기 — 짜 맞추는 작은 쇠붙이와 전기</span><span class="w">나사 · 체결구와 가구에 다는 콘센트 · 조명</span></span></th></tr>
+        <tr><td class="nm">피스류</td><td class="ez">다보 = 선반 받침 핀, 미니픽스 · 라픽스 = 판끼리 잇는 체결구</td><td class="in">다보 · 피스 · 피스캡 · 꺽쇠 · 라픽스 · 미니픽스 · 케이싱</td></tr>
+        <tr><td class="nm">기타하드웨어</td><td class="ez">자리가 없는 작은 철물. 빠찌링 = 걸쇠</td><td class="in">환풍구 · 빠찌링 · 스토퍼 · 펜꽂이 · 업&amp;다운 테이블 · 기타</td></tr>
+        <tr><td class="nm">콘센트</td><td class="ez">가구에 다는 콘센트</td><td class="in">매립형 · 돌출형 · 전선캡</td></tr>
+        <tr><td class="nm">조명</td><td class="ez">상부장 밑 · 장 속 조명</td><td class="in">중간 부착 조명 · 할로겐</td></tr>
+        <tr><td class="nm">HM 베타라이팅 <span class="tag b">하만</span></td><td class="ez">하만의 LED 조명 묶음 (추정)</td><td class="in">베타라이팅 · 베타라이팅 부속품</td></tr>
+      </tbody>
+
+      <tbody class="g" data-g="9">
+        <tr><th colspan="3"><span class="gh"><span class="n">⑨</span><span class="t brush">주방 가전 — 주방에 끼워 넣는 기계</span><span class="w">가구가 아니라 가전. 빌트인 = 가구에 끼움, 프리스탠딩 = 올려 놓음</span></span></th></tr>
+        <tr><td class="nm">렌지후드</td><td class="ez">연기를 빨아들이는 것. 어디에 다나로 나뉜다</td><td class="in">아일랜드(천장) · 데코(벽 노출) · 디럭스 · 빌트인(상부장 속) · 기타</td></tr>
+        <tr><td class="nm">가스쿡탑&amp;전기쿡탑</td><td class="ez">불판. 하이라이트 = 전기 열선, 인덕션 = 자기장, 하이브리드 = 둘 다</td><td class="in"><b>빌트인</b> 가스 · 법랑 · 가스그릴 · 하이라이트 · 인덕션 · 하이브리드 / <b>프리스탠딩</b> 하이라이트 · 인덕션 · 하이브리드</td></tr>
+        <tr><td class="nm">빌트인 가전</td><td class="ez">가구에 끼우는 가전 전부</td><td class="in">가스오븐 · 스팀오븐 · 하부냉장고 · 식기세척기 · 식기건조기 · 음식물처리기&amp;탈수기 · 행주도마 살균기 · 쌀통 · 정수기&amp;절수페달 · TV폰&amp;라디오 · 기타</td></tr>
+        <tr><td class="nm">LG 빌트인 가전 <span class="tag b">LG</span></td><td class="ez">LG 것만 따로 모음</td><td class="in">가스쿡탑 · 하이라이트 · 하이브리드 · 광파오븐 · 가스오븐 · 냉장고 · 식기세척기 · 드럼세탁기 · 의류건조기 · 기타</td></tr>
+        <tr><td class="nm">수입가전 <span class="tag i">수입</span></td><td class="ez">브랜드별 수입 가전 (후드가 많다)</td><td class="in">엘리카 · 팔맥 · 일렉트로룩스 · 기타</td></tr>
+      </tbody>
+
+      <tbody class="g" data-g="10">
+        <tr><th colspan="3"><span class="gh"><span class="n">⑩</span><span class="t brush">싱크 · 수전 · 욕실 — 물이 닿는 자리</span><span class="w">개수대 통(볼) · 수도꼭지(수전) · 배수구, 그리고 욕실</span></span></th></tr>
+        <tr><td class="nm">싱크볼&amp;수입싱크볼</td><td class="ez">개수대 통. 언더 = 상판 밑에 붙임, 리폼 = 바꿔 끼움</td><td class="in">언더사각볼 · 언더볼 · 리폼볼 · 법랑볼 · 고니볼 · 레이온볼 · 마블 싱크볼 · 수입 싱크볼 · 미러, 엠보, 헤어라인 상판 · 싱크볼 액세서리</td></tr>
+        <tr><td class="nm">싱크볼 배수구 부속</td><td class="ez">물 빠지는 구멍 부속. 오버 플로우 = 넘침 방지</td><td class="in">소형 배수구 · 대형 배수구 · 오버 플로우 · 기타</td></tr>
+        <tr><td class="nm">싱크 수전</td><td class="ez">수도꼭지. 입수전 = 상판에 세움, 벽수전 = 벽에서 나옴</td><td class="in">싱크 입수전 · 싱크 벽수전 · 수입 수전 · 슈티에 · 기타</td></tr>
+        <tr><td class="nm">욕실 가전 및 하드웨어</td><td class="ez">욕실 쪽 전부</td><td class="in">욕실 수전 · 비데 · 욕실가전 · 욕실장 · 하드웨어 · 기타</td></tr>
+        <tr><td class="nm">욕실볼</td><td class="ez">세면대 통</td><td class="in">도기볼 언더 · 스텐 원형볼 · 세라믹 탑볼 · 유리 탑볼</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="blum" id="blum">
+    <svg class="over" id="blumLines" aria-hidden="true"></svg>
+    <h3 class="brush">블럼 홈페이지 묶음 ↔ 우리 쇼핑몰 묶음</h3>
+    <p>블럼은 열 묶음으로 보여 주고, 우리 쇼핑몰은 다섯으로 판다. 나머지 다섯은 쇼핑몰에 따로 없다.</p>
+    <table>
+      <thead><tr><th>블럼 홈페이지</th><th>쉬운 말</th><th>우리 쇼핑몰 「블럼」 안에서</th></tr></thead>
+      <tbody>
+        <tr><td class="nm">리프트 시스템 — AVENTOS</td><td class="ez">위로 여는 문 장치</td><td class="in"><b>리프트 시스템</b></td></tr>
+        <tr><td class="nm">경첩 시스템 — CLIP top · MODUL</td><td class="ez">여닫이문 관절</td><td class="in"><b>경첩</b></td></tr>
+        <tr><td class="nm">박스 시스템 — LEGRABOX · TANDEMBOX · METABOX</td><td class="ez">금속 서랍 통</td><td class="in"><b>서랍 시스템</b></td></tr>
+        <tr><td class="nm">러너 시스템 — MOVENTO · TANDEM</td><td class="ez">나무 서랍 밑 레일</td><td class="in"><b>언더레일</b></td></tr>
+        <tr><td class="nm">모션 기술 — TIP-ON · BLUMOTION · SERVO-DRIVE</td><td class="ez">눌러 열림 · 살살 닫힘 · 전동</td><td class="in"><b>푸쉬 언더레일</b>(TIP-ON). 나머지는 경첩 · 서랍 안에 들어 있다</td></tr>
+        <tr><td class="nm">내부 분할 — AMBIA-LINE · ORGA-LINE</td><td class="ez">서랍 속 칸막이</td><td class="in">따로 없음 — 필요하면 주문 (추정)</td></tr>
+        <tr><td class="nm">캐비닛 적용 — SPACE TOWER · CORNER · STEP · TWIN · 싱크대</td><td class="ez">코너 · 키큰장 · 좁은 장을 쓰는 법</td><td class="in">따로 없음 — ⑤ 주방 악세사리와 겹친다</td></tr>
+        <tr><td class="nm">포켓 시스템 — REVEGO</td><td class="ez">문이 옆 주머니로 들어감</td><td class="in">없음</td></tr>
+        <tr><td class="nm">추가 제품 — CABLOXX · 얇은 프런트(EXPANDO T)</td><td class="ez">서랍 잠금 · 얇은 문짝 고정</td><td class="in">없음 (잠금은 ⑦ 에 다른 브랜드)</td></tr>
+        <tr><td class="nm">조립 장치 — MINIPRESS · EASYSTICK · ECODRILL · 템플릿</td><td class="ez">공장 · 현장에서 피팅을 다는 기계와 지그</td><td class="in">없음</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer class="legend">
+    <span class="f">브랜드 표</span>(블럼 · 하만 · LG · 독일) = 브랜드 이름이 분류 이름인 것 · <span class="t">수입</span> = 수입 묶음 · (추정) = 상품 설명을 아직 확인하지 않은 것
+  </footer>
+  <p class="foot">쇼핑몰 분류 이름은 실무자가 쓰는 말이라 그대로 두었다 · 주소는 회사 안에서만 나눈다</p>
+</div>
+
+<script src="sketch-kit.js"></script>
+<script>
+(function () {
+  'use strict';
+  var K;
+  var svg = document.getElementById('draw');
+  var tbl = document.getElementById('tbl');
+  var blum = document.getElementById('blum');
+  var walk = document.getElementById('walk');
+  var picked = 'all';
+
+  // 번호표 자리 — 그림 위 좌표(viewBox) 와 이름
+  var CO = { 1: [700, 150, '문짝 · 판'], 2: [70, 24, '경첩 · 리프트'], 3: [432, 300, '서랍 · 레일'], 4: [552, 240, '손잡이'], 5: [250, 300, '안쪽 수납'],
+    6: [430, 418, '발 · 걸레받이'], 7: [700, 320, '잠금'], 8: [330, 178, '피스 · 전기'], 9: [390, 130, '주방 가전'], 10: [165, 240, '싱크 · 수전'] };
+  var NUM = { 1: '①', 2: '②', 3: '③', 4: '④', 5: '⑤', 6: '⑥', 7: '⑦', 8: '⑧', 9: '⑨', 10: '⑩' };
+
+  function txt(g, x, y, s, cls, anchor, size) {
+    var t = K.el(g, 'text', { x: x, y: y, 'text-anchor': anchor || 'middle', 'font-size': size || 13, 'class': cls || 'lb' });
+    t.textContent = s;
+    return t;
+  }
+
+  function draw() {
+    var g = K.fresh(svg), C = K.C, r = K.rng;
+
+    // 상부장 왼쪽 — 위로 여는 문(리프트)
+    K.rect(g, 50, 40, 230, 120, r(11), C.ink, 1.8);
+    K.rect(g, 58, 48, 214, 104, r(12), C.ink, 1.1);
+    K.curve(g, 'M 165 48 Q 240 20 285 36', r(13), C.find, 1.3, '4 4');   // 열리는 길
+    K.head(g, 285, 36, 1, r(13), C.find, 1.2);
+    // 렌지후드
+    K.curve(g, 'M 310 40 L 470 40 L 440 70 L 340 70 Z', r(14), C.ink, 1.5);
+    K.rect(g, 365, 10, 50, 30, r(15), C.ink, 1.3);
+    K.hatch(g, 340, 56, 100, 14, r(16), 6, C.ink, 0.12);
+    // 상부장 오른쪽 — 여닫이 두 짝 + 경첩 표시 + 손잡이
+    K.rect(g, 500, 40, 310, 120, r(17), C.ink, 1.8);
+    K.rect(g, 506, 46, 148, 108, r(18), C.ink, 1.1);
+    K.rect(g, 656, 46, 148, 108, r(19), C.ink, 1.1);
+    K.line(g, 640, 70, 640, 130, r(20), C.ink, 2.2);   // 손잡이
+    K.line(g, 670, 70, 670, 130, r(21), C.ink, 2.2);
+    [60, 140].forEach(function (y) { K.rect(g, 503, y, 6, 12, r(22), C.find, 1); K.rect(g, 801, y, 6, 12, r(23), C.find, 1); });   // 경첩
+    // 상부장 밑 조명 · 콘센트
+    K.line(g, 70, 166, 260, 166, r(24), C.ink, 2);
+    [90, 130, 170, 210, 250].forEach(function (x, i) { K.line(g, x, 170, x - 6, 186, r(30 + i), C.faint, 1); K.line(g, x, 170, x + 6, 186, r(40 + i), C.faint, 1); });
+    K.rect(g, 440, 166, 26, 14, r(25), C.ink, 1.1);
+    K.dot(g, 448, 173, 1.6, C.ink); K.dot(g, 458, 173, 1.6, C.ink);
+    // 상판
+    K.rect(g, 30, 200, 800, 14, r(26), C.ink, 1.8);
+    K.hatch(g, 30, 200, 800, 14, r(27), 10, C.ink, 0.08);
+    // 싱크 · 수전
+    K.curve(g, 'M 95 200 L 95 226 Q 95 232 101 232 L 229 232 Q 235 232 235 226 L 235 200', r(28), C.ink, 1.5);
+    K.curve(g, 'M 165 200 L 165 150 Q 165 136 180 136 L 200 136 Q 212 136 212 150 L 212 160', r(29), C.ink, 1.6);
+    K.dot(g, 165, 232, 4, C.find);
+    // 쿡탑
+    K.rect(g, 560, 188, 190, 12, r(31), C.ink, 1.4);
+    [590, 635, 680, 725].forEach(function (x, i) { K.curve(g, 'M ' + (x - 12) + ' 194 a12 6 0 1 0 24 0 a12 6 0 1 0 -24 0', r(50 + i), C.ink, 1.1); });
+    // 하부장 왼쪽 — 문짝 열림 + 안쪽 선반 · 바구니
+    K.rect(g, 50, 214, 260, 166, r(32), C.ink, 1.8);
+    K.rect(g, 56, 220, 120, 154, r(33), C.ink, 1.3);
+    [250, 300].forEach(function (y) { K.rect(g, 53, y, 6, 12, r(34), C.find, 1); });   // 경첩
+    K.line(g, 168, 270, 168, 320, r(35), C.ink, 2.2);   // 손잡이
+    K.line(g, 190, 268, 300, 268, r(36), C.ink, 1.1, '5 4');   // 선반
+    K.line(g, 190, 320, 300, 320, r(37), C.ink, 1.1, '5 4');
+    K.rect(g, 200, 276, 70, 36, r(38), C.db, 1.2);   // 바구니
+    K.hatch(g, 200, 276, 70, 36, r(39), 6, C.db, 0.12);
+    [195, 300].forEach(function (x) { K.dot(g, x, 268, 2.2, C.ink); K.dot(g, x, 320, 2.2, C.ink); });   // 다보
+    // 하부장 가운데 — 서랍 셋
+    K.rect(g, 320, 214, 230, 166, r(41), C.ink, 1.8);
+    [220, 272, 324].forEach(function (y, i) {
+      K.rect(g, 326, y, 218, 48, r(42 + i), C.ink, 1.3);
+      K.line(g, 400, y + 24, 470, y + 24, r(45 + i), C.ink, 2.4);   // 바 손잡이
+    });
+    K.curve(g, 'M 326 300 L 300 300', r(48), C.find, 1.3, '4 4');   // 레일에서 빠지는 길
+    // 하부장 오른쪽 — 문 + 잠금
+    K.rect(g, 560, 214, 250, 166, r(51), C.ink, 1.8);
+    K.rect(g, 566, 220, 238, 154, r(52), C.ink, 1.3);
+    K.line(g, 580, 270, 580, 320, r(53), C.ink, 2.2);   // 손잡이
+    K.curve(g, 'M 600 296 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0', r(54), C.talk, 1.4);   // 자물쇠
+    K.line(g, 608, 292, 608, 300, r(55), C.talk, 1.4);
+    // 걸레받이 · 발
+    K.rect(g, 50, 380, 760, 16, r(56), C.ink, 1.6);
+    K.hatch(g, 50, 380, 760, 16, r(57), 8, C.ink, 0.1);
+    [70, 330, 560, 790].forEach(function (x, i) { K.rect(g, x - 5, 396, 10, 10, r(60 + i), C.ink, 1.2); });
+
+    // 번호표 ①~⑩
+    Object.keys(CO).forEach(function (k) {
+      var c = CO[k], on = picked === k, dim = picked !== 'all' && !on;
+      var gg = K.el(g, 'g', { 'class': 'co' + (on ? ' on' : '') + (dim ? ' dim' : ''), 'data-g': k, 'pointer-events': 'all', tabindex: 0, role: 'button' });
+      K.el(gg, 'circle', { cx: c[0], cy: c[1], r: 13 });
+      txt(gg, c[0], c[1] + 5, NUM[k], 'nb', 'middle', 15);
+      txt(gg, c[0] + 18, c[1] + 5, c[2], 'lb' + (dim ? ' dim' : ''), 'start', 13);
+    });
+
+    // 블럼 공책 테두리
+    var bg = K.fresh(document.getElementById('blumLines'));
+    K.rect(bg, 2, 2, blum.offsetWidth - 4, blum.offsetHeight - 4, r(9), C.ink, 1.4);
+    K.line(bg, 12, 7, 12, blum.offsetHeight - 7, r(9), C.find, 2.2);
+  }
+
+  function select(k) {
+    picked = k;
+    Array.prototype.forEach.call(tbl.querySelectorAll('tbody.g'), function (b) {
+      b.classList.toggle('on', b.dataset.g === k);
+      b.classList.toggle('dim', k !== 'all' && b.dataset.g !== k);
+    });
+    Array.prototype.forEach.call(walk.querySelectorAll('button'), function (b) { b.classList.toggle('on', b.dataset.g === k); });
+    schedule();
+  }
+
+  var queued = false;
+  function schedule() { if (queued) return; queued = true; setTimeout(function () { queued = false; draw(); }, 40); }
+  function use(style) {
+    K = SketchKit(style);
+    document.documentElement.dataset.style = K.style;
+    Array.prototype.forEach.call(document.querySelectorAll('#pick button'), function (b) { b.classList.toggle('on', b.dataset.s === K.style); });
+    document.getElementById('back').href = 'textbook.html#' + K.style;
+    draw();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+  }
+
+  document.getElementById('pick').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-s]');
+    if (b) { use(b.dataset.s); if (history.replaceState) history.replaceState(null, '', '#' + b.dataset.s); }
+  });
+  walk.addEventListener('click', function (e) { var b = e.target.closest('button[data-g]'); if (b) select(b.dataset.g); });
+  svg.addEventListener('click', function (e) { var c = e.target.closest('.co'); if (c) select(picked === c.dataset.g ? 'all' : c.dataset.g); });
+  svg.addEventListener('keydown', function (e) { var c = e.target.closest('.co'); if (c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(c.dataset.g); } });
+  tbl.addEventListener('click', function (e) { var h = e.target.closest('.gh'); if (h) { var k = h.closest('tbody').dataset.g; select(picked === k ? 'all' : k); } });
+
+  function fromHash() { var h = (location.hash || '').slice(1); use(['pencil', 'textbook', 'blueprint'].indexOf(h) >= 0 ? h : 'pencil'); }
+  fromHash();
+  window.addEventListener('hashchange', fromHash);
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', schedule);
+  window.addEventListener('load', schedule);
+  window.addEventListener('resize', schedule);
+  if (window.ResizeObserver) new ResizeObserver(schedule).observe(blum);
+})();
+</script>
+</body>
+</html>

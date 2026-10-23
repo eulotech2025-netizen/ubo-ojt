@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ko" data-style="pencil">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>이카운트 길잡이 E3 · 경리 · 돈 길</title>
+<!--
+  이카운트 길잡이 · E3 「채권에서 입금까지」 — 경리가 돈을 따라가며 이카운트에서 누르는 순서.
+  상자 = 화면, 아래로 가는 화살표 = 누르는 단추, 오른쪽 점선 = 그 화면의 조회 · 현황(고치기 · 지우기 · 보기).
+  글자는 HTML, 선은 svg.over 에 sketch-kit.js 가 자리를 재서 긋는다. 교재 쪽수는 이카운트 공식 교재(초급 재고 · 유통 / 중급 회계)에 찍힌 쪽 번호.
+  회사 계정에만 있는 설정은 (추정), 회사가 정해야 쓰는 것은 「회사가 채움」. 교재 4장의 「지금 · 이카운트」 카드가 이 길로 이어진다.
+  실제 은행 · 계좌 · 거래처 이름은 쓰지 않는다 — 「들어온 계좌」 · 「연습 거래처」.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Brush+Script&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f8f4ea; --ink: #36332d; --ink-soft: #5d584e; --ink-faint: #8b8476;
+    --marker: rgba(255, 214, 64, 0.55); --find: #2f5d87; --talk: #b5523b; --db: #4f7d4a;
+    --mono: ui-monospace, 'Cascadia Mono', Consolas, 'D2Coding', monospace;
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.3  0 0 0 0 0.22  0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--paper); }
+  body { min-height: 100vh; color: var(--ink); font-family: 'Gaegu', cursive; background-color: var(--paper); background-image: var(--grain); padding: 18px 16px 28px; word-break: keep-all; overflow-wrap: anywhere; }
+  .page { max-width: 900px; margin: 0 auto; }
+  .brush { font-family: 'Nanum Brush Script', 'Gaegu', cursive; font-weight: 400; }
+  a { color: inherit; }
+  button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+  svg.over { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+  .spot { cursor: pointer; }
+  .spot:focus-visible, button:focus-visible { outline: 2px dashed var(--find); outline-offset: 2px; }
+
+  .pick { display: flex; justify-content: center; align-items: center; gap: 6px; margin-bottom: 14px; font-family: system-ui, sans-serif; }
+  .pick button { font-size: 13px; border: 1px solid #c9ced6; background: #fff; border-radius: 999px; padding: 5px 12px; }
+  .pick button.on { background: #1f2937; border-color: #1f2937; color: #fff; }
+  .pick a { font-size: 13px; color: var(--ink-soft); margin-left: 10px; text-decoration: none; }
+
+  .hero { text-align: center; }
+  .hero .kick { font-size: clamp(14px, 1.7vw, 17px); color: var(--ink-soft); letter-spacing: 0.04em; }
+  .hero h1 { font-size: clamp(34px, 6vw, 52px); line-height: 1.05; margin-top: 2px; }
+  .hero p { margin-top: 4px; font-size: clamp(15px, 1.9vw, 18px); color: var(--ink-soft); }
+
+  /* 걸음 단추 */
+  .walk { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 8px; margin-top: 12px; }
+  .walk button { font-size: 17px; line-height: 1; padding: 6px 9px 4px; border-radius: 6px; }
+  .walk button:nth-child(odd) { transform: rotate(-1.5deg); }
+  .walk button:nth-child(even) { transform: rotate(1.2deg); }
+  .walk button.on { background: var(--marker); }
+  .walk .nm { display: none; }
+  @media (min-width: 760px) { .walk .nm { display: inline; } }
+  .n { font-style: normal; font-weight: 700; }
+  .n.t { color: var(--talk); } .n.f { color: var(--find); } .n.d { color: var(--db); }
+
+  /* 화면 순서도 — 왼쪽 메뉴 경로 · 가운데 화면 · 오른쪽 조회 · 현황 */
+  .map { position: relative; margin-top: 14px; }
+  .flow { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(120px, 170px) minmax(0, 1fr) minmax(150px, 230px); column-gap: 26px; align-items: center; }
+  /* 칸 자리를 못 박는다 — .act 뒤의 .path 가 3칸으로 밀리지 않게 */
+  .path { grid-column: 1; text-align: right; font-size: clamp(12px, 1.5vw, 14px); color: var(--ink-soft); line-height: 1.25; padding-right: 4px; }
+  .path b { display: block; color: var(--ink); font-weight: 700; }
+  .scr { grid-column: 2; position: relative; padding: 12px 14px 12px; min-height: 76px; }
+  .side { grid-column: 3; }
+  .pad { grid-column: 1 / -1; }
+  .scr .nm { display: inline-block; font-size: clamp(20px, 2.8vw, 27px); line-height: 1.05; padding: 0 3px; }
+  .scr .code { margin-left: 6px; font-size: 12px; color: var(--ink-faint); font-family: var(--mono); }
+  .scr .sub { display: block; margin-top: 2px; font-size: clamp(12px, 1.6vw, 14.5px); color: var(--ink-soft); line-height: 1.25; }
+  .scr .fields { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 9px; }
+  .scr .fld { position: relative; font-size: clamp(12.5px, 1.5vw, 14px); line-height: 1; padding: 6px 8px 5px; }
+  .scr .fld.must::after { content: '*'; color: var(--talk); font-weight: 700; margin-left: 2px; }
+  .scr .btn { position: relative; font-size: clamp(12.5px, 1.5vw, 14px); font-weight: 700; line-height: 1; padding: 6px 10px 5px; color: var(--find); }
+  .scr:hover .nm, .scr:focus-visible .nm { text-decoration: underline wavy rgba(54, 51, 45, 0.35); text-underline-offset: 5px; }
+  .scr.now .nm { background: linear-gradient(transparent 52%, var(--marker) 52%, var(--marker) 94%, transparent 94%); }
+  .scr.later .nm, .scr.later .sub, .scr.later .fld, .scr.later .btn { color: var(--ink-faint); }
+  .scr.done .sub, .scr.done .fld { color: var(--ink-faint); }
+  .act { grid-column: 2; text-align: left; padding: 10px 0 10px calc(50% + 16px); font-size: clamp(12.5px, 1.6vw, 15px); color: var(--ink-soft); line-height: 1.25; min-height: 38px; }
+  .act b { color: var(--ink); }
+  .side { font-size: clamp(12px, 1.5vw, 14px); line-height: 1.3; padding: 8px 10px; color: var(--ink-soft); }
+  .side b { display: block; color: var(--ink); font-size: clamp(13.5px, 1.7vw, 16px); }
+  .side.later { opacity: 0.45; }
+  .pad { height: 6px; }
+  @media (max-width: 640px) {
+    .flow { grid-template-columns: minmax(0, 1fr); column-gap: 0; }
+    .path, .scr, .side, .act { grid-column: 1; }
+    .path { text-align: left; padding: 0 4px 2px; }
+    .side { margin: 2px 0 8px 24px; }
+  }
+
+  /* 설명 공책 */
+  .panel { position: relative; margin-top: 18px; padding: 14px 18px 14px 28px; }
+  .panel > div { position: relative; z-index: 1; }
+  .panel h3 { font-size: clamp(28px, 4vw, 36px); line-height: 1.05; }
+  .cols { display: grid; gap: 14px 26px; margin-top: 6px; }
+  @media (min-width: 760px) { .cols.two { grid-template-columns: minmax(0, 1fr) minmax(240px, 320px); align-items: start; } }
+  .one { font-size: clamp(16px, 1.9vw, 18px); line-height: 1.38; }
+  .rows { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 5px 10px; margin-top: 9px; font-size: clamp(14.5px, 1.7vw, 16.5px); line-height: 1.35; color: var(--ink-soft); }
+  .rows dt { font-weight: 700; color: var(--ink); }
+  .rows dd { margin: 0; }
+  .rows dd b { color: var(--ink); }
+  .steps { list-style: none; display: grid; gap: 4px; margin-top: 8px; }
+  .steps button { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; text-align: left; font-size: clamp(15px, 1.8vw, 17px); line-height: 1.3; padding: 2px 4px; border-radius: 4px; }
+  .steps button:hover { background: var(--marker); }
+  .steps b { white-space: nowrap; }
+  .card { position: relative; padding: 12px 14px 11px; }
+  .card .ct { display: block; font-size: 16px; font-weight: 700; color: var(--ink-soft); line-height: 1.1; margin-bottom: 7px; }
+  .card .ln { font-size: clamp(14px, 1.6vw, 15.5px); line-height: 1.4; color: var(--ink); padding-left: 14px; text-indent: -14px; }
+  .card .ln::before { content: '› '; color: var(--ink-faint); }
+  .card .cap { font-size: 14px; color: var(--ink-soft); line-height: 1.3; margin-top: 6px; }
+  .card .rep { font-size: clamp(15px, 1.8vw, 17px); line-height: 1.45; }
+  .ref { margin-top: 8px; font-size: 13px; color: var(--ink-faint); }
+  .try { font-family: 'Nanum Pen Script', cursive; font-size: 22px; line-height: 1.15; color: var(--find); margin-top: 10px; }
+  .panel .nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; }
+  .panel .nav button { font-size: 17px; line-height: 1; padding: 6px 9px 4px; border-radius: 6px; }
+  .panel .nav button[disabled] { visibility: hidden; }
+
+  .legend { margin: 16px auto 0; max-width: 800px; display: grid; gap: 4px; font-size: clamp(14px, 1.8vw, 16px); color: var(--ink-soft); text-align: center; line-height: 1.3; }
+  .legend .f { color: var(--find); font-weight: 700; } .legend .t { color: var(--talk); font-weight: 700; } .legend .d { color: var(--db); font-weight: 700; }
+
+  .grad { position: relative; margin-top: 22px; padding: 14px 18px 12px; }
+  .grad > * { position: relative; z-index: 1; }
+  .grad h3 { font-size: clamp(24px, 3.4vw, 30px); line-height: 1.05; margin-bottom: 6px; }
+  .grad label { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; font-size: clamp(15px, 1.9vw, 17px); line-height: 1.3; cursor: pointer; }
+  .grad input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .grad .bx { display: block; flex: none; width: 20px; height: 20px; margin-top: 1px; }
+  .grad .on { color: var(--ink-faint); text-decoration: line-through; text-decoration-color: rgba(54, 51, 45, 0.3); }
+  .grad .sign { margin-top: 8px; font-size: clamp(13px, 1.6vw, 15px); color: var(--ink-soft); }
+  .foot { margin-top: 14px; text-align: center; font-size: clamp(12px, 1.4vw, 13.5px); color: var(--ink-faint); line-height: 1.4; }
+
+  /* ---------- 교과서 도식 ---------- */
+  html[data-style="textbook"] { --paper: #ffffff; --ink: #1f2937; --ink-soft: #4b5563; --ink-faint: #a3aab5; --find: #1f5fae; --talk: #b8432f; --db: #2f7d4f; --marker: rgba(31, 95, 174, 0.14); }
+  html[data-style="textbook"] body { font-family: 'Noto Sans KR', system-ui, sans-serif; background: #fff; background-image: none; letter-spacing: -0.01em; }
+  html[data-style="textbook"] .brush { font-family: 'Noto Sans KR', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; }
+  html[data-style="textbook"] .hero h1 { font-size: clamp(24px, 3.6vw, 32px); }
+  html[data-style="textbook"] .hero p, html[data-style="textbook"] .hero .kick { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="textbook"] .walk button, html[data-style="textbook"] .panel .nav button { font-size: 13.5px; border-radius: 999px; border: 1px solid var(--ink-faint); padding: 5px 11px; transform: none; }
+  html[data-style="textbook"] .walk button.on { border-color: var(--find); }
+  html[data-style="textbook"] .scr .nm { font-size: clamp(15px, 2.1vw, 19px); font-weight: 800; }
+  html[data-style="textbook"] .scr .sub, html[data-style="textbook"] .path, html[data-style="textbook"] .act, html[data-style="textbook"] .side { font-size: clamp(11.5px, 1.35vw, 13px); }
+  html[data-style="textbook"] .side b { font-size: clamp(12.5px, 1.5vw, 14px); }
+  html[data-style="textbook"] .scr .fld, html[data-style="textbook"] .scr .btn { font-size: 12px; }
+  html[data-style="textbook"] .panel h3 { font-size: clamp(19px, 2.6vw, 24px); }
+  html[data-style="textbook"] .one { font-size: clamp(13.5px, 1.55vw, 15.5px); }
+  html[data-style="textbook"] .rows, html[data-style="textbook"] .steps button, html[data-style="textbook"] .card .rep { font-size: clamp(12.5px, 1.45vw, 14px); }
+  html[data-style="textbook"] .card .ln { font-size: clamp(12px, 1.35vw, 13.5px); }
+  html[data-style="textbook"] .card .cap, html[data-style="textbook"] .card .ct { font-size: 12.5px; }
+  html[data-style="textbook"] .try { font-family: inherit; font-size: clamp(12.5px, 1.45vw, 14px); font-weight: 700; }
+  html[data-style="textbook"] .legend { font-size: clamp(12px, 1.5vw, 13.5px); }
+  html[data-style="textbook"] .grad h3 { font-size: clamp(17px, 2.4vw, 21px); }
+  html[data-style="textbook"] .grad label { font-size: clamp(12.5px, 1.55vw, 14.5px); }
+
+  /* ---------- 설계 도면 ---------- */
+  html[data-style="blueprint"] { --paper: #f6f8fb; --ink: #16365c; --ink-soft: #3d5878; --ink-faint: #9db0c6; --find: #1d6fb8; --talk: #c23b2e; --db: #2b7a5a; --marker: rgba(29, 111, 184, 0.13); --mono: 'IBM Plex Mono', 'IBM Plex Sans KR', ui-monospace, Consolas, monospace; }
+  html[data-style="blueprint"] body { font-family: 'IBM Plex Sans KR', system-ui, sans-serif; background-color: var(--paper);
+    background-image: linear-gradient(rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(rgba(29, 111, 184, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.045) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px; }
+  html[data-style="blueprint"] .page { border: 1.5px solid var(--ink); outline: 1px solid var(--ink); outline-offset: 5px; padding: 16px; background: rgba(246, 248, 251, 0.6); }
+  html[data-style="blueprint"] .brush { font-family: 'IBM Plex Sans KR', sans-serif; font-weight: 700; letter-spacing: 0.01em; }
+  html[data-style="blueprint"] .hero .kick::before { content: 'FIG. E3  '; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.2em; color: var(--ink-soft); }
+  html[data-style="blueprint"] .hero h1 { font-size: clamp(22px, 3.4vw, 30px); }
+  html[data-style="blueprint"] .hero p, html[data-style="blueprint"] .hero .kick { font-size: clamp(13px, 1.45vw, 14.5px); }
+  html[data-style="blueprint"] .walk button, html[data-style="blueprint"] .panel .nav button { font-size: 13px; border-radius: 0; border: 1px solid var(--ink-faint); padding: 5px 10px; letter-spacing: 0.02em; transform: none; }
+  html[data-style="blueprint"] .walk button.on { background: none; border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  html[data-style="blueprint"] .scr .nm { font-size: clamp(14px, 2vw, 18px); font-weight: 700; }
+  html[data-style="blueprint"] .scr.now .nm { background: none; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  html[data-style="blueprint"] .scr .sub, html[data-style="blueprint"] .path, html[data-style="blueprint"] .act, html[data-style="blueprint"] .side { font-size: clamp(11px, 1.3vw, 12.5px); }
+  html[data-style="blueprint"] .side b { font-size: clamp(12px, 1.45vw, 13.5px); }
+  html[data-style="blueprint"] .scr .fld, html[data-style="blueprint"] .scr .btn { font-size: 11.5px; }
+  html[data-style="blueprint"] .panel h3 { font-size: clamp(17px, 2.4vw, 22px); }
+  html[data-style="blueprint"] .one { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="blueprint"] .rows, html[data-style="blueprint"] .steps button, html[data-style="blueprint"] .card .rep { font-size: clamp(12px, 1.4vw, 13.5px); }
+  html[data-style="blueprint"] .card .ln { font-size: clamp(11.5px, 1.3vw, 13px); }
+  html[data-style="blueprint"] .card .cap, html[data-style="blueprint"] .card .ct { font-size: 12px; }
+  html[data-style="blueprint"] .try { font-family: inherit; font-size: clamp(12px, 1.4vw, 13.5px); font-weight: 600; }
+  html[data-style="blueprint"] .legend { font-size: clamp(11.5px, 1.4vw, 13px); }
+  html[data-style="blueprint"] .grad h3 { font-size: clamp(16px, 2.2vw, 19px); }
+  html[data-style="blueprint"] .grad label { font-size: clamp(12px, 1.5vw, 14px); }
+
+  @media print { .pick, .panel .nav { display: none !important; } body { padding: 0; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="pick" id="pick">
+    <button type="button" data-s="pencil">연필 손그림</button>
+    <button type="button" data-s="textbook">교과서 도식</button>
+    <button type="button" data-s="blueprint">설계 도면</button>
+    <a href="ecount.html" id="back">← 길잡이 목차</a>
+  </div>
+
+  <header class="hero">
+    <div class="kick">이카운트 길잡이 · E3 · 경리 · 돈 길 (교재 4장의 「지금 · 이카운트」)</div>
+    <h1 class="brush">채권에서 입금까지</h1>
+    <p>받을 돈을 보고, 들어온 돈 · 나간 돈을 장부에 적고, 거래처와 잔액을 맞추는 순서. 상자 = 화면, 아래 화살표 = 누르는 단추, 오른쪽 점선 = 그 화면의 조회 · 현황.</p>
+  </header>
+
+  <nav class="walk" id="walk" aria-label="걸음 고르기">
+    <button type="button" data-k="all">전체</button>
+    <button type="button" data-k="1"><span class="n f">①</span><span class="nm"> 거래처별채권</span></button>
+    <button type="button" data-k="2"><span class="n f">②</span><span class="nm"> 입/출금계좌 조회</span></button>
+    <button type="button" data-k="3"><span class="n d">③</span><span class="nm"> 입금보고서</span></button>
+    <button type="button" data-k="4"><span class="n d">④</span><span class="nm"> 지출결의서</span></button>
+    <button type="button" data-k="5"><span class="n f">⑤</span><span class="nm"> 거래처관리대장 · 차액</span></button>
+    <button type="button" data-k="6"><span class="n f">⑥</span><span class="nm"> 자금일보 · 이체</span></button>
+  </nav>
+
+  <section class="map" id="map">
+    <svg class="over" id="lines" aria-hidden="true"></svg>
+    <div class="flow" id="flow">
+      <div class="path"><b>재고Ⅰ › 영업관리</b>› 현황 › 거래처별채권 (출력물에도 있다)</div>
+      <div class="scr spot" id="s1" data-k="1" tabindex="0" role="button"><span class="nm brush">거래처별채권</span><span class="code">E040214</span><span class="sub">받을 돈이 거래처마다 얼마인가. 판매입력을 저장할 때마다 여기 숫자가 는다 — 보기만 하는 화면</span>
+        <div class="fields"><span class="fld">기간</span><span class="fld">거래처</span><span class="fld">외상매출금</span><span class="fld">수금</span><span class="fld">미수금(잔액)</span><span class="fld">미청구</span><span class="btn">검색</span><span class="btn">거래처명 클릭 = 거래처원장</span></div></div>
+      <div class="side" id="d1"><b>거래처관리대장1 · 채권채무회수기간표</b>재고Ⅰ › 출력물 — 거래처 원장 인쇄 · 메일(⑤) / 회계Ⅰ › 출력물 — 거래처별 잔액과 미회수월수</div>
+
+      <div class="act" id="a1">받을 돈을 봤으면 → <b>통장에 실제로 들어왔나</b>를 입/출금계좌 조회에서</div>
+
+      <div class="path"><b>회계Ⅰ › 계좌/카드</b>› 입/출금계좌 조회</div>
+      <div class="scr spot" id="s2" data-k="2" tabindex="0" role="button"><span class="nm brush">입/출금계좌 조회</span><span class="sub">등록한 통장의 들고 난 돈과 잔액을 실시간으로. 줄 하나에서 바로 입금보고서 · 지출결의서를 만든다</span>
+        <div class="fields"><span class="fld">계좌(통장)</span><span class="fld">기간</span><span class="fld">입금</span><span class="fld">출금</span><span class="fld">잔액</span><span class="fld">은행 적요(보낸 사람)</span><span class="btn">입금보고서 작성</span><span class="btn">지출결의서 작성</span></div></div>
+      <div class="side" id="d2"><b>카드매입조회 · 카드매출조회</b>회계Ⅰ › 계좌/카드 — 카드로 쓴 내역 → 지출결의서, 카드사 승인 내역 → 매출전표</div>
+
+      <div class="act" id="a2">들어온 줄에서 <b>[입금보고서 작성]</b> → 일자 · 계좌 · 금액이 미리 차고, 거래처 · 계정만 채운다 (FastEntry 에서 직접 열어도 된다)</div>
+
+      <div class="path"><b>회계Ⅰ › FastEntry</b>› 입금보고서</div>
+      <div class="scr spot" id="s3" data-k="3" tabindex="0" role="button"><span class="nm brush">입금보고서</span><span class="sub">들어온 돈을 장부에. 계정 「외상매출금」 + 거래처로 저장하면 그 거래처의 받을 돈(채권)이 준다</span>
+        <div class="fields"><span class="fld must">일자</span><span class="fld must">들어온 계좌</span><span class="fld must">계정 「외상매출금」</span><span class="fld must">거래처</span><span class="fld must">금액</span><span class="fld">적요</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d3"><b>수금현황 · 회계거래조회</b>수금현황 E040217(재고Ⅰ › 영업관리현황) = 들어온 돈 보기. 고치기 · 지우기는 회계Ⅰ › 회계거래관리 › 회계거래조회</div>
+
+      <div class="act" id="a3">나간 돈은 같은 화면의 <b>[지출결의서 작성]</b> 으로, 카드로 쓴 것은 <b>카드매입조회</b>에서 불러온다</div>
+
+      <div class="path"><b>회계Ⅰ › FastEntry</b>› 지출결의서</div>
+      <div class="scr spot" id="s4" data-k="4" tabindex="0" role="button"><span class="nm brush">지출결의서</span><span class="sub">나간 돈을 장부에. 거래처에 준 돈은 「외상매입금」(채무 ↓), 회사 경비는 그 경비 계정</span>
+        <div class="fields"><span class="btn">카드매입조회 불러오기</span><span class="fld must">일자</span><span class="fld must">돈나간계좌</span><span class="fld must">계정 (외상매입금 / 경비 계정)</span><span class="fld must">거래처</span><span class="fld must">금액</span><span class="fld">적요</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d4"><b>지급현황 · 거래처별채무</b>재고Ⅰ › 구매관리현황 E040310 · E040309 — 나간 돈 · 아직 줄 돈. 과장님 「중요!!」</div>
+
+      <div class="act" id="a4">저장 → 월말 · 거래처가 「원장 보내 주세요」 하면 <b>거래처관리대장1</b> 로 잔액을 맞춘다</div>
+
+      <div class="path"><b>재고Ⅰ › 출력물</b>› 거래처관리대장1 · 거래처관리대장Ⅱ</div>
+      <div class="scr spot" id="s5" data-k="5" tabindex="0" role="button"><span class="nm brush">거래처관리대장 · 차액</span><span class="sub">한 거래처와의 채권(판 것) 대비 수금(받은 것)을 한 장으로. 「기타할인 등 차액」 줄은 오류가 아니다</span>
+        <div class="fields"><span class="fld">거래처</span><span class="fld">기간</span><span class="fld">채권(매출)</span><span class="fld">수금</span><span class="fld">기타할인 등 차액</span><span class="fld">잔액</span><span class="btn">인쇄</span><span class="btn">메일</span></div></div>
+      <div class="side" id="d5"><b>회계집계표</b>회계Ⅰ › 출력물 — 계정 「외상매출금」 · 거래처 · 월별로 집계. 대장의 잔액과 견준다</div>
+
+      <div class="act" id="a5">하루 끝 · 월말에 <b>자금일보</b>로 닫고, 쌓인 지출결의서는 <b>계좌이체</b>로 은행에</div>
+
+      <div class="path"><b>회계Ⅰ › 출력물</b>· 계좌/카드 › 이체관리 › 계좌이체</div>
+      <div class="scr spot" id="s6" data-k="6" tabindex="0" role="button"><span class="nm brush">자금일보 · 이체</span><span class="sub">오늘 돈이 얼마 들고 났나 · 계정 · 거래처별 잔액 · 앞으로 받을 것과 줄 것. 지출결의서는 인터넷뱅킹으로 일괄 전송</span>
+        <div class="fields"><span class="btn">잔액재집계 (보기 전)</span><span class="fld">자금일보</span><span class="fld">자금현황표</span><span class="fld">채권채무잔액분석표</span><span class="btn">계좌이체 (지출결의서 일괄 전송)</span><span class="fld">이체기본정보 · 계좌 · 거래처의 이체정보</span></div></div>
+      <div class="side" id="d6"><b>보낸 뒤 · 다음 길로</b>이체한 돈은 입/출금계좌 조회(②)의 나간 줄로 확인. 급여이체는 E6, 회계반영 · 세금계산서는 E4</div>
+      <div class="pad"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel" aria-live="polite">
+    <svg class="over" id="panelLines" aria-hidden="true"></svg>
+    <div id="panelBody"></div>
+  </section>
+
+  <footer class="legend">
+    <div><span class="d">초록</span> = 저장하면 받을 돈 · 줄 돈 · 장부가 바뀌는 화면(입금보고서 · 지출결의서) · <span class="f">파랑</span> = 보기 · 확인(채권 · 통장 · 대장 · 자금) · <span class="t">붉은 갈색</span> = 바깥으로 보내기(대장 메일 · 은행 이체 — 이 길에서는 단추로만 있다)</div>
+    <div>칸 뒤의 <span class="t">*</span> = 꼭 넣는 칸 (추정 — 회사 계정의 필수 칸 설정은 확인 전) · 「회사가 채움」 = 회사가 정해야 쓰는 것</div>
+  </footer>
+
+  <section class="grad" id="grad">
+    <svg class="over" id="gradLines" aria-hidden="true"></svg>
+    <h3 class="brush">해 보기 · E3 졸업</h3>
+    <label><input type="checkbox" data-k="g1"><i class="bx"></i><span>거래처별채권에서 연습 거래처를 찾아 거래처명을 눌러 거래처원장을 열었다</span></label>
+    <label><input type="checkbox" data-k="g2"><i class="bx"></i><span>입/출금계좌 조회에서 들어온 줄 하나로 입금보고서를 만들었다 (연습 거래처 · 외상매출금 · 적요 「연습」)</span></label>
+    <label><input type="checkbox" data-k="g3"><i class="bx"></i><span>지출결의서 1건을 넣고 지급현황에서 찾았다 (연습 거래처 · 외상매입금 · 적요 「연습」)</span></label>
+    <label><input type="checkbox" data-k="g4"><i class="bx"></i><span>거래처관리대장1 의 「기타할인 등 차액」 줄이 왜 생기는지 세 가지로 말했다</span></label>
+    <p class="sign">옆에서 본 선배 ____________ · 날짜 ____________</p>
+  </section>
+
+  <p class="foot">연습은 회사가 정한 연습 거래처 · 연습 계정으로만 — 실제 거래처 · 실제 통장 금액은 건드리지 않고, 연습 전표는 끝나면 회계거래조회에서 지운다(연습 방식은 회사가 채움) · 주소는 회사 안에서만 나눈다 · 교재 = 이카운트 공식 교재(초급 재고 · 유통 / 중급 회계)</p>
+</div>
+
+<script src="sketch-kit.js"></script>
+<script>
+(function () {
+  'use strict';
+  var STEPS = ['1', '2', '3', '4', '5', '6'];
+  var NUM = { 1: '①', 2: '②', 3: '③', 4: '④', 5: '⑤', 6: '⑥' };
+  var NAME = { 1: '거래처별채권', 2: '입/출금계좌 조회', 3: '입금보고서', 4: '지출결의서', 5: '거래처관리대장 · 차액', 6: '자금일보 · 이체' };
+  var KIND = { 1: 'find', 2: 'find', 3: 'db', 4: 'db', 5: 'find', 6: 'find' };
+
+  // 설명 — one 한 줄 · rows [이름표, 내용] · card 「틀렸을 때」 · ref 교재 쪽
+  var INFO = {
+    all: { title: '채권에서 입금까지',
+      one: '경리가 돈을 따라가며 누르는 화면 여섯. 보는 화면 넷(채권 · 통장 · 대장 · 자금)과 적는 화면 둘(입금보고서 · 지출결의서) — 적는 둘만 장부를 바꾼다.',
+      list: { 1: '거래처마다 받을 돈이 얼마인지 본다', 2: '통장에 실제로 들고 난 돈을 본다', 3: '들어온 돈을 외상매출금으로 적는다 — 받을 돈 ↓', 4: '나간 돈을 외상매입금 · 경비로 적는다 — 줄 돈 ↓', 5: '거래처와 잔액을 맞추고 차액 줄을 읽는다', 6: '자금일보로 하루를 닫고 지출결의서를 은행으로 보낸다' },
+      card: { t: '한 줄로', html: '<p class="rep"><b>본다 → 적는다 → 맞춘다.</b> 거래처별채권으로 받을 돈을 보고, 통장에 들어온 줄에서 입금보고서를 만들고, 거래처관리대장1 로 잔액을 맞춘다. 영업이 판매입력을 맞게 쳤으면 경리는 판 금액을 다시 치지 않는다.</p>' } },
+    1: { title: '① 거래처별채권',
+      one: '받을 돈이 거래처마다 얼마인가. 영업이 판매입력을 저장할 때마다 여기 숫자가 는다 — 과장님이 「중요!!」 라고 한 화면.',
+      rows: [['경로', '재고Ⅰ › 영업관리(현황) 또는 출력물 › 거래처별채권'], ['보는 칸', '거래처 · 외상매출금(판 것) · 수금 · 미수금(잔액) — <b>거래처명을 누르면 거래처원장</b>이 열린다'], ['미청구', '판매는 쳤는데 회계반영(세금계산서)이 안 된 금액. 재고Ⅰ › 출력물 › 채권/채무현황에서 미청구로 본다 — 넘기는 일은 E4'], ['저장 뒤', '보기만 하는 화면 — 아무것도 안 바뀐다. 숫자가 이상하면 원인은 판매전표(E1 ④) 아니면 입금보고서(③)'], ['조심', '계정(업체)마다 따로다 — 5계정을 돌며 본다 (추정) · 회계에서 매출전표를 직접 치면 여기 매출이 두 번 잡힌다']],
+      card: { t: '틀렸을 때', lines: ['여기서는 못 고친다 — 판 금액이 틀리면 판매조회(E1 ④), 받은 돈이 틀리면 회계거래조회(③)', '한 거래처가 둘로 갈라져 보이면 재고 전표와 회계 전표의 거래처가 다른 것 (⑤ 차액)'], cap: '보는 화면은 지울 것이 없다 — 보고 어디가 틀렸는지 찾는 자리' },
+      ref: '교재 초급 p.16 · p.30 · 교재 회계 p.7 (미청구 · 중복 반영)',
+      tryit: '연습 거래처를 찾아 거래처명 클릭 → 거래처원장이 열리는 것을 본다' },
+    2: { title: '② 입/출금계좌 조회',
+      one: '등록한 통장의 들고 난 돈과 잔액을 실시간으로. 들어온 줄 하나에서 바로 입금보고서를, 나간 줄에서 지출결의서를 만든다.',
+      rows: [['경로', '회계Ⅰ › 계좌/카드 › 입/출금계좌 조회'], ['먼저', '통장은 회계Ⅰ › 기초등록 › 계좌등록(E010104)에 등록돼 있어야 한다. 어느 업체 계좌를 어느 계정에 — <b>회사가 채움</b>'], ['보는 칸', '계좌 · 일자 · 입금 · 출금 · 잔액 · 은행이 적은 적요(보낸 사람)'], ['카드', '카드매입조회 = 카드로 쓴 내역 → 지출결의서 · 카드매출조회 = 카드사 승인 내역 → 매출전표'], ['조심', '5계정이면 계좌도 각각 — 어느 업체 계좌로 들어왔는지가 곧 어느 계정에 적을지다 (추정) · 보낸 사람 이름과 거래처명이 다를 때 거래처를 잘못 고른다']],
+      card: { t: '틀렸을 때', lines: ['통장 내역 자체는 은행 것 — 여기서 고칠 것은 없다', '통장이 안 보이면 계좌등록 · 은행 연결 설정부터 (회사가 채움)'], cap: '이 화면은 보기만 — 적는 것은 ③ · ④' },
+      ref: '교재 회계 p.24 · 메뉴 지도(계좌등록 E010104)' },
+    3: { title: '③ 입금보고서',
+      one: '들어온 돈을 장부에 적는 화면. 계정을 「외상매출금」 으로 두고 거래처를 고르면, 저장하는 순간 그 거래처의 받을 돈이 준다.',
+      rows: [['경로', '회계Ⅰ › FastEntry › 입금보고서 — 또는 ② 의 들어온 줄에서 [입금보고서 작성] (일자 · 계좌 · 금액이 미리 찬다)'], ['넣는 칸', '일자 · 들어온 계좌 · 계정 「외상매출금」 · 거래처 · 금액 · 적요'], ['저장 뒤', '거래처별채권 잔액 ↓ · 수금현황(재고Ⅰ › 영업관리현황)에 한 줄 · 회계 전표 한 장'], ['영업은', '현금 · 어음으로 받은 것은 판매입력 하단 [현금수금] · [어음수금] 으로도 — <b>같은 돈을 두 곳에 치면 수금이 두 배</b>'], ['조심', '부분 입금을 전액으로 치지 않는다 · 보낸 사람 ≠ 거래처명일 때 거래처 다시 확인 · 들어온 계좌의 업체(계정)에 적는다 (추정)']],
+      card: { t: '틀렸을 때', lines: ['고치기 · 지우기: 회계Ⅰ › 회계거래관리 › 회계거래조회에서 전표를 열어 [수정] · [삭제]', '지운 전표는 회계Ⅰ › 거래이력조회 › [삭제취소] 로 되살린다', '편집제한일자 이전 전표는 못 고친다 — 경리 선배에게'], cap: '거래처만 잘못 골랐으면 전표를 고친다 — 지우고 다시 치면 전표 번호가 바뀐다 (추정)' },
+      ref: '교재 초급 p.15 · p.30 · 교재 회계 p.24~25',
+      tryit: '② 의 들어온 줄 → [입금보고서 작성] → 연습 거래처 · 외상매출금 · 적요 「연습」 으로 저장 → 거래처별채권에서 잔액이 준 것을 본다' },
+    4: { title: '④ 지출결의서',
+      one: '나간 돈을 장부에 적는 화면. 거래처에 준 돈은 「외상매입금」, 회사 경비는 그 경비 계정(복리후생비 같은)으로.',
+      rows: [['경로', '회계Ⅰ › FastEntry › 지출결의서 — 또는 ② 의 나간 줄 · 카드매입조회에서 [지출결의서 작성]'], ['넣는 칸', '일자 · 돈나간계좌 · 계정(외상매입금 / 경비 계정) · 거래처 · 금액 · 적요(식대 · 회식비 같은 적요코드)'], ['저장 뒤', '거래처별채무 ↓ · 지급현황(재고Ⅰ › 구매관리현황)에 한 줄 · 은행에는 아직 — 보내기는 ⑥ 계좌이체'], ['직원 경비', '회사 돈을 먼저 받아 썼으면 지출결의서 → 가지급금정산서, 개인 돈을 먼저 썼으면 가지급금정산서 → 지출결의서'], ['조심', '결재가 필요한 금액 · 결재선 — <b>회사가 채움</b> · 외상매입금은 꼭 거래처를 넣는다, 안 넣으면 그 거래처의 줄 돈이 안 준다 (추정)']],
+      card: { t: '틀렸을 때', lines: ['고치기 · 지우기: 회계거래조회에서 [수정] · [삭제] — 입금보고서와 같다', '이미 은행으로 보낸(이체한) 뒤에 지우면 장부와 통장이 어긋난다 — 선배에게'], cap: '계정을 잘못 골랐으면(외상매입금 ↔ 경비) 지우지 말고 계정만 고친다' },
+      ref: '교재 회계 p.5 · p.19 · p.24 · 교재 초급 p.30',
+      tryit: '지출결의서 1건 — 연습 거래처 · 외상매입금 · 적요 「연습」 → 지급현황에서 찾기' },
+    5: { title: '⑤ 거래처관리대장 · 차액',
+      one: '한 거래처와의 채권(판 것) 대비 수금(받은 것)을 한 장으로. 거래처가 「원장 보내 주세요」 하면 이 화면에서 인쇄 · 메일.',
+      rows: [['경로', '재고Ⅰ › 출력물 › 거래처관리대장1(채권 계정 하나, 양식 설정 가능) · 거래처관리대장Ⅱ(계정 여러 개, 양식 불가)'], ['보는 칸', '거래처 · 기간 · 채권(매출) · 수금 · 기타할인 등 차액 · 잔액 — 인쇄 · 메일 발송'], ['차액', '「기타할인 등 차액」은 오류가 아니라 잔액을 맞추는 줄. 이유 셋 — <b>일괄회계반영 때 조정(할인) · 재고 전표와 회계 전표의 거래처가 다름 · 프로젝트가 다름</b>'], ['회계집계표', '회계Ⅰ › 출력물 › 회계집계표 — 계정 「외상매출금」 · 거래처 · 월별로 집계해 대장의 잔액과 견준다'], ['조심', '거래처를 다르게 넣으면 양쪽 거래처 모두에 차액이 뜬다 — 차액 줄이 보이면 먼저 전표의 거래처를 본다 · 메일로 보낸 뒤 전표를 고치면 거래처가 받은 종이와 달라진다']],
+      card: { t: '틀렸을 때', lines: ['차액의 이유가 정상 전표(할인)면 고치지 않는다', '거래처가 다른 것이면 회계거래조회에서 그 회계 전표의 거래처를 고친다 — 재고 전표가 아니라', '대장1 에 계정이 안 보이면 Self-Customizing › 환경설정 › 기능설정 › 재고 › 채권채무관리 설정 (회사가 채움)'], cap: '차액을 없애려고 전표를 지우지 않는다' },
+      ref: '교재 초급 p.30 · 교재 회계 p.26 (거래처관리대장 · 기타할인 등 차액 · 회계집계표)' },
+    6: { title: '⑥ 자금일보 · 이체',
+      one: '하루 · 한 달을 닫는 화면. 돈이 얼마 들고 났나(자금일보), 계정 · 거래처별 잔액(자금현황표), 앞으로 받을 것 · 줄 것(채권채무잔액분석표). 쌓인 지출결의서는 계좌이체로 은행에 보낸다.',
+      rows: [['경로', '회계Ⅰ › 출력물 › 자금일보 · 자금현황표 · 채권채무잔액분석표 — <b>보기 전 회계Ⅰ › 출력물 › [잔액재집계]</b>'], ['이체', '회계Ⅰ › 계좌/카드 › 이체관리 › 계좌이체 — 입력해 둔 지출결의서를 인터넷뱅킹으로 일괄 전송. 급여는 [급여이체] (E6)'], ['먼저', '이체기본정보등록 · 계좌등록의 통장별 이체정보 · 거래처등록의 거래처별 이체정보 — 셋이 돼 있어야 한다. 돼 있는지 — <b>회사가 채움</b>'], ['조심', '잔액재집계 없이 장부를 보면 어제 숫자 · 이체는 은행으로 바로 간다 — 보내기 전에 지출결의서의 거래처 · 금액을 다시 본다 · 5계정이면 자금일보도 다섯 (추정)']],
+      card: { t: '나중 · UBO ONE', lines: ['미수 · 수금이 거래처별로 바로 보인다 — 계정을 돌지 않는다 (LDG-01)', '통장 내역을 불러와 입금과 맞춘다 (LDG-07)', '계좌는 업체별로 — 어느 업체 돈인지가 칸 하나'], cap: '이 길 전체가 교재 4장의 「지금 · 이카운트」 카드다' },
+      ref: '교재 회계 p.24~26 (이체관리 · 잔액재집계 · 출력물)' }
+  };
+
+  var K;
+  var map = document.getElementById('map');
+  var flow = document.getElementById('flow');
+  var walk = document.getElementById('walk');
+  var panel = document.getElementById('panel');
+  var panelBody = document.getElementById('panelBody');
+  var grad = document.getElementById('grad');
+  var scrs = Array.prototype.slice.call(map.querySelectorAll('.scr'));
+  var picked = 'all';
+  var esc = function (s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var label = function (k) { return k === 'all' ? '전체' : NUM[k] + ' ' + NAME[k]; };
+  var color = function (k) { var c = k === 'all' ? 'ink' : KIND[k]; return c === 'ink' ? K.C.ink : K.C[c]; };
+
+  function select(k) {
+    picked = k;
+    var i = STEPS.indexOf(k);
+    scrs.forEach(function (el) {
+      var n = STEPS.indexOf(el.dataset.k);
+      el.classList.toggle('now', i >= 0 && n === i);
+      el.classList.toggle('done', i >= 0 && n < i);
+      el.classList.toggle('later', i >= 0 && n > i);
+      el.setAttribute('aria-pressed', String(n === i));
+      var side = document.getElementById('d' + el.dataset.k);
+      if (side) side.classList.toggle('later', i >= 0 && n > i);
+    });
+    Array.prototype.forEach.call(walk.querySelectorAll('button'), function (b) {
+      b.classList.toggle('on', b.dataset.k === k);
+      b.setAttribute('aria-pressed', String(b.dataset.k === k));
+    });
+    var info = INFO[k], col = color(k);
+    var h = '<h3 class="brush" style="color:' + col + '">' + info.title + '</h3>';
+    h += '<div class="cols' + (info.card ? ' two' : '') + '"><div>';
+    h += '<p class="one">' + info.one + '</p>';
+    if (info.rows) h += '<dl class="rows">' + info.rows.map(function (r) { return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join('') + '</dl>';
+    if (info.list) {
+      h += '<ul class="steps">' + STEPS.map(function (s) {
+        return '<li><button type="button" data-go="' + s + '"><b style="color:' + color(s) + '">' + NUM[s] + ' ' + NAME[s] + '</b>' + info.list[s] + '</button></li>';
+      }).join('') + '</ul>';
+    }
+    if (info.tryit) h += '<p class="try">해 보기: ' + info.tryit + '</p>';
+    if (info.ref) h += '<p class="ref">' + info.ref + '</p>';
+    h += '</div>';
+    var prev = i < 0 ? null : (i === 0 ? 'all' : STEPS[i - 1]);
+    var next = i < 0 ? '1' : (i === STEPS.length - 1 ? 'all' : STEPS[i + 1]);
+    var nav = '<div class="nav"><button type="button" data-go="' + (prev || '') + '"' + (prev ? '' : ' disabled') + '>← ' + (prev ? label(prev) : '') + '</button>' +
+      '<button type="button" data-go="' + next + '">' + (i < 0 ? '① 거래처별채권부터' : label(next)) + ' →</button></div>';
+    if (info.card) {
+      var body = info.card.html || '';
+      if (info.card.lines) body += info.card.lines.map(function (l) { return '<div class="ln">' + esc(l) + '</div>'; }).join('');
+      if (info.card.cap) body += '<p class="cap">' + info.card.cap + '</p>';
+      h += '<div><div class="card" id="card"><span class="ct">' + info.card.t + '</span>' + body + '</div>' + nav + '</div></div>';
+    } else {
+      h += '</div>' + nav;
+    }
+    panelBody.innerHTML = h;
+    schedule();
+  }
+
+  function inState(g, st, col, fn) {
+    var gg = st === 'done' ? K.el(g, 'g', { opacity: 0.5 }) : g;
+    fn(gg, st === 'later' ? K.C.faint : col, st === 'now' ? 2.6 : 1.8);
+  }
+  // 세로 화살표 — 몸통은 K.line, 촉은 두 획
+  function vArrow(g, x, y1, y2, r, c, w) {
+    K.line(g, x, y1, x + (r() - 0.5) * 1.5, y2 - 2, r, c, w);
+    K.line(g, x, y2, x - 6, y2 - 9, r, c, Math.max(1.4, w * 0.8));
+    K.line(g, x, y2, x + 6, y2 - 9, r, c, Math.max(1.4, w * 0.8));
+  }
+
+  function draw() {
+    var g = K.fresh(document.getElementById('lines'));
+    var box = K.rel(map);
+    var i = STEPS.indexOf(picked);
+    var state = function (k) { var n = STEPS.indexOf(k); return i < 0 ? 'all' : n === i ? 'now' : n < i ? 'done' : 'later'; };
+    var narrow = flow.offsetWidth < 640;
+
+    STEPS.forEach(function (k, n) {
+      var el = document.getElementById('s' + k), b = box(el), st = state(k), c = color(k);
+      var r = K.rng(10 + n), hot = st === 'now';
+      // 화면 상자 — 지금 보는 화면은 두 겹
+      K.rect(g, b.x, b.y, b.w, b.h, r, st === 'later' ? K.C.faint : c, hot ? 2.4 : 1.5);
+      if (hot) K.rect(g, b.x + 3, b.y + 3, b.w - 6, b.h - 6, r, c, 1);
+      // 칸 · 단추 — 칸은 가는 네모, 단추는 알약처럼 두 겹
+      Array.prototype.forEach.call(el.querySelectorAll('.fld, .btn'), function (f, m) {
+        var fb = box(f), rr = K.rng(100 + n * 20 + m), isBtn = f.classList.contains('btn');
+        var fc = st === 'later' ? K.C.faint : (isBtn ? K.C.find : K.C.ink);
+        K.rect(g, fb.x, fb.y, fb.w, fb.h, rr, fc, isBtn ? 1.5 : 1);
+        if (isBtn) K.hatch(g, fb.x, fb.y, fb.w, fb.h, rr, 6, K.C.find, 0.08);
+      });
+      // 아래 화살표 — 다음 화면으로
+      if (n < STEPS.length - 1) {
+        var nb = box(document.getElementById('s' + STEPS[n + 1]));
+        inState(g, state(STEPS[n + 1]), color(STEPS[n + 1]), function (gg, cc, w) { vArrow(gg, b.cx, b.b + 3, nb.y - 3, K.rng(40 + n), cc, w); });
+      }
+      // 오른쪽 점선 — 조회 · 현황
+      var side = document.getElementById('d' + k);
+      if (side && !narrow) {
+        var sb = box(side), rs = K.rng(60 + n), sc = st === 'later' ? K.C.faint : K.C.find;
+        K.rect(g, sb.x, sb.y, sb.w, sb.h, rs, sc, 1.1, '5 4');
+        var y = Math.min(b.cy, sb.cy);
+        K.line(g, b.rt + 4, y, sb.x - 6, y, rs, sc, 1.2, '4 4');
+        K.head(g, sb.x - 4, y, 1, rs, sc, 1.2);
+      }
+    });
+
+    // 설명 공책 테두리 + 색 줄 + 카드
+    var pg = K.fresh(document.getElementById('panelLines'));
+    var pw = panel.offsetWidth, ph = panel.offsetHeight, r9 = K.rng(9);
+    K.rect(pg, 2, 2, pw - 4, ph - 4, r9, K.C.ink, 1.4);
+    K.line(pg, 13, 7, 13, ph - 7, r9, color(picked), 2.2);
+    var card = document.getElementById('card');
+    if (card) {
+      var cb = K.rel(panel)(card), rc = K.rng(19), ccol = color(picked);
+      K.rect(pg, cb.x, cb.y, cb.w, cb.h, rc, ccol, 1.4);
+      K.hatch(pg, cb.x + 1, cb.y + 1, cb.w - 2, 6, rc, 6, ccol, 0.2);
+    }
+
+    // 해 보기
+    var gg2 = K.fresh(document.getElementById('gradLines')), gb = K.rel(grad), r8 = K.rng(8);
+    K.rect(gg2, 2, 2, grad.offsetWidth - 4, grad.offsetHeight - 4, r8, K.C.ink, 1.4);
+    Array.prototype.forEach.call(grad.querySelectorAll('label'), function (lb, n) {
+      var b = gb(lb.querySelector('.bx')), r = K.rng(130 + n), on = lb.querySelector('input').checked;
+      K.rect(gg2, b.x, b.y, b.w, b.h, r, K.C.ink, 1.3);
+      if (on) K.curve(gg2, 'M' + (b.x + 4) + ' ' + (b.cy + 1) + ' L' + (b.x + 8) + ' ' + (b.b - 4) + ' L' + (b.rt - 2) + ' ' + (b.y + 2), r, K.C.find, 2.2);
+    });
+  }
+
+  var queued = false;
+  function schedule() { if (queued) return; queued = true; setTimeout(function () { queued = false; draw(); }, 40); }
+  function use(style) {
+    K = SketchKit(style);
+    document.documentElement.dataset.style = K.style;
+    Array.prototype.forEach.call(document.querySelectorAll('#pick button'), function (b) { b.classList.toggle('on', b.dataset.s === K.style); });
+    var back = document.getElementById('back'); back.href = back.getAttribute('href').split('#')[0] + '#' + K.style;
+    select(picked);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+  }
+
+  document.getElementById('pick').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-s]');
+    if (b) { use(b.dataset.s); if (history.replaceState) history.replaceState(null, '', '#' + b.dataset.s); }
+  });
+  walk.addEventListener('click', function (e) { var b = e.target.closest('button[data-k]'); if (b) select(b.dataset.k); });
+  map.addEventListener('click', function (e) { var s = e.target.closest('.spot'); if (s) select(s.dataset.k); });
+  map.addEventListener('keydown', function (e) { var s = e.target.closest('.spot'); if (s && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(s.dataset.k); } });
+  panel.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-go]');
+    if (b && b.dataset.go) { select(b.dataset.go); walk.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
+
+  var GK = 'ubo-ecount-e3';
+  var boxes = grad.querySelectorAll('input');
+  try { var saved = JSON.parse(localStorage.getItem(GK) || '{}'); Array.prototype.forEach.call(boxes, function (b) { b.checked = !!saved[b.dataset.k]; }); } catch (e) {}
+  function paintGrad() { Array.prototype.forEach.call(boxes, function (b) { b.parentNode.querySelector('span').classList.toggle('on', b.checked); }); }
+  grad.addEventListener('change', function () {
+    paintGrad();
+    try { var o = {}; Array.prototype.forEach.call(boxes, function (b) { o[b.dataset.k] = b.checked; }); localStorage.setItem(GK, JSON.stringify(o)); } catch (e) {}
+    schedule();
+  });
+  paintGrad();
+
+  function fromHash() { var h = (location.hash || '').slice(1); use(['pencil', 'textbook', 'blueprint'].indexOf(h) >= 0 ? h : 'pencil'); }
+  fromHash();
+  window.addEventListener('hashchange', fromHash);
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', schedule);
+  window.addEventListener('load', schedule);
+  window.addEventListener('resize', schedule);
+  if (window.ResizeObserver) { var ro = new ResizeObserver(schedule); ro.observe(map); ro.observe(panel); ro.observe(grad); }
+})();
+</script>
+</body>
+</html>

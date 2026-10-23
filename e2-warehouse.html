@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ko" data-style="pencil">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>이카운트 길잡이 E2 · 창고 길</title>
+<!--
+  이카운트 길잡이 · E2 「출하에서 실사까지」 — 창고가 이카운트에서 누르는 순서.
+  상자 = 화면, 아래로 가는 화살표 = 누르는 단추, 오른쪽 점선 = 그 화면의 조회 · 현황(고치기 · 지우기 · 보기).
+  글자는 HTML, 선은 svg.over 에 sketch-kit.js 가 자리를 재서 긋는다. 교재 쪽수는 이카운트 공식 교재(초급 재고 · 유통)에 찍힌 쪽.
+  출하지시서 · 출하는 교재에 없고 메뉴 지도(ecount-menus.md)에만 있다 — (추정). 회사가 어느 출고 방식을 쓰는지는 「회사가 채움」.
+  교재 2장(출고) · 7장(재고)의 「지금 · 이카운트」 카드가 이 길로 이어진다.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Brush+Script&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f8f4ea; --ink: #36332d; --ink-soft: #5d584e; --ink-faint: #8b8476;
+    --marker: rgba(255, 214, 64, 0.55); --find: #2f5d87; --talk: #b5523b; --db: #4f7d4a;
+    --mono: ui-monospace, 'Cascadia Mono', Consolas, 'D2Coding', monospace;
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.3  0 0 0 0 0.22  0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--paper); }
+  body { min-height: 100vh; color: var(--ink); font-family: 'Gaegu', cursive; background-color: var(--paper); background-image: var(--grain); padding: 18px 16px 28px; word-break: keep-all; overflow-wrap: anywhere; }
+  .page { max-width: 900px; margin: 0 auto; }
+  .brush { font-family: 'Nanum Brush Script', 'Gaegu', cursive; font-weight: 400; }
+  a { color: inherit; }
+  button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+  svg.over { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+  .spot { cursor: pointer; }
+  .spot:focus-visible, button:focus-visible { outline: 2px dashed var(--find); outline-offset: 2px; }
+
+  .pick { display: flex; justify-content: center; align-items: center; gap: 6px; margin-bottom: 14px; font-family: system-ui, sans-serif; }
+  .pick button { font-size: 13px; border: 1px solid #c9ced6; background: #fff; border-radius: 999px; padding: 5px 12px; }
+  .pick button.on { background: #1f2937; border-color: #1f2937; color: #fff; }
+  .pick a { font-size: 13px; color: var(--ink-soft); margin-left: 10px; text-decoration: none; }
+
+  .hero { text-align: center; }
+  .hero .kick { font-size: clamp(14px, 1.7vw, 17px); color: var(--ink-soft); letter-spacing: 0.04em; }
+  .hero h1 { font-size: clamp(34px, 6vw, 52px); line-height: 1.05; margin-top: 2px; }
+  .hero p { margin-top: 4px; font-size: clamp(15px, 1.9vw, 18px); color: var(--ink-soft); }
+
+  /* 걸음 단추 */
+  .walk { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 8px; margin-top: 12px; }
+  .walk button { font-size: 17px; line-height: 1; padding: 6px 9px 4px; border-radius: 6px; }
+  .walk button:nth-child(odd) { transform: rotate(-1.5deg); }
+  .walk button:nth-child(even) { transform: rotate(1.2deg); }
+  .walk button.on { background: var(--marker); }
+  .walk .nm { display: none; }
+  @media (min-width: 760px) { .walk .nm { display: inline; } }
+  .n { font-style: normal; font-weight: 700; }
+  .n.t { color: var(--talk); } .n.f { color: var(--find); } .n.d { color: var(--db); }
+
+  /* 화면 순서도 — 왼쪽 메뉴 경로 · 가운데 화면 · 오른쪽 조회 · 현황 */
+  .map { position: relative; margin-top: 14px; }
+  .flow { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(120px, 170px) minmax(0, 1fr) minmax(150px, 230px); column-gap: 26px; align-items: center; }
+  /* 칸 자리를 못 박는다 — .act 뒤의 .path 가 3칸으로 밀리지 않게 */
+  .path { grid-column: 1; text-align: right; font-size: clamp(12px, 1.5vw, 14px); color: var(--ink-soft); line-height: 1.25; padding-right: 4px; }
+  .path b { display: block; color: var(--ink); font-weight: 700; }
+  .scr { grid-column: 2; position: relative; padding: 12px 14px 12px; min-height: 76px; }
+  .side { grid-column: 3; }
+  .pad { grid-column: 1 / -1; }
+  .scr .nm { display: inline-block; font-size: clamp(20px, 2.8vw, 27px); line-height: 1.05; padding: 0 3px; }
+  .scr .code { margin-left: 6px; font-size: 12px; color: var(--ink-faint); font-family: var(--mono); }
+  .scr .sub { display: block; margin-top: 2px; font-size: clamp(12px, 1.6vw, 14.5px); color: var(--ink-soft); line-height: 1.25; }
+  .scr .fields { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 9px; }
+  .scr .fld { position: relative; font-size: clamp(12.5px, 1.5vw, 14px); line-height: 1; padding: 6px 8px 5px; }
+  .scr .fld.must::after { content: '*'; color: var(--talk); font-weight: 700; margin-left: 2px; }
+  .scr .btn { position: relative; font-size: clamp(12.5px, 1.5vw, 14px); font-weight: 700; line-height: 1; padding: 6px 10px 5px; color: var(--find); }
+  .scr:hover .nm, .scr:focus-visible .nm { text-decoration: underline wavy rgba(54, 51, 45, 0.35); text-underline-offset: 5px; }
+  .scr.now .nm { background: linear-gradient(transparent 52%, var(--marker) 52%, var(--marker) 94%, transparent 94%); }
+  .scr.later .nm, .scr.later .sub, .scr.later .fld, .scr.later .btn { color: var(--ink-faint); }
+  .scr.done .sub, .scr.done .fld { color: var(--ink-faint); }
+  .act { grid-column: 2; text-align: left; padding: 10px 0 10px calc(50% + 16px); font-size: clamp(12.5px, 1.6vw, 15px); color: var(--ink-soft); line-height: 1.25; min-height: 38px; }
+  .act b { color: var(--ink); }
+  .side { font-size: clamp(12px, 1.5vw, 14px); line-height: 1.3; padding: 8px 10px; color: var(--ink-soft); }
+  .side b { display: block; color: var(--ink); font-size: clamp(13.5px, 1.7vw, 16px); }
+  .side.later { opacity: 0.45; }
+  .pad { height: 6px; }
+  @media (max-width: 640px) {
+    .flow { grid-template-columns: minmax(0, 1fr); column-gap: 0; }
+    .path, .scr, .side, .act { grid-column: 1; }
+    .path { text-align: left; padding: 0 4px 2px; }
+    .side { margin: 2px 0 8px 24px; }
+  }
+
+  /* 설명 공책 */
+  .panel { position: relative; margin-top: 18px; padding: 14px 18px 14px 28px; }
+  .panel > div { position: relative; z-index: 1; }
+  .panel h3 { font-size: clamp(28px, 4vw, 36px); line-height: 1.05; }
+  .cols { display: grid; gap: 14px 26px; margin-top: 6px; }
+  @media (min-width: 760px) { .cols.two { grid-template-columns: minmax(0, 1fr) minmax(240px, 320px); align-items: start; } }
+  .one { font-size: clamp(16px, 1.9vw, 18px); line-height: 1.38; }
+  .rows { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 5px 10px; margin-top: 9px; font-size: clamp(14.5px, 1.7vw, 16.5px); line-height: 1.35; color: var(--ink-soft); }
+  .rows dt { font-weight: 700; color: var(--ink); }
+  .rows dd { margin: 0; }
+  .rows dd b { color: var(--ink); }
+  .steps { list-style: none; display: grid; gap: 4px; margin-top: 8px; }
+  .steps button { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; text-align: left; font-size: clamp(15px, 1.8vw, 17px); line-height: 1.3; padding: 2px 4px; border-radius: 4px; }
+  .steps button:hover { background: var(--marker); }
+  .steps b { white-space: nowrap; }
+  .card { position: relative; padding: 12px 14px 11px; }
+  .card .ct { display: block; font-size: 16px; font-weight: 700; color: var(--ink-soft); line-height: 1.1; margin-bottom: 7px; }
+  .card .ln { font-size: clamp(14px, 1.6vw, 15.5px); line-height: 1.4; color: var(--ink); padding-left: 14px; text-indent: -14px; }
+  .card .ln::before { content: '› '; color: var(--ink-faint); }
+  .card .cap { font-size: 14px; color: var(--ink-soft); line-height: 1.3; margin-top: 6px; }
+  .card .rep { font-size: clamp(15px, 1.8vw, 17px); line-height: 1.45; }
+  .ref { margin-top: 8px; font-size: 13px; color: var(--ink-faint); }
+  .try { font-family: 'Nanum Pen Script', cursive; font-size: 22px; line-height: 1.15; color: var(--find); margin-top: 10px; }
+  .panel .nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; }
+  .panel .nav button { font-size: 17px; line-height: 1; padding: 6px 9px 4px; border-radius: 6px; }
+  .panel .nav button[disabled] { visibility: hidden; }
+
+  .legend { margin: 16px auto 0; max-width: 800px; display: grid; gap: 4px; font-size: clamp(14px, 1.8vw, 16px); color: var(--ink-soft); text-align: center; line-height: 1.3; }
+  .legend .f { color: var(--find); font-weight: 700; } .legend .t { color: var(--talk); font-weight: 700; } .legend .d { color: var(--db); font-weight: 700; }
+
+  .grad { position: relative; margin-top: 22px; padding: 14px 18px 12px; }
+  .grad > * { position: relative; z-index: 1; }
+  .grad h3 { font-size: clamp(24px, 3.4vw, 30px); line-height: 1.05; margin-bottom: 6px; }
+  .grad label { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; font-size: clamp(15px, 1.9vw, 17px); line-height: 1.3; cursor: pointer; }
+  .grad input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .grad .bx { display: block; flex: none; width: 20px; height: 20px; margin-top: 1px; }
+  .grad .on { color: var(--ink-faint); text-decoration: line-through; text-decoration-color: rgba(54, 51, 45, 0.3); }
+  .grad .sign { margin-top: 8px; font-size: clamp(13px, 1.6vw, 15px); color: var(--ink-soft); }
+  .foot { margin-top: 14px; text-align: center; font-size: clamp(12px, 1.4vw, 13.5px); color: var(--ink-faint); line-height: 1.4; }
+
+  /* ---------- 교과서 도식 ---------- */
+  html[data-style="textbook"] { --paper: #ffffff; --ink: #1f2937; --ink-soft: #4b5563; --ink-faint: #a3aab5; --find: #1f5fae; --talk: #b8432f; --db: #2f7d4f; --marker: rgba(31, 95, 174, 0.14); }
+  html[data-style="textbook"] body { font-family: 'Noto Sans KR', system-ui, sans-serif; background: #fff; background-image: none; letter-spacing: -0.01em; }
+  html[data-style="textbook"] .brush { font-family: 'Noto Sans KR', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; }
+  html[data-style="textbook"] .hero h1 { font-size: clamp(24px, 3.6vw, 32px); }
+  html[data-style="textbook"] .hero p, html[data-style="textbook"] .hero .kick { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="textbook"] .walk button, html[data-style="textbook"] .panel .nav button { font-size: 13.5px; border-radius: 999px; border: 1px solid var(--ink-faint); padding: 5px 11px; transform: none; }
+  html[data-style="textbook"] .walk button.on { border-color: var(--find); }
+  html[data-style="textbook"] .scr .nm { font-size: clamp(15px, 2.1vw, 19px); font-weight: 800; }
+  html[data-style="textbook"] .scr .sub, html[data-style="textbook"] .path, html[data-style="textbook"] .act, html[data-style="textbook"] .side { font-size: clamp(11.5px, 1.35vw, 13px); }
+  html[data-style="textbook"] .side b { font-size: clamp(12.5px, 1.5vw, 14px); }
+  html[data-style="textbook"] .scr .fld, html[data-style="textbook"] .scr .btn { font-size: 12px; }
+  html[data-style="textbook"] .panel h3 { font-size: clamp(19px, 2.6vw, 24px); }
+  html[data-style="textbook"] .one { font-size: clamp(13.5px, 1.55vw, 15.5px); }
+  html[data-style="textbook"] .rows, html[data-style="textbook"] .steps button, html[data-style="textbook"] .card .rep { font-size: clamp(12.5px, 1.45vw, 14px); }
+  html[data-style="textbook"] .card .ln { font-size: clamp(12px, 1.35vw, 13.5px); }
+  html[data-style="textbook"] .card .cap, html[data-style="textbook"] .card .ct { font-size: 12.5px; }
+  html[data-style="textbook"] .try { font-family: inherit; font-size: clamp(12.5px, 1.45vw, 14px); font-weight: 700; }
+  html[data-style="textbook"] .legend { font-size: clamp(12px, 1.5vw, 13.5px); }
+  html[data-style="textbook"] .grad h3 { font-size: clamp(17px, 2.4vw, 21px); }
+  html[data-style="textbook"] .grad label { font-size: clamp(12.5px, 1.55vw, 14.5px); }
+
+  /* ---------- 설계 도면 ---------- */
+  html[data-style="blueprint"] { --paper: #f6f8fb; --ink: #16365c; --ink-soft: #3d5878; --ink-faint: #9db0c6; --find: #1d6fb8; --talk: #c23b2e; --db: #2b7a5a; --marker: rgba(29, 111, 184, 0.13); --mono: 'IBM Plex Mono', 'IBM Plex Sans KR', ui-monospace, Consolas, monospace; }
+  html[data-style="blueprint"] body { font-family: 'IBM Plex Sans KR', system-ui, sans-serif; background-color: var(--paper);
+    background-image: linear-gradient(rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(rgba(29, 111, 184, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.045) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px; }
+  html[data-style="blueprint"] .page { border: 1.5px solid var(--ink); outline: 1px solid var(--ink); outline-offset: 5px; padding: 16px; background: rgba(246, 248, 251, 0.6); }
+  html[data-style="blueprint"] .brush { font-family: 'IBM Plex Sans KR', sans-serif; font-weight: 700; letter-spacing: 0.01em; }
+  html[data-style="blueprint"] .hero .kick::before { content: 'FIG. E2  '; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.2em; color: var(--ink-soft); }
+  html[data-style="blueprint"] .hero h1 { font-size: clamp(22px, 3.4vw, 30px); }
+  html[data-style="blueprint"] .hero p, html[data-style="blueprint"] .hero .kick { font-size: clamp(13px, 1.45vw, 14.5px); }
+  html[data-style="blueprint"] .walk button, html[data-style="blueprint"] .panel .nav button { font-size: 13px; border-radius: 0; border: 1px solid var(--ink-faint); padding: 5px 10px; letter-spacing: 0.02em; transform: none; }
+  html[data-style="blueprint"] .walk button.on { background: none; border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  html[data-style="blueprint"] .scr .nm { font-size: clamp(14px, 2vw, 18px); font-weight: 700; }
+  html[data-style="blueprint"] .scr.now .nm { background: none; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  html[data-style="blueprint"] .scr .sub, html[data-style="blueprint"] .path, html[data-style="blueprint"] .act, html[data-style="blueprint"] .side { font-size: clamp(11px, 1.3vw, 12.5px); }
+  html[data-style="blueprint"] .side b { font-size: clamp(12px, 1.45vw, 13.5px); }
+  html[data-style="blueprint"] .scr .fld, html[data-style="blueprint"] .scr .btn { font-size: 11.5px; }
+  html[data-style="blueprint"] .panel h3 { font-size: clamp(17px, 2.4vw, 22px); }
+  html[data-style="blueprint"] .one { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="blueprint"] .rows, html[data-style="blueprint"] .steps button, html[data-style="blueprint"] .card .rep { font-size: clamp(12px, 1.4vw, 13.5px); }
+  html[data-style="blueprint"] .card .ln { font-size: clamp(11.5px, 1.3vw, 13px); }
+  html[data-style="blueprint"] .card .cap, html[data-style="blueprint"] .card .ct { font-size: 12px; }
+  html[data-style="blueprint"] .try { font-family: inherit; font-size: clamp(12px, 1.4vw, 13.5px); font-weight: 600; }
+  html[data-style="blueprint"] .legend { font-size: clamp(11.5px, 1.4vw, 13px); }
+  html[data-style="blueprint"] .grad h3 { font-size: clamp(16px, 2.2vw, 19px); }
+  html[data-style="blueprint"] .grad label { font-size: clamp(12px, 1.5vw, 14px); }
+
+  @media print { .pick, .panel .nav { display: none !important; } body { padding: 0; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="pick" id="pick">
+    <button type="button" data-s="pencil">연필 손그림</button>
+    <button type="button" data-s="textbook">교과서 도식</button>
+    <button type="button" data-s="blueprint">설계 도면</button>
+    <a href="ecount.html" id="back">← 길잡이 목차</a>
+  </div>
+
+  <header class="hero">
+    <div class="kick">이카운트 길잡이 · E2 · 창고 길 (교재 2장 · 7장의 「지금 · 이카운트」)</div>
+    <h1 class="brush">출하에서 실사까지</h1>
+    <p>주문받은 물건을 내보내고, 창고끼리 옮기고, 못 쓰게 된 것을 빼고, 세어서 장부를 맞추는 순서. 상자 = 화면, 아래 화살표 = 누르는 단추, 오른쪽 점선 = 그 화면의 조회 · 현황.</p>
+  </header>
+
+  <nav class="walk" id="walk" aria-label="걸음 고르기">
+    <button type="button" data-k="all">전체</button>
+    <button type="button" data-k="1"><span class="n d">①</span><span class="nm"> 출하지시서입력</span></button>
+    <button type="button" data-k="2"><span class="n d">②</span><span class="nm"> 출하입력</span></button>
+    <button type="button" data-k="3"><span class="n d">③</span><span class="nm"> 창고이동</span></button>
+    <button type="button" data-k="4"><span class="n d">④</span><span class="nm"> 불량처리 · 자가사용</span></button>
+    <button type="button" data-k="5"><span class="n d">⑤</span><span class="nm"> 재고실사 · 재고조정</span></button>
+    <button type="button" data-k="6"><span class="n f">⑥</span><span class="nm"> 재고현황 · 수불부</span></button>
+  </nav>
+
+  <section class="map" id="map">
+    <svg class="over" id="lines" aria-hidden="true"></svg>
+    <div class="flow" id="flow">
+      <div class="path"><b>재고Ⅰ › 영업관리</b>› 출하지시서입력 (추정)</div>
+      <div class="scr spot" id="s1" data-k="1" tabindex="0" role="button"><span class="nm brush">출하지시서입력</span><span class="code">E040220</span><span class="sub">주문서를 불러와 「이 창고에서 이만큼 내보내라」. 교재에 없다 (추정) — 회사가 쓰는지는 회사가 채움</span>
+        <div class="fields"><span class="btn">주문 불러오기</span><span class="fld must">일자</span><span class="fld must">거래처</span><span class="fld must">창고</span><span class="fld must">품목 · 수량</span><span class="fld">적요</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d1"><b>출하지시서조회 · 출하지시서현황</b>E040221 · E040222. 고치기 · 지우기 · 인쇄는 조회에서, 어디까지 나갔나는 현황에서 (추정)</div>
+
+      <div class="act" id="a1">저장 → 창고가 물건을 꺼내 보내면 <b>출하입력에서 [출하지시서] 로 불러온다</b> (추정)</div>
+
+      <div class="path"><b>재고Ⅰ › 영업관리</b>› 출하입력 (추정)</div>
+      <div class="scr spot" id="s2" data-k="2" tabindex="0" role="button"><span class="nm brush">출하입력</span><span class="code">E040225</span><span class="sub">실제로 나간 수량. 지시서와 다르면 여기서 줄인다 — 남은 것은 미출하현황에 (추정)</span>
+        <div class="fields"><span class="btn">출하지시서 불러오기</span><span class="fld must">일자</span><span class="fld must">거래처</span><span class="fld must">창고</span><span class="fld must">품목 · 출하수량</span><span class="fld">적요</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d2"><b>출하조회 · 출하현황 · 미출하현황</b>E040226 · E040227 · E040228. 미출하현황 = 지시는 났는데 아직 안 나간 것</div>
+
+      <div class="act" id="a2">나갈 창고에 재고가 없으면 → <b>다른 창고에서 창고이동으로 옮겨 온 뒤</b> 내보낸다 (교재 실습 7)</div>
+
+      <div class="path"><b>재고Ⅰ › 기타이동</b>› 창고이동</div>
+      <div class="scr spot" id="s3" data-k="3" tabindex="0" role="button"><span class="nm brush">창고이동</span><span class="sub">보내는 창고 ↓ 받는 창고 ↑. 회사 전체 수량은 그대로다</span>
+        <div class="fields"><span class="fld must">일자</span><span class="fld must">보내는 창고</span><span class="fld must">받는 창고</span><span class="fld must">품목 · 수량</span><span class="fld">적요</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d3"><b>창고이동현황</b>어느 창고에서 어느 창고로 얼마나. 가상 창고(불량 · 출고대기 · 운송중 · 사은품)도 여기서 본다</div>
+
+      <div class="act" id="a3">돌아온 물건 · 못 팔 물건은 불량창고로 받아 → <b>불량처리</b>, 사은품 · 샘플로 쓴 것은 <b>자가사용</b></div>
+
+      <div class="path"><b>재고Ⅰ › 기타이동</b>› 불량처리 · 자가사용</div>
+      <div class="scr spot" id="s4" data-k="4" tabindex="0" role="button"><span class="nm brush">불량처리 · 자가사용</span><span class="sub">둘 다 저장하면 재고가 준다 — 팔아서가 아니라 버려서 · 써서</span>
+        <div class="fields"><span class="fld must">일자</span><span class="fld must">창고</span><span class="fld must">품목 · 수량</span><span class="fld must">불량유형 (더블클릭 › 신규)</span><span class="fld must">폐기 / 정상사용 / 품목대체</span><span class="fld must">사용유형 (자가사용)</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d4"><b>불량처리현황 · 자가사용현황</b>불량유형 · 사용유형을 골라 본다. 「폐기」 만 모으면 버린 양</div>
+
+      <div class="act" id="a4">세는 날이 오면(회사가 채움) → <b>재고조정 › 재고실사조회 › 하단 [단계별재고실사]</b></div>
+
+      <div class="path"><b>재고Ⅰ › 기타이동</b>› 재고조정 › 재고실사조회 › [단계별재고실사]</div>
+      <div class="scr spot" id="s5" data-k="5" tabindex="0" role="button"><span class="nm brush">재고실사 · 재고조정</span><span class="sub">장부수량 vs 실사수량. 차이(조정수량)가 저장되는 순간 장부가 실물에 맞춰진다</span>
+        <div class="fields"><span class="btn">잔량재집계</span><span class="fld must">창고</span><span class="fld">품목 · 장부수량</span><span class="fld must">실사수량</span><span class="fld">조정수량 (차이)</span><span class="fld must">[√] 재고조정</span><span class="fld">입력하지 않은 품목 0으로 — 조심</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d5"><b>재고실사현황 · 재고조정현황</b>실사 넣은 것 / 장부수량 · 조정수량 · 실사수량 비교. 조정전표 지우기는 재고조정조회에서</div>
+
+      <div class="act" id="a5">저장 → <b>[잔량재집계] 한 번 더</b> → 출력물 › 재고현황으로 확인 → 편집제한일자를 실사일 +1 로</div>
+
+      <div class="path"><b>재고Ⅰ › 출력물</b>› 재고현황 · 창고별재고현황 · 재고수불부</div>
+      <div class="scr spot" id="s6" data-k="6" tabindex="0" role="button"><span class="nm brush">재고현황 · 수불부</span><span class="sub">지금 몇 개 있나, 어떻게 들고 났나. 안전재고 아래면 붉게 보인다</span>
+        <div class="fields"><span class="fld">재고현황 (품목코드 클릭 = 재고수불부)</span><span class="fld">창고별재고현황</span><span class="fld">재고수불부 (입고 · 출고 · 재고)</span><span class="fld">재고변동표 (일별 · 월별 증감)</span><span class="fld">일보</span><span class="fld">월별품목별재집계 (재고마감)</span><span class="btn">잔량재집계 (F8)</span><span class="fld">거래이력조회 (지운 전표 복구)</span></div></div>
+      <div class="side" id="d6"><b>다른 길로 이어지는 것</b>반품 입고 = E1 ⑤ 판매입력 −수량(불량창고로) · 들어오는 물건 = E5 구매입력 · 세트 · 생산입고 = E5 ⑥</div>
+      <div class="pad"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel" aria-live="polite">
+    <svg class="over" id="panelLines" aria-hidden="true"></svg>
+    <div id="panelBody"></div>
+  </section>
+
+  <footer class="legend">
+    <div><span class="d">초록</span> = 저장하면 재고 수량이 바뀌는 화면 — 이 길은 ①~⑤ 가 다 초록 · <span class="f">파랑</span> = 보기 · 확인(⑥) · <span class="t">붉은 갈색</span>(바깥으로 보내기)은 이 길에 없다</div>
+    <div>칸 뒤의 <span class="t">*</span> = 꼭 넣는 칸 (추정 — 회사 계정의 필수 칸 설정은 확인 전) · (추정) = 교재에 없고 메뉴 지도에서 미룬 것</div>
+  </footer>
+
+  <section class="grad" id="grad">
+    <svg class="over" id="gradLines" aria-hidden="true"></svg>
+    <h3 class="brush">해 보기 · E2 졸업</h3>
+    <label><input type="checkbox" data-k="g1"><i class="bx"></i><span>연습 주문 1건을 출하지시서 → 출하까지 넣었다 (또는 회사 방식대로 — 주문서출고처리 / 판매입력)</span></label>
+    <label><input type="checkbox" data-k="g2"><i class="bx"></i><span>연습 품목 1개를 창고이동 1건으로 옮기고 창고이동현황에서 찾았다</span></label>
+    <label><input type="checkbox" data-k="g3"><i class="bx"></i><span>연습 품목 1개를 불량처리 [폐기] 1건으로 넣고 불량처리현황에서 찾았다</span></label>
+    <label><input type="checkbox" data-k="g4"><i class="bx"></i><span>재고현황에서 품목 하나의 품목코드를 눌러 재고수불부를 열고, 위 두 줄을 찾았다</span></label>
+    <p class="sign">옆에서 본 선배 ____________ · 날짜 ____________</p>
+  </section>
+
+  <p class="foot">연습은 회사가 정한 연습 거래처 · 연습 품목 · 연습 창고로만 (실제 창고의 재고를 건드리지 않는다 — 재고실사는 연습하지 않는다) · 주소는 회사 안에서만 나눈다 · 교재 = 이카운트 공식 교재(초급 재고 · 유통)</p>
+</div>
+
+<script src="sketch-kit.js"></script>
+<script>
+(function () {
+  'use strict';
+  var STEPS = ['1', '2', '3', '4', '5', '6'];
+  var NUM = { 1: '①', 2: '②', 3: '③', 4: '④', 5: '⑤', 6: '⑥' };
+  var NAME = { 1: '출하지시서입력', 2: '출하입력', 3: '창고이동', 4: '불량처리 · 자가사용', 5: '재고실사 · 재고조정', 6: '재고현황 · 수불부' };
+  var KIND = { 1: 'db', 2: 'db', 3: 'db', 4: 'db', 5: 'db', 6: 'find' };
+
+  // 설명 — one 한 줄 · rows [이름표, 내용] · card 「틀렸을 때」 · ref 교재 쪽
+  var INFO = {
+    all: { title: '출하에서 실사까지',
+      one: '창고가 누르는 화면 여섯. 다섯은 저장하면 재고 수량이 바뀐다 — 출하는 나가서 ↓, 창고이동은 옮겨서 =, 불량 · 자가사용은 버리고 써서 ↓, 실사는 세어서 장부를 실물에 맞춘다. 마지막 하나는 본다.',
+      list: { 1: '주문서를 불러와 어느 창고에서 얼마나 내보낼지 (추정)', 2: '실제로 나간 수량 (추정)', 3: '창고끼리 옮기기 — 가상 창고도', 4: '버린 것 · 쓴 것 빼기', 5: '세어서 장부를 실물에 맞추기', 6: '몇 개 있나 · 어떻게 들고 났나' },
+      card: { t: '한 줄로', html: '<p class="rep"><b>출고가 두 단계</b>일 수 있다 — 지시서 → 출하. 회사가 이 둘을 쓰는지, 주문서출고처리(E040230) 하나로 하는지, 판매입력(E1 ④)이 곧 출고인지는 <b>회사가 채움</b>. 그 전까지 ① ② 는 (추정)으로 읽는다.</p>' } },
+    1: { title: '① 출하지시서입력',
+      one: '주문서를 창고에 「이 창고에서 이만큼 내보내라」 로 넘기는 종이. 교재에는 없고 메뉴 지도에만 있다 (추정).',
+      rows: [['경로', '재고Ⅰ › 영업관리 › 출하지시서입력 › [주문] 불러오기 (E040220)'], ['넣는 칸', '일자 · 거래처 · 창고(어디서 나가나) · 품목 · 수량 — 주문서를 불러오면 채워진다 (추정)'], ['저장 뒤', '출하지시서조회(E040221)에서 고치기 · 지우기 · 인쇄, 출하지시서현황(E040222)에서 어디까지 나갔나 (추정). 재고는 아직 안 변한다 (추정)'], ['회사가 채움', '지시서 → 출하 두 단계를 쓰나, 주문서출고처리(E040230) 하나로 하나, 판매입력(E1 ④)이 곧 출고인가 — 셋 중 하나다'], ['조심', '지시서만 넣고 출하를 안 치면 재고는 안 줄어든다 (추정) · 다른 업체 계정의 창고를 고른다 · 주문서를 불러오지 않고 직접 치면 미출하현황이 안 맞는다 (추정)']],
+      card: { t: '틀렸을 때', lines: ['고치기 · 지우기: 출하지시서조회에서 열어 [수정] · [삭제] (추정)', '이미 출하까지 쳤으면 출하전표부터 지운다 (추정)'], cap: '지운 전표는 재고Ⅰ › 출력물 › 거래이력조회에서 복구할 수 있다' },
+      ref: '메뉴 지도 (E040220 · E040221 · E040222 — 교재에 없다)' },
+    2: { title: '② 출하입력',
+      one: '창고가 실제로 꺼내 보낸 수량. 지시서를 불러와 나간 만큼만 적는다 (추정).',
+      rows: [['경로', '재고Ⅰ › 영업관리 › 출하입력 › [출하지시서] 불러오기 (E040225)'], ['넣는 칸', '일자 · 거래처 · 창고 · 품목 · 출하수량(일부만 나가면 줄인다) (추정)'], ['저장 뒤', '출하조회(E040226)에서 고치기 · 지우기, 출하현황(E040227)에서 오늘 나간 것. 미출하현황(E040228) = 지시는 났는데 아직 안 나간 것'], ['조심', '출하와 판매입력(E1 ④)이 따로면 둘 다 쳐야 재고와 받을 돈이 함께 맞는다 — 어느 쪽이 재고를 줄이는지 회사가 채움 · 지시서 수량보다 많이 치지 않는다 (추정)']],
+      card: { t: '틀렸을 때', lines: ['수량이 틀리면 출하조회에서 열어 [수정] (추정)', '아예 안 나갔으면 [삭제] — 지시서는 그대로 두면 미출하현황에 다시 뜬다 (추정)'], cap: '판매전표까지 넘어간 건은 판매조회(E1 ④)부터 본다' },
+      ref: '메뉴 지도 (E040225 · E040226 · E040227 · E040228 — 교재에 없다)' },
+    3: { title: '③ 창고이동',
+      one: '창고끼리 옮기기. 보내는 창고는 줄고 받는 창고는 늘어 회사 전체 수량은 그대로다.',
+      rows: [['경로', '재고Ⅰ › 기타이동 › 창고이동'], ['넣는 칸', '일자 · 보내는 창고 · 받는 창고 · 품목 · 수량'], ['가상 창고', '사은품 · A/S · 불량 · 운송중 · 출고대기 · 영업사원별 창고 — 창고등록(E7 ③)으로 만들어 두고 여기서 옮긴다'], ['저장 뒤', '창고이동현황에서 어느 창고에서 어느 창고로. 창고별재고현황(⑥)에 바로 보인다'], ['조심', '창고를 거꾸로 고르면 수량이 반대로 간다 · 다른 업체 계정의 창고로는 못 옮긴다 — 업체 사이 이동은 이카운트 밖에서 맞춘다 (추정)']],
+      card: { t: '틀렸을 때', lines: ['거꾸로 넣었으면 창고이동현황에서 열어 [삭제] 하고 다시 (추정)', '수량만 틀리면 열어 [수정]'], cap: '교재 실습: 본사창고에 재고가 없으면 물류창고에서 이동시킨 뒤 판매처리' },
+      ref: '교재 초급 p.20~21 (기타이동 · 창고이동 · 실습 7)',
+      tryit: '연습 품목 1개를 연습 창고 → 불량창고로 옮기고 창고이동현황에서 찾기' },
+    4: { title: '④ 불량처리 · 자가사용',
+      one: '팔아서가 아니라 버려서 · 써서 줄어드는 재고. 둘 다 유형을 붙여 두면 현황에서 모아 볼 수 있다.',
+      rows: [['경로', '재고Ⅰ › 기타이동 › 불량처리 / 재고Ⅰ › 기타이동 › 자가사용'], ['넣는 칸', '일자 · 창고 · 품목 · 수량 · 불량유형(칸 더블클릭 › 신규) · 처리방법 [폐기] / [정상사용] / [품목대체]'], ['자가사용', '회사 안에서 쓴 것 · 무상 증여 · 샘플 — 사용유형(더블클릭 › 신규)을 붙인다. 재고 ↓'], ['저장 뒤', '불량처리현황 · 자가사용현황에서 유형별로. 반품으로 돌아온 것은 불량창고에 받아 두고 여기서 폐기 또는 창고이동으로 되돌린다 (교재 문제 2)'], ['조심', '반품 입고 자체는 여기가 아니라 판매입력에 −수량 (E1 ⑤) · [정상사용] · [품목대체]는 그냥 버리는 게 아니다 — 어느 쪽인지 보고 고른다 (추정)']],
+      card: { t: '틀렸을 때', lines: ['불량처리현황 · 자가사용현황에서 그 전표를 열어 [수정] · [삭제] (추정)', '유형을 잘못 붙였으면 전표를 열어 유형만 바꾼다'], cap: '유형 이름은 회사가 정한 것만 쓴다 — 멋대로 새로 만들지 않는다 (회사가 채움)' },
+      ref: '교재 초급 p.20 (자가사용 · 불량처리) · p.28 (문제 2 — 반품 → 불량창고 → 폐기 · 창고이동)',
+      tryit: '연습 품목 1개를 불량처리 [폐기] 로 넣고 불량처리현황에서 찾기' },
+    5: { title: '⑤ 재고실사 · 재고조정',
+      one: '실제로 세어 장부를 실물에 맞추는 일. 처음 시작할 때의 기초재고도 이 화면으로 넣는다.',
+      rows: [['경로', '재고Ⅰ › 기타이동 › 재고조정 › 재고실사조회 › 하단 [단계별재고실사] — 직접 입력 또는 자료올리기'], ['세 수량', '장부수량(프로그램이 아는 수) · 실사수량(실제로 센 수) · 조정수량(둘의 차이) — 조정수량이 저장되면 장부가 바뀐다'], ['작업순서', '[잔량재집계] → 실사 입력 · [√]재고조정 체크 · [저장] → [잔량재집계] 다시 → 출력물 › 재고현황 확인 → Self-Customizing › 환경설정 › 기능설정 › 재고 탭 › 편집제한일자 = 실사일 +1'], ['조심', '[√]재고조정을 안 체크하면 임시저장일 뿐 장부는 그대로 · 「입력하지 않은 품목의 수량 0으로 조정」 을 잘못 체크하면 안 센 품목이 전부 0 이 된다 · 세는 날과 창고 범위는 회사가 채움']],
+      card: { t: '틀렸을 때', lines: ['실사전표 일자 고치기: 재고조정조회에서 연결된 조정전표를 먼저 [삭제] → 일자 수정 → 조정전표 다시 생성', '조정전표 뒤에 그 날짜 거래를 넣거나 고쳤으면: 재고실사조회에서 그 전표를 열어 하단 [저장] 한 번 더', '「0으로 조정」 체크를 잘못했으면: 재고실사조회에서 열어 그 체크를 바꾼다'], cap: '편집제한일자 이전 전표는 못 고친다 — 실사 뒤 날짜를 잠근 뜻이다' },
+      ref: '교재 초급 p.9~11 (기초(실사)수량 등록 · 작업순서 · 재고조정시 유의사항)' },
+    6: { title: '⑥ 재고현황 · 수불부',
+      one: '지금 몇 개 있나(재고현황), 어떻게 들고 났나(재고수불부). 창고 일의 끝은 이 두 화면을 보는 것이다.',
+      rows: [['경로', '재고Ⅰ › 출력물 › 재고현황 · 창고별재고현황 · 재고수불부 · 재고변동표 · 일보'], ['재고현황', '품목별 수량. 안전재고수량(품목등록 수량 탭) 아래면 붉게. 품목코드를 누르면 그 품목의 재고수불부'], ['수불부 · 변동표', '수불부 = 기간 동안의 입고 · 출고 · 재고 수량, 변동표 = 일별 · 월별 증감, 일보 = 그날의 판매 · 구매 · 재고 · 수금 · 지급'], ['보기 전', '숫자가 이상하면 우측 상단 [잔량재집계(F8)] 먼저. 달이 끝나면 월별품목별재집계(재고마감). 출력물은 하이퍼링크로 전표까지 들어가 고칠 수 있고 엑셀로 바꿀 수 있다'], ['조심', '재고현황은 계정(업체)마다 따로다 — 5계정을 돌며 본다 (추정) · 창고 수량을 다 더한 수가 「팔 수 있는 수」 가 아니다 — 불량 · 출고대기 창고가 섞여 있다']],
+      card: { t: '나중 · UBO ONE', lines: ['출고 요청이 창고 화면에 뜨고 처리 체크 하나로 끝난다 — 지시서 · 출하 · 판매를 따로 치지 않는다 (STK-02)', '재고는 창고 × 소유 × 상태(정상 · 불량 · 전시 · 예약)로 바로 보인다 — 가상 창고로 나누지 않는다 (STK-01)', '5계정을 돌지 않는다 — 업체는 칸 하나'], cap: '이 길 전체가 교재 2장 · 7장의 「지금 · 이카운트」 카드다' },
+      ref: '교재 초급 p.24 (출력물) · p.30 (사용순서와 메뉴정리)',
+      tryit: '재고현황에서 연습 품목의 품목코드를 눌러 재고수불부 열기 — ③ ④ 에서 넣은 줄이 보이나' }
+  };
+
+  var K;
+  var map = document.getElementById('map');
+  var flow = document.getElementById('flow');
+  var walk = document.getElementById('walk');
+  var panel = document.getElementById('panel');
+  var panelBody = document.getElementById('panelBody');
+  var grad = document.getElementById('grad');
+  var scrs = Array.prototype.slice.call(map.querySelectorAll('.scr'));
+  var picked = 'all';
+  var esc = function (s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var label = function (k) { return k === 'all' ? '전체' : NUM[k] + ' ' + NAME[k]; };
+  var color = function (k) { var c = k === 'all' ? 'ink' : KIND[k]; return c === 'ink' ? K.C.ink : K.C[c]; };
+
+  function select(k) {
+    picked = k;
+    var i = STEPS.indexOf(k);
+    scrs.forEach(function (el) {
+      var n = STEPS.indexOf(el.dataset.k);
+      el.classList.toggle('now', i >= 0 && n === i);
+      el.classList.toggle('done', i >= 0 && n < i);
+      el.classList.toggle('later', i >= 0 && n > i);
+      el.setAttribute('aria-pressed', String(n === i));
+      var side = document.getElementById('d' + el.dataset.k);
+      if (side) side.classList.toggle('later', i >= 0 && n > i);
+    });
+    Array.prototype.forEach.call(walk.querySelectorAll('button'), function (b) {
+      b.classList.toggle('on', b.dataset.k === k);
+      b.setAttribute('aria-pressed', String(b.dataset.k === k));
+    });
+    var info = INFO[k], col = color(k);
+    var h = '<h3 class="brush" style="color:' + col + '">' + info.title + '</h3>';
+    h += '<div class="cols' + (info.card ? ' two' : '') + '"><div>';
+    h += '<p class="one">' + info.one + '</p>';
+    if (info.rows) h += '<dl class="rows">' + info.rows.map(function (r) { return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join('') + '</dl>';
+    if (info.list) {
+      h += '<ul class="steps">' + STEPS.map(function (s) {
+        return '<li><button type="button" data-go="' + s + '"><b style="color:' + color(s) + '">' + NUM[s] + ' ' + NAME[s] + '</b>' + info.list[s] + '</button></li>';
+      }).join('') + '</ul>';
+    }
+    if (info.tryit) h += '<p class="try">해 보기: ' + info.tryit + '</p>';
+    if (info.ref) h += '<p class="ref">' + info.ref + '</p>';
+    h += '</div>';
+    var prev = i < 0 ? null : (i === 0 ? 'all' : STEPS[i - 1]);
+    var next = i < 0 ? '1' : (i === STEPS.length - 1 ? 'all' : STEPS[i + 1]);
+    var nav = '<div class="nav"><button type="button" data-go="' + (prev || '') + '"' + (prev ? '' : ' disabled') + '>← ' + (prev ? label(prev) : '') + '</button>' +
+      '<button type="button" data-go="' + next + '">' + (i < 0 ? '① 출하지시서입력부터' : label(next)) + ' →</button></div>';
+    if (info.card) {
+      var body = info.card.html || '';
+      if (info.card.lines) body += info.card.lines.map(function (l) { return '<div class="ln">' + esc(l) + '</div>'; }).join('');
+      if (info.card.cap) body += '<p class="cap">' + info.card.cap + '</p>';
+      h += '<div><div class="card" id="card"><span class="ct">' + info.card.t + '</span>' + body + '</div>' + nav + '</div></div>';
+    } else {
+      h += '</div>' + nav;
+    }
+    panelBody.innerHTML = h;
+    schedule();
+  }
+
+  function inState(g, st, col, fn) {
+    var gg = st === 'done' ? K.el(g, 'g', { opacity: 0.5 }) : g;
+    fn(gg, st === 'later' ? K.C.faint : col, st === 'now' ? 2.6 : 1.8);
+  }
+  // 세로 화살표 — 몸통은 K.line, 촉은 두 획
+  function vArrow(g, x, y1, y2, r, c, w) {
+    K.line(g, x, y1, x + (r() - 0.5) * 1.5, y2 - 2, r, c, w);
+    K.line(g, x, y2, x - 6, y2 - 9, r, c, Math.max(1.4, w * 0.8));
+    K.line(g, x, y2, x + 6, y2 - 9, r, c, Math.max(1.4, w * 0.8));
+  }
+
+  function draw() {
+    var g = K.fresh(document.getElementById('lines'));
+    var box = K.rel(map);
+    var i = STEPS.indexOf(picked);
+    var state = function (k) { var n = STEPS.indexOf(k); return i < 0 ? 'all' : n === i ? 'now' : n < i ? 'done' : 'later'; };
+    var narrow = flow.offsetWidth < 640;
+
+    STEPS.forEach(function (k, n) {
+      var el = document.getElementById('s' + k), b = box(el), st = state(k), c = color(k);
+      var r = K.rng(10 + n), hot = st === 'now';
+      // 화면 상자 — 지금 보는 화면은 두 겹
+      K.rect(g, b.x, b.y, b.w, b.h, r, st === 'later' ? K.C.faint : c, hot ? 2.4 : 1.5);
+      if (hot) K.rect(g, b.x + 3, b.y + 3, b.w - 6, b.h - 6, r, c, 1);
+      // 칸 · 단추 — 칸은 가는 네모, 단추는 알약처럼 두 겹
+      Array.prototype.forEach.call(el.querySelectorAll('.fld, .btn'), function (f, m) {
+        var fb = box(f), rr = K.rng(100 + n * 20 + m), isBtn = f.classList.contains('btn');
+        var fc = st === 'later' ? K.C.faint : (isBtn ? K.C.find : K.C.ink);
+        K.rect(g, fb.x, fb.y, fb.w, fb.h, rr, fc, isBtn ? 1.5 : 1);
+        if (isBtn) K.hatch(g, fb.x, fb.y, fb.w, fb.h, rr, 6, K.C.find, 0.08);
+      });
+      // 아래 화살표 — 다음 화면으로
+      if (n < STEPS.length - 1) {
+        var nb = box(document.getElementById('s' + STEPS[n + 1]));
+        inState(g, state(STEPS[n + 1]), color(STEPS[n + 1]), function (gg, cc, w) { vArrow(gg, b.cx, b.b + 3, nb.y - 3, K.rng(40 + n), cc, w); });
+      }
+      // 오른쪽 점선 — 조회 · 현황
+      var side = document.getElementById('d' + k);
+      if (side && !narrow) {
+        var sb = box(side), rs = K.rng(60 + n), sc = st === 'later' ? K.C.faint : K.C.find;
+        K.rect(g, sb.x, sb.y, sb.w, sb.h, rs, sc, 1.1, '5 4');
+        var y = Math.min(b.cy, sb.cy);
+        K.line(g, b.rt + 4, y, sb.x - 6, y, rs, sc, 1.2, '4 4');
+        K.head(g, sb.x - 4, y, 1, rs, sc, 1.2);
+      }
+    });
+
+    // 설명 공책 테두리 + 색 줄 + 카드
+    var pg = K.fresh(document.getElementById('panelLines'));
+    var pw = panel.offsetWidth, ph = panel.offsetHeight, r9 = K.rng(9);
+    K.rect(pg, 2, 2, pw - 4, ph - 4, r9, K.C.ink, 1.4);
+    K.line(pg, 13, 7, 13, ph - 7, r9, color(picked), 2.2);
+    var card = document.getElementById('card');
+    if (card) {
+      var cb = K.rel(panel)(card), rc = K.rng(19), ccol = color(picked);
+      K.rect(pg, cb.x, cb.y, cb.w, cb.h, rc, ccol, 1.4);
+      K.hatch(pg, cb.x + 1, cb.y + 1, cb.w - 2, 6, rc, 6, ccol, 0.2);
+    }
+
+    // 해 보기
+    var gg2 = K.fresh(document.getElementById('gradLines')), gb = K.rel(grad), r8 = K.rng(8);
+    K.rect(gg2, 2, 2, grad.offsetWidth - 4, grad.offsetHeight - 4, r8, K.C.ink, 1.4);
+    Array.prototype.forEach.call(grad.querySelectorAll('label'), function (lb, n) {
+      var b = gb(lb.querySelector('.bx')), r = K.rng(130 + n), on = lb.querySelector('input').checked;
+      K.rect(gg2, b.x, b.y, b.w, b.h, r, K.C.ink, 1.3);
+      if (on) K.curve(gg2, 'M' + (b.x + 4) + ' ' + (b.cy + 1) + ' L' + (b.x + 8) + ' ' + (b.b - 4) + ' L' + (b.rt - 2) + ' ' + (b.y + 2), r, K.C.find, 2.2);
+    });
+  }
+
+  var queued = false;
+  function schedule() { if (queued) return; queued = true; setTimeout(function () { queued = false; draw(); }, 40); }
+  function use(style) {
+    K = SketchKit(style);
+    document.documentElement.dataset.style = K.style;
+    Array.prototype.forEach.call(document.querySelectorAll('#pick button'), function (b) { b.classList.toggle('on', b.dataset.s === K.style); });
+    var back = document.getElementById('back'); back.href = back.getAttribute('href').split('#')[0] + '#' + K.style;
+    select(picked);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+  }
+
+  document.getElementById('pick').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-s]');
+    if (b) { use(b.dataset.s); if (history.replaceState) history.replaceState(null, '', '#' + b.dataset.s); }
+  });
+  walk.addEventListener('click', function (e) { var b = e.target.closest('button[data-k]'); if (b) select(b.dataset.k); });
+  map.addEventListener('click', function (e) { var s = e.target.closest('.spot'); if (s) select(s.dataset.k); });
+  map.addEventListener('keydown', function (e) { var s = e.target.closest('.spot'); if (s && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(s.dataset.k); } });
+  panel.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-go]');
+    if (b && b.dataset.go) { select(b.dataset.go); walk.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
+
+  var GK = 'ubo-ecount-e2';
+  var boxes = grad.querySelectorAll('input');
+  try { var saved = JSON.parse(localStorage.getItem(GK) || '{}'); Array.prototype.forEach.call(boxes, function (b) { b.checked = !!saved[b.dataset.k]; }); } catch (e) {}
+  function paintGrad() { Array.prototype.forEach.call(boxes, function (b) { b.parentNode.querySelector('span').classList.toggle('on', b.checked); }); }
+  grad.addEventListener('change', function () {
+    paintGrad();
+    try { var o = {}; Array.prototype.forEach.call(boxes, function (b) { o[b.dataset.k] = b.checked; }); localStorage.setItem(GK, JSON.stringify(o)); } catch (e) {}
+    schedule();
+  });
+  paintGrad();
+
+  function fromHash() { var h = (location.hash || '').slice(1); use(['pencil', 'textbook', 'blueprint'].indexOf(h) >= 0 ? h : 'pencil'); }
+  fromHash();
+  window.addEventListener('hashchange', fromHash);
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', schedule);
+  window.addEventListener('load', schedule);
+  window.addEventListener('resize', schedule);
+  if (window.ResizeObserver) { var ro = new ResizeObserver(schedule); ro.observe(map); ro.observe(panel); ro.observe(grad); }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ko" data-style="pencil">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>판매가 장부가 되는 길</title>
+<!--
+  우보브랜드샵 신입 교재 · 6장 「판매가 장부가 되는 길」 — 슈니버시티 그림체(한 장 지도). 뼈대는 본보기 ch1-order.html 그대로.
+  글자는 HTML, 선은 그 위에 덮은 svg.over 에 sketch-kit.js 가 글자 자리를 재서 긋는다 (draw()).
+  그림체는 <html data-style> 과 SketchKit(…) 둘 다 바꾼다. 주소 #pencil · #textbook · #blueprint.
+  '지금 · 이카운트' 카드만 갈아끼우면 같은 그림이 UBO ONE 교재가 된다 — 이치(그림)는 그대로.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Brush+Script&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  /* ---------- 연필 손그림(원본) ---------- */
+  :root {
+    --paper: #f8f4ea; --ink: #36332d; --ink-soft: #5d584e; --ink-faint: #8b8476;
+    --marker: rgba(255, 214, 64, 0.55); --find: #2f5d87; --talk: #b5523b; --db: #4f7d4a;
+    --mono: ui-monospace, 'Cascadia Mono', Consolas, 'D2Coding', monospace;
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.3  0 0 0 0 0.22  0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--paper); }
+  body {
+    min-height: 100vh; color: var(--ink);
+    font-family: 'Gaegu', cursive; background-color: var(--paper); background-image: var(--grain);
+    padding: 18px 16px 28px; word-break: keep-all; overflow-wrap: anywhere;
+  }
+  .page { max-width: 860px; margin: 0 auto; }
+  .brush { font-family: 'Nanum Brush Script', 'Gaegu', cursive; font-weight: 400; }
+  button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+  svg.over { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+  .spot { cursor: pointer; }
+  .spot:focus-visible, button:focus-visible { outline: 2px dashed var(--find); outline-offset: 2px; }
+
+  .pick { display: flex; justify-content: center; gap: 6px; margin-bottom: 14px; font-family: system-ui, sans-serif; }
+  .pick button { font-size: 13px; border: 1px solid #c9ced6; background: #fff; border-radius: 999px; padding: 5px 12px; }
+  .pick button.on { background: #1f2937; border-color: #1f2937; color: #fff; }
+
+  .hero { text-align: center; }
+  .hero .kick { font-size: clamp(14px, 1.7vw, 17px); color: var(--ink-soft); letter-spacing: 0.04em; }
+  .hero h1 { font-size: clamp(36px, 6.4vw, 56px); line-height: 1.05; margin-top: 2px; }
+  .hero h1 span { display: inline-block; }
+  .hero p { margin-top: 4px; font-size: clamp(15px, 1.9vw, 18px); color: var(--ink-soft); }
+
+  /* 걸음 단추 — 쌓기(①~③) · 보기(④~⑥) 두 묶음 */
+  .walk { position: relative; display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 8px 16px; margin-top: 14px; }
+  .grp { position: relative; z-index: 1; display: inline-flex; flex-direction: column; align-items: center; gap: 8px; }
+  .grp em { font-style: normal; font-size: 15px; font-weight: 700; line-height: 1; padding: 0 4px; }
+  .grp[data-g="none"] em { visibility: hidden; }
+  .bs { display: flex; gap: 6px; }
+  .walk button, .panel .nav button { font-size: 18px; line-height: 1; padding: 6px 9px 4px; border-radius: 6px; }
+  .bs button:nth-child(odd) { transform: rotate(-2deg); }
+  .bs button:nth-child(even) { transform: rotate(1.5deg); }
+  .walk button.on { background: var(--marker); }
+  .walk .nm { display: none; }
+  @media (min-width: 760px) { .walk .nm { display: inline; } }
+  @media (max-width: 400px) { .walk { gap: 8px 9px; } .bs { gap: 5px; } .walk button { font-size: 16px; padding: 6px 7px 4px; } }
+  .n { font-style: normal; }
+  .n.t { color: var(--talk); } .n.f { color: var(--find); } .n.d { color: var(--db); }
+
+  /* 시퀀스 — 여섯 칸 격자. 생명선은 1/6(현장) · 3/6(경리) · 5/6(사장님 · 세무사) 자리로 내려간다 */
+  .map { position: relative; margin-top: 10px; }
+  .seq { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); margin-top: 8px; }
+  .who { text-align: center; margin: 0 clamp(6px, 1.1vw, 14px); padding: 48px 3px 8px; }
+  .who .name { display: inline-block; font-size: clamp(23px, 3.8vw, 34px); line-height: 1; padding: 0 4px; }
+  .who small { display: block; margin-top: 3px; font-size: clamp(12px, 1.8vw, 16px); color: var(--ink-soft); line-height: 1.2; }
+  .who.lit .name { background: linear-gradient(transparent 55%, var(--marker) 55%, var(--marker) 94%, transparent 94%); }
+  @media (min-width: 760px) {
+    .who { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 76px; padding: 11px 8px 10px 78px; }
+  }
+  #w-fd { grid-area: 1 / 1 / 2 / 3; }
+  #w-bk { grid-area: 1 / 3 / 2 / 5; }
+  #w-bo { grid-area: 1 / 5 / 2 / 7; }
+
+  /* 이름표가 위, 화살표가 아래 — 한 칸 = 이름표 + 그 화살표. ②③④ 는 경리 혼자 하는 고리 셋, 원기둥은 ② 바로 아래 */
+  .lane { position: relative; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0 8px; text-align: center; padding: 8px 6px 16px; }
+  .lane.pair { padding-bottom: 28px; }
+  .lane.self { justify-content: flex-start; text-align: left; padding: 8px 6px 8px 42px; }
+  .lane b { font-size: clamp(15px, 2.3vw, 21px); line-height: 1.15; padding: 0 3px; }
+  .lane span { font-size: clamp(12px, 1.75vw, 16px); color: var(--ink-soft); line-height: 1.2; }
+  .lane .env { display: block; width: 22px; height: 15px; flex: none; }
+  .lane:hover b, .lane:focus-visible b { text-decoration: underline wavy rgba(54, 51, 45, 0.35); text-underline-offset: 5px; }
+  .lane.now b { background: linear-gradient(transparent 52%, var(--marker) 52%, var(--marker) 94%, transparent 94%); }
+  .lane.later b, .lane.later span, .lane.later .n { color: var(--ink-faint); }
+  .lane.done span { color: var(--ink-faint); }
+  #l1 { grid-area: 2 / 2 / 3 / 4; }
+  #l2 { grid-area: 3 / 4 / 4 / 6; }
+  #db { grid-area: 4 / 4 / 5 / 5; }
+  #l3 { grid-area: 5 / 4 / 6 / 6; }
+  #l4 { grid-area: 6 / 4 / 7 / 6; }
+  #l5 { grid-area: 7 / 4 / 8 / 6; }
+  #l6 { grid-area: 8 / 4 / 9 / 6; }
+
+  /* 왼쪽 여백 — 두 갈래 괄호 */
+  .gut { display: flex; flex-direction: column; justify-content: center; align-items: flex-end; text-align: right; gap: 2px; padding: 6px 18px 6px 0; }
+  .gut b { font-size: clamp(14px, 1.9vw, 18px); line-height: 1.1; }
+  .gut span { font-size: clamp(12px, 1.55vw, 15px); color: var(--ink-soft); line-height: 1.15; }
+  #g-in { grid-area: 2 / 1 / 6 / 2; }
+  #g-out { grid-area: 6 / 1 / 9 / 2; }
+  .gut.on b { background: linear-gradient(transparent 55%, var(--marker) 55%, var(--marker) 94%, transparent 94%); }
+  @media (max-width: 559px) {
+    .gut { align-items: center; padding-right: 16px; }
+    .gut b { writing-mode: vertical-rl; text-orientation: upright; letter-spacing: 3px; }
+    .gut span { display: none; }
+  }
+
+  /* 경리 뒤 저장 — 장부 (업체별) */
+  .dbx { justify-self: start; align-self: center; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 2px 0 2px 28px; }
+  .dbx b { display: block; font-size: 14px; line-height: 1; padding: 11px 10px 6px; color: var(--db); white-space: nowrap; }
+  .dbx small { font-size: 12px; color: var(--ink-faint); line-height: 1; white-space: nowrap; }
+  .dbx.lit small { color: var(--ink); font-weight: 700; }
+  .pad { height: 10px; }
+
+  /* 설명 공책 */
+  .panel { position: relative; margin-top: 18px; padding: 14px 18px 14px 28px; }
+  .panel > div { position: relative; z-index: 1; }
+  .panel h3 { font-size: clamp(30px, 4.2vw, 38px); line-height: 1.05; }
+  .cols { display: grid; gap: 14px 26px; margin-top: 6px; }
+  @media (min-width: 760px) { .cols.two { grid-template-columns: minmax(0, 1fr) minmax(240px, 330px); align-items: start; } }
+  .one { font-size: clamp(17px, 2vw, 19px); line-height: 1.38; }
+  .facts { display: grid; gap: 5px; margin-top: 9px; font-size: clamp(15px, 1.8vw, 17px); line-height: 1.35; color: var(--ink-soft); }
+  .facts > span > i { font-style: normal; font-weight: 700; color: var(--ink); margin-right: 6px; }
+  .steps { list-style: none; display: grid; gap: 4px; margin-top: 8px; }
+  .steps button { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; text-align: left; font-size: clamp(15px, 1.8vw, 17px); line-height: 1.3; padding: 2px 4px; border-radius: 4px; }
+  .steps button:hover { background: var(--marker); }
+  .steps b { white-space: nowrap; }
+  .card { position: relative; padding: 12px 14px 11px; }
+  .card.letter { padding-top: 24px; }
+  .card .ct { display: block; font-size: 16px; font-weight: 700; color: var(--ink-soft); line-height: 1.1; margin-bottom: 7px; }
+  .card .ln { font-size: clamp(14px, 1.6vw, 16px); line-height: 1.4; color: var(--ink); padding-left: 14px; text-indent: -14px; }
+  .card .ln::before { content: '› '; color: var(--ink-faint); }
+  .card .cap { font-size: 15px; color: var(--ink-soft); line-height: 1.3; margin-top: 6px; }
+  .card .rep { font-size: clamp(15px, 1.8vw, 17px); line-height: 1.45; }
+  .try { font-family: 'Nanum Pen Script', cursive; font-size: 23px; line-height: 1.15; color: var(--find); margin-top: 10px; }
+  .panel .nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; }
+  .panel .nav button { font-size: 17px; }
+  .panel .nav button[disabled] { visibility: hidden; }
+
+  .legend { margin: 16px auto 0; max-width: 780px; display: grid; gap: 5px; font-size: clamp(15px, 1.9vw, 17px); color: var(--ink-soft); text-align: center; line-height: 1.3; }
+  .legend .f { color: var(--find); font-weight: 700; }
+  .legend .t { color: var(--talk); font-weight: 700; }
+  .legend .d { color: var(--db); font-weight: 700; }
+
+  /* 해 보기 — 졸업 체크. 상자는 손으로 그린다 */
+  .grad { position: relative; margin-top: 22px; padding: 14px 18px 12px; }
+  .grad > * { position: relative; z-index: 1; }
+  .grad h3 { font-size: clamp(26px, 3.6vw, 32px); line-height: 1.05; margin-bottom: 6px; }
+  .grad label { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; font-size: clamp(15px, 1.9vw, 18px); line-height: 1.3; cursor: pointer; }
+  .grad input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .grad .bx { display: block; flex: none; width: 20px; height: 20px; margin-top: 1px; }
+  .grad .on { color: var(--ink-faint); text-decoration: line-through; text-decoration-color: rgba(54, 51, 45, 0.3); }
+  .grad .sign { margin-top: 8px; font-size: clamp(13px, 1.6vw, 15px); color: var(--ink-soft); }
+  .foot { margin-top: 14px; text-align: center; font-size: clamp(12px, 1.4vw, 13.5px); color: var(--ink-faint); line-height: 1.4; }
+
+  /* ---------- 교과서 도식 — 위 규칙을 덮는다 ---------- */
+  html[data-style="textbook"] { --paper: #ffffff; --ink: #1f2937; --ink-soft: #4b5563; --ink-faint: #a3aab5; --find: #1f5fae; --talk: #b8432f; --db: #2f7d4f; --marker: rgba(31, 95, 174, 0.14); }
+  html[data-style="textbook"] body { font-family: 'Noto Sans KR', system-ui, sans-serif; background: #fff; background-image: none; letter-spacing: -0.01em; }
+  html[data-style="textbook"] .brush { font-family: 'Noto Sans KR', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; }
+  html[data-style="textbook"] .hero h1 { font-size: clamp(25px, 3.8vw, 34px); }
+  html[data-style="textbook"] .hero p, html[data-style="textbook"] .hero .kick { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="textbook"] .walk button, html[data-style="textbook"] .panel .nav button { font-size: 14px; border-radius: 999px; border: 1px solid var(--ink-faint); padding: 5px 11px; }
+  html[data-style="textbook"] .bs button { transform: none; }
+  html[data-style="textbook"] .walk button.on { border-color: var(--find); }
+  html[data-style="textbook"] .grp em { font-size: 12.5px; }
+  html[data-style="textbook"] .who .name { font-size: clamp(16px, 2.5vw, 22px); font-weight: 800; }
+  html[data-style="textbook"] .who small { font-size: clamp(11px, 1.4vw, 13px); }
+  html[data-style="textbook"] .lane b { font-size: clamp(13px, 1.9vw, 16px); font-weight: 700; }
+  html[data-style="textbook"] .lane span { font-size: clamp(11px, 1.4vw, 13px); }
+  html[data-style="textbook"] .gut b { font-size: clamp(12px, 1.6vw, 15px); }
+  html[data-style="textbook"] .gut span, html[data-style="textbook"] .dbx small { font-size: 11.5px; }
+  html[data-style="textbook"] .panel h3 { font-size: clamp(20px, 2.8vw, 25px); }
+  html[data-style="textbook"] .one { font-size: clamp(14px, 1.6vw, 16px); }
+  html[data-style="textbook"] .facts, html[data-style="textbook"] .steps button, html[data-style="textbook"] .card .rep { font-size: clamp(13px, 1.5vw, 14.5px); }
+  html[data-style="textbook"] .card .ln { font-size: clamp(12.5px, 1.4vw, 14px); }
+  html[data-style="textbook"] .card .cap, html[data-style="textbook"] .card .ct { font-size: 13px; }
+  html[data-style="textbook"] .try { font-family: inherit; font-size: clamp(13px, 1.5vw, 14.5px); font-weight: 700; }
+  html[data-style="textbook"] .legend { font-size: clamp(12px, 1.5vw, 13.5px); }
+  html[data-style="textbook"] .grad h3 { font-size: clamp(18px, 2.5vw, 22px); }
+  html[data-style="textbook"] .grad label { font-size: clamp(13px, 1.6vw, 15px); }
+
+  /* ---------- 설계 도면 — 위 규칙을 덮는다 ---------- */
+  html[data-style="blueprint"] { --paper: #f6f8fb; --ink: #16365c; --ink-soft: #3d5878; --ink-faint: #9db0c6; --find: #1d6fb8; --talk: #c23b2e; --db: #2b7a5a; --marker: rgba(29, 111, 184, 0.13); --mono: 'IBM Plex Mono', 'IBM Plex Sans KR', ui-monospace, Consolas, monospace; }
+  html[data-style="blueprint"] body {
+    font-family: 'IBM Plex Sans KR', system-ui, sans-serif; background-color: var(--paper);
+    background-image:
+      linear-gradient(rgba(29, 111, 184, 0.10) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(29, 111, 184, 0.10) 1px, transparent 1px),
+      linear-gradient(rgba(29, 111, 184, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(29, 111, 184, 0.045) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+  }
+  html[data-style="blueprint"] .page { border: 1.5px solid var(--ink); outline: 1px solid var(--ink); outline-offset: 5px; padding: 16px; background: rgba(246, 248, 251, 0.6); }
+  html[data-style="blueprint"] .brush { font-family: 'IBM Plex Sans KR', sans-serif; font-weight: 700; letter-spacing: 0.01em; }
+  html[data-style="blueprint"] .hero h1 { font-size: clamp(23px, 3.5vw, 32px); }
+  /* FIG. 처럼 라틴 글자만 있는 자리에만 Mono — 한글에 Mono 를 주면 띄어쓰기가 벌어진다 */
+  html[data-style="blueprint"] .hero .kick::before { content: 'FIG. 6  '; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.2em; color: var(--ink-soft); }
+  html[data-style="blueprint"] .hero p, html[data-style="blueprint"] .hero .kick { font-size: clamp(13px, 1.45vw, 14.5px); }
+  html[data-style="blueprint"] .walk button, html[data-style="blueprint"] .panel .nav button { font-size: 13.5px; border-radius: 0; border: 1px solid var(--ink-faint); padding: 5px 10px; letter-spacing: 0.02em; }
+  html[data-style="blueprint"] .bs button { transform: none; }
+  html[data-style="blueprint"] .walk button.on { background: none; border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  html[data-style="blueprint"] .grp em { font-size: 12px; letter-spacing: 0.06em; }
+  html[data-style="blueprint"] .who .name { font-size: clamp(15px, 2.3vw, 20px); font-weight: 700; }
+  html[data-style="blueprint"] .who small { font-size: clamp(10.5px, 1.3vw, 12.5px); }
+  html[data-style="blueprint"] .who.lit .name, html[data-style="blueprint"] .lane.now b, html[data-style="blueprint"] .gut.on b { background: none; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  html[data-style="blueprint"] .lane b { font-size: clamp(12.5px, 1.8vw, 15.5px); font-weight: 700; }
+  html[data-style="blueprint"] .lane span { font-size: clamp(10.5px, 1.3vw, 12.5px); }
+  html[data-style="blueprint"] .gut b { font-size: clamp(12px, 1.5vw, 14px); letter-spacing: 0.06em; }
+  html[data-style="blueprint"] .gut span, html[data-style="blueprint"] .dbx small { font-size: 11px; }
+  html[data-style="blueprint"] .panel h3 { font-size: clamp(18px, 2.6vw, 23px); }
+  html[data-style="blueprint"] .one { font-size: clamp(13.5px, 1.55vw, 15.5px); }
+  html[data-style="blueprint"] .facts, html[data-style="blueprint"] .steps button, html[data-style="blueprint"] .card .rep { font-size: clamp(12.5px, 1.45vw, 14px); }
+  html[data-style="blueprint"] .card .ln { font-size: clamp(12px, 1.35vw, 13.5px); }
+  html[data-style="blueprint"] .card .cap, html[data-style="blueprint"] .card .ct { font-size: 12.5px; }
+  html[data-style="blueprint"] .try { font-family: inherit; font-size: clamp(12.5px, 1.45vw, 14px); font-weight: 600; }
+  html[data-style="blueprint"] .legend { font-size: clamp(11.5px, 1.4vw, 13px); }
+  html[data-style="blueprint"] .grad h3 { font-size: clamp(17px, 2.3vw, 20px); }
+  html[data-style="blueprint"] .grad label { font-size: clamp(12.5px, 1.5vw, 14.5px); }
+
+  @media print { .pick, .panel .nav { display: none !important; } body { padding: 0; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="pick" id="pick">
+    <button type="button" data-s="pencil">연필 손그림</button>
+    <button type="button" data-s="textbook">교과서 도식</button>
+    <button type="button" data-s="blueprint">설계 도면</button>
+    <a href="textbook.html" id="back" style="font-size:13px;color:var(--ink-soft);align-self:center;margin-left:10px;text-decoration:none" onclick="this.href='textbook.html#'+(document.documentElement.dataset.style||'pencil')">← 교재 목차</a>
+  </div>
+
+  <header class="hero">
+    <div class="kick">신입 교재 · 6장 · 주문 하나의 일생</div>
+    <h1 class="brush"><span>판매가</span> <span>장부가 되는 길</span></h1>
+    <p>현장이 판 것 · 사 온 것이 업체별 장부에 쌓여 사장님과 세무사에게 가기까지 여섯 걸음 — 위에서 아래로 시간이 흐른다.</p>
+  </header>
+
+  <nav class="walk" id="walk" aria-label="여섯 걸음 고르기">
+    <svg class="over" id="walkLines" aria-hidden="true"></svg>
+    <span class="grp" data-g="none"><em>·</em><span class="bs"><button type="button" data-k="all">전체</button></span></span>
+    <span class="grp" data-g="in"><em>쌓기 · 장부에</em><span class="bs">
+      <button type="button" data-k="1"><span class="n d">①</span><span class="nm"> 쌓인다</span></button>
+      <button type="button" data-k="2"><span class="n d">②</span><span class="nm"> 전표</span></button>
+      <button type="button" data-k="3"><span class="n f">③</span><span class="nm"> 통장 · 카드</span></button>
+    </span></span>
+    <span class="grp" data-g="out"><em>보기 · 장부에서</em><span class="bs">
+      <button type="button" data-k="4"><span class="n f">④</span><span class="nm"> 원장</span></button>
+      <button type="button" data-k="5"><span class="n t">⑤</span><span class="nm"> 사장님께</span></button>
+      <button type="button" data-k="6"><span class="n t">⑥</span><span class="nm"> 세무사에게</span></button>
+    </span></span>
+  </nav>
+
+  <section class="map" id="map">
+    <svg class="over" id="lines" aria-hidden="true"></svg>
+    <div class="seq" id="seq">
+      <div class="who" id="w-fd"><span class="name brush">현장</span><small>영업 · 구매 · 창고</small></div>
+      <div class="who" id="w-bk"><span class="name brush">경리</span><small>장부를 맡은 사람</small></div>
+      <div class="who" id="w-bo"><span class="name brush">사장님 · 세무사</span><small>숫자를 받는 쪽</small></div>
+
+      <div class="gut" id="g-in"><b>쌓기</b><span>장부에 넣는다</span></div>
+      <div class="gut" id="g-out"><b>보기</b><span>장부에서 읽는다</span></div>
+
+      <div class="lane spot" id="l1" data-k="1" tabindex="0" role="button"><b><i class="n d">①</i> 판매 · 구매가 쌓인다</b><span>판 것 · 사 온 것 → 업체별 장부</span></div>
+      <div class="lane spot self" id="l2" data-k="2" tabindex="0" role="button"><b><i class="n d">②</i> 전표</b><span>시점은 지금 하는 대로 — 회사가 채움</span></div>
+      <div class="dbx spot" id="db" data-k="2" tabindex="0" role="button"><b>장부 (업체별)</b><small>업체마다 따로 한 벌</small></div>
+      <div class="lane spot self" id="l3" data-k="3" tabindex="0" role="button"><b><i class="n f">③</i> 통장 · 카드 맞추기</b><span>불러온 내역 ↔ 장부 한 줄</span></div>
+      <div class="lane spot self" id="l4" data-k="4" tabindex="0" role="button"><b><i class="n f">④</i> 원장 보기</b><span>거래처별 · 계정별 · 매입매출장</span></div>
+      <div class="lane spot" id="l5" data-k="5" tabindex="0" role="button"><b><i class="n t">⑤</i> 매출 · 마진 → 사장님</b><span>달마다 · 업체별 · 얼마 남았나</span></div>
+      <div class="lane spot" id="l6" data-k="6" tabindex="0" role="button"><i class="env" aria-hidden="true"></i><b><i class="n t">⑥</i> 세무사에게</b><span>부가세 · 원천징수 · 법인세 자료 · 업체별</span></div>
+      <div class="pad"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel" aria-live="polite">
+    <svg class="over" id="panelLines" aria-hidden="true"></svg>
+    <div id="panelBody"></div>
+  </section>
+
+  <footer class="legend">
+    <div><span class="d">① ② 저장 · 장부에</span> · <span class="f">③ ④ 맞추기 · 찾아보기</span> · <span class="t">⑤ ⑥ 사장님 · 세무사에게</span></div>
+    <div><b>①~③ 쌓기</b>는 장부에 넣는 쪽 — 판 것 · 사 온 것 · 통장이 업체별로 · <b>④~⑥ 보기</b>는 장부에서 읽는 쪽 — 원장 · 사장님 · 세무사</div>
+  </footer>
+
+  <section class="grad" id="grad">
+    <svg class="over" id="gradLines" aria-hidden="true"></svg>
+    <h3 class="brush">해 보기 · 6장 졸업</h3>
+    <label><input type="checkbox" data-k="g1"><i class="bx"></i><span>판매 1건이 어느 원장에 어떻게 찍히는지 따라갔다</span></label>
+    <label><input type="checkbox" data-k="g2"><i class="bx"></i><span>회계미반영현황을 열어 아직 안 넘긴 것을 봤다</span></label>
+    <label><input type="checkbox" data-k="g3"><i class="bx"></i><span>장부가 업체별로 따로임을 말할 수 있다</span></label>
+    <label><input type="checkbox" data-k="g4"><i class="bx"></i><span>세무사에게 가는 자료 셋을 말할 수 있다</span></label>
+    <p class="sign">옆에서 본 선배 ____________ · 날짜 ____________</p>
+  </section>
+
+  <p class="foot">주소는 회사 안에서만 나눈다 · 실제 거래처 이름 · 금액 · 계정 정보는 적지 않는다 · (추정) 은 실무자 확인 전 · 기능 번호(LDG-03 …)는 새 프로그램의 같은 기능을 가리키는 열쇠</p>
+</div>
+
+<script src="sketch-kit.js"></script>
+<script>
+(function () {
+  'use strict';
+  var STEPS = ['1', '2', '3', '4', '5', '6'];
+  var NUM = { 1: '①', 2: '②', 3: '③', 4: '④', 5: '⑤', 6: '⑥' };
+  var NAME = { 1: '판매 · 구매가 쌓인다', 2: '전표', 3: '통장 · 카드 맞추기', 4: '원장 보기', 5: '매출 · 마진 → 사장님', 6: '세무사에게' };
+  var KIND = { 1: 'db', 2: 'db', 3: 'find', 4: 'find', 5: 'talk', 6: 'talk' };   // 색은 뜻으로만
+  var PHASE = { 1: 'in', 2: 'in', 3: 'in', 4: 'out', 5: 'out', 6: 'out' };         // 쌓기 · 보기
+  // 걸음을 고르면 함께 밝아지는 상자
+  var LIT = { 1: ['fd', 'bk'], 2: ['bk', 'db'], 3: ['bk'], 4: ['bk'], 5: ['bk', 'bo'], 6: ['bk', 'bo'] };
+
+  // 설명 — one 은 한 줄, facts 는 [이름표, 내용], card 는 오른쪽 쪽지(지금 · 이카운트). letter 면 편지 모양
+  var INFO = {
+    all: { title: '판매가 장부가 되는 길',
+      one: '현장이 판 것 · 사 온 것이 업체별 장부에 쌓이고, 달마다 사장님과 세무사에게 가기까지 여섯 걸음. 번호를 누르면 그 걸음만 밝아진다.',
+      list: { 1: '판매 · 구매가 장부로 넘어온다', 2: '전표를 만든다 — 장부는 업체별', 3: '통장 · 카드 내역을 장부와 맞춘다', 4: '원장에서 찾아 읽는다', 5: '달마다 매출 · 마진을 사장님께', 6: '부가세 · 원천징수 · 법인세 자료를 세무사에게' },
+      card: { t: '한 줄로', html: '<p class="rep"><b>쌓기</b> — 판 것 · 사 온 것 · 통장이 업체별 장부에 들어간다.<br><b>보기</b> — 그 장부를 원장으로 읽고, 사장님과 세무사에게 보낸다.</p>' } },
+    1: { title: '① 판매 · 구매가 쌓인다',
+      one: '현장이 팔고 사 온 것이 장부에 저절로 쌓인다. 다시 치지 않는다. 지금은 나중에 한꺼번에 넘긴다.',
+      facts: [['저절로', '판매 · 구매 1건 = 장부 1줄. 다시 입력 없음 (LDG-03)'], ['업체별', '어느 업체 명의로 팔았나가 장부를 가른다 (회사법 가-2)'], ['지금은', '나중에 한꺼번에 넘긴다. 안 넘긴 것은 회계미반영현황에 남아 있다 (추정)']],
+      card: { t: '지금 · 이카운트', lines: ['재고 I › 영업관리 › 판매일괄회계반영 (E040215)', '재고 I › 구매관리 › 구매일괄회계반영 (E040312)', '회계미반영현황 (E040609 · E040319) = 아직 안 넘긴 것'], cap: '조심: 회계 반영을 안 넘기면 장부가 비어 보인다 (추정)' },
+      tryit: '회계미반영현황을 열어 본다 (보기만)' },
+    2: { title: '② 전표',
+      one: '경리가 전표를 만든다. 언제 만드는지는 지금 회사가 하는 대로 — 회사가 채움. 장부는 업체마다 따로 한 벌이다.',
+      facts: [['시점', '지금 회사가 하는 대로 따른다 — 회사가 채움 (LDG-04 · 회사법 나-3)'], ['장부', '업체 5개 = 장부 5벌. 섞이지 않는다 (회사법 가-2)']],
+      card: { t: '지금 · 이카운트', lines: ['그 업체 계정으로 로그인 — 5계정 중 하나', '회계 I › FastEntry · 매출전표 · 일반전표 (추정)'], cap: '조심: 업체 계정을 섞으면 원장이 안 맞는다' } },
+    3: { title: '③ 통장 · 카드 맞추기',
+      one: '통장 · 카드 내역을 불러와 장부와 맞춘다. 경비는 승인된 것만 들어온다.',
+      facts: [['맞추기', '불러온 내역 한 줄 ↔ 장부 한 줄 (LDG-07)'], ['경비', '승인된 것만 장부로 (TIM-05 → LDG-03, 추정)'], ['계좌', '업체마다 계좌가 따로 — 어느 업체 통장인지부터 (회사법 가-2)']],
+      card: { t: '지금 · 이카운트', lines: ['회계 I › 계좌/카드 › 입/출금계좌 조회', '회계 I › 계좌/카드 › 카드매입조회'], cap: '조심: 카드 내역을 두 번 올린다 — 올리기 전에 마지막 날짜를 본다 (추정)' },
+      tryit: '입/출금계좌 조회를 열어 어느 업체 통장인지 말해 본다' },
+    4: { title: '④ 원장 보기',
+      one: '장부를 읽는 창이 원장이다. 거래처로, 계정으로, 매입매출로 — 같은 장부를 다른 쪽에서 본다.',
+      facts: [['원장 넷', '거래처별 원장 · 계정별 거래처별 원장 · 매입매출장 · 거래처관리대장 (LDG-12 · 10-19 설문)'], ['따라가기', '판매 1건이 매입매출장에 한 줄, 거래처별 원장에 한 줄 (추정)']],
+      card: { t: '지금 · 이카운트', lines: ['회계 I › 출력물 › 장부 › 계정별원장 · 거래처별원장 · 매입매출장', '회계 I › 출력물 › 주요재무제표 (추정)'], cap: '조심: 어느 업체 계정의 원장인지 — 로그인 계정부터 본다' },
+      tryit: '연습 거래처의 판매 1건을 원장에서 찾아 본다' },
+    5: { title: '⑤ 매출 · 마진 → 사장님',
+      one: '달마다 얼마 팔았고 얼마 남았나를 업체별로 사장님께. 사장님은 보드의 숫자로 본다.',
+      facts: [['매출 · 마진', '달마다 · 업체별. 마진 = 판매가 − 매입 단가 (추정) (BRD-07)'], ['보드', '사장님 보드에 숫자로 (BRD-05)']],
+      card: { t: '지금 · 이카운트', lines: ['회계 I › 출력물 › 월별손익분석 — 「원래 해야 함」 (과장님)', '5계정을 돌며 뽑아 합친다 (추정)'], cap: '나중 · UBO ONE: 업체별 매출 · 마진이 달마다 사장님 보드에 저절로 (BRD-07)' } },
+    6: { title: '⑥ 세무사에게',
+      one: '부가세 · 원천징수 · 법인세 자료를 업체별로 세무사에게 보낸다. 장부가 맞으면 자료는 뽑기만 하면 된다.',
+      facts: [['자료 셋', '부가세 · 원천징수 · 법인세 — 업체마다 따로 (LDG-09 · 회사법 가-2)'], ['언제 · 어떻게', '보내는 때와 방법 — 회사가 채움']],
+      card: { letter: true, t: '지금 · 이카운트', lines: ['세무 › 부가세 — 과장님 목록 (5장 · 추정)', '업체 계정마다 따로 뽑아 세무사에게 (추정)'], cap: '나중 · UBO ONE: 업체별 부가세 · 원천징수 자료를 한곳에서 (LDG-09)' },
+      tryit: '세무사에게 가는 자료 셋을 말해 본다' }
+  };
+
+  var K;
+  var map = document.getElementById('map');
+  var walk = document.getElementById('walk');
+  var panel = document.getElementById('panel');
+  var panelBody = document.getElementById('panelBody');
+  var grad = document.getElementById('grad');
+  var lanes = Array.prototype.slice.call(map.querySelectorAll('.lane'));
+  var picked = 'all';
+  var esc = function (s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var label = function (k) { return k === 'all' ? '전체' : NUM[k] + ' ' + NAME[k]; };
+  var color = function (k) { return k === 'all' ? K.C.ink : K.C[KIND[k]]; };
+
+  function select(k) {
+    picked = k;
+    var i = STEPS.indexOf(k);
+    lanes.forEach(function (el) {
+      var n = STEPS.indexOf(el.dataset.k);
+      el.classList.toggle('now', i >= 0 && n === i);
+      el.classList.toggle('done', i >= 0 && n < i);
+      el.classList.toggle('later', i >= 0 && n > i);
+      el.setAttribute('aria-pressed', String(n === i));
+    });
+    var lit = LIT[k] || [];
+    [['w-fd', 'fd'], ['w-bk', 'bk'], ['w-bo', 'bo'], ['db', 'db']].forEach(function (p) {
+      document.getElementById(p[0]).classList.toggle('lit', lit.indexOf(p[1]) >= 0);
+    });
+    document.getElementById('g-in').classList.toggle('on', PHASE[k] === 'in');
+    document.getElementById('g-out').classList.toggle('on', PHASE[k] === 'out');
+    Array.prototype.forEach.call(walk.querySelectorAll('button'), function (b) {
+      b.classList.toggle('on', b.dataset.k === k);
+      b.setAttribute('aria-pressed', String(b.dataset.k === k));
+    });
+
+    var info = INFO[k], col = color(k);
+    var h = '<h3 class="brush" style="color:' + col + '">' + info.title + '</h3>';
+    h += '<div class="cols' + (info.card ? ' two' : '') + '"><div>';
+    h += '<p class="one">' + info.one + '</p>';
+    if (info.facts) h += '<div class="facts">' + info.facts.map(function (f) { return '<span><i>' + f[0] + '</i>' + f[1] + '</span>'; }).join('') + '</div>';
+    if (info.list) {
+      h += '<ul class="steps">' + STEPS.map(function (s) {
+        return '<li><button type="button" data-go="' + s + '"><b style="color:' + color(s) + '">' + NUM[s] + ' ' + NAME[s] + '</b>' + info.list[s] + '</button></li>';
+      }).join('') + '</ul>';
+    }
+    if (info.tryit) h += '<p class="try">해 보기: ' + info.tryit + '</p>';
+    h += '</div>';
+    var prev = i < 0 ? null : (i === 0 ? 'all' : STEPS[i - 1]);
+    var next = i < 0 ? '1' : (i === STEPS.length - 1 ? 'all' : STEPS[i + 1]);
+    var nav = '<div class="nav"><button type="button" data-go="' + (prev || '') + '"' + (prev ? '' : ' disabled') + '>← ' + (prev ? label(prev) : '') + '</button>' +
+      '<button type="button" data-go="' + next + '">' + (i < 0 ? '① 쌓인다 부터' : label(next)) + ' →</button></div>';
+    if (info.card) {
+      var body = info.card.html || '';
+      if (info.card.lines) body += info.card.lines.map(function (l) { return '<div class="ln">' + esc(l) + '</div>'; }).join('');
+      if (info.card.cap) body += '<p class="cap">' + info.card.cap + '</p>';
+      h += '<div><div class="card' + (info.card.letter ? ' letter' : '') + '" id="card"><span class="ct">' + info.card.t + '</span>' + body + '</div>' + nav + '</div>';
+      h += '</div>';
+    } else {
+      h += '</div>' + nav;
+    }
+    panelBody.innerHTML = h;
+    schedule();
+  }
+
+  // 지금 이야기하는 선은 굵게, 지나간 선은 옅게, 아직 안 온 선은 흐린 색
+  function inState(g, st, col, fn) {
+    var gg = st === 'done' ? K.el(g, 'g', { opacity: 0.5 }) : g;
+    fn(gg, st === 'later' ? K.C.faint : col, st === 'now' ? 2.6 : 1.8);
+  }
+  // 머리 상자 그림 — 44 × 40 칸, (x, y) 는 위 가운데
+  function icon(g, kind, x, y, r, c) {
+    if (kind === 'person') {
+      K.curve(g, 'M' + (x - 7) + ' ' + (y + 9) + ' a7 7 0 1 0 14 0 a7 7 0 1 0 -14 0', r, c, 1.5);
+      K.curve(g, 'M' + (x - 17) + ' ' + (y + 37) + ' Q' + x + ' ' + (y + 15) + ' ' + (x + 17) + ' ' + (y + 37), r, c, 1.5);
+      K.line(g, x - 17, y + 37, x + 17, y + 37, r, c, 1.3);
+    } else if (kind === 'clip') {
+      K.rect(g, x - 13, y + 5, 26, 32, r, c, 1.5);
+      K.rect(g, x - 6, y + 1, 12, 7, r, c, 1.3);
+      K.line(g, x - 7, y + 17, x + 7, y + 17, r, c, 1.2);
+      K.line(g, x - 7, y + 24, x + 7, y + 24, r, c, 1.2);
+      K.line(g, x - 7, y + 31, x + 2, y + 31, r, c, 1.2);
+    } else {
+      K.curve(g, 'M' + (x - 21) + ' ' + (y + 17) + ' L' + x + ' ' + (y + 3) + ' L' + (x + 21) + ' ' + (y + 17), r, c, 1.5);
+      K.rect(g, x - 17, y + 17, 34, 20, r, c, 1.5);
+      K.rect(g, x - 5, y + 25, 10, 12, r, c, 1.2);
+      K.hatch(g, x - 17, y + 17, 34, 8, r, 5, c, 0.12);
+    }
+  }
+  function cylinder(gg, b, r, c, w) {
+    var x0 = b.x, x1 = b.rt, rx = b.w / 2, ry = 4.5, t = b.y + 5, bt = b.b - 3;
+    K.curve(gg, 'M' + x0 + ' ' + t + ' A' + rx + ' ' + ry + ' 0 1 0 ' + x1 + ' ' + t + ' A' + rx + ' ' + ry + ' 0 1 0 ' + x0 + ' ' + t, r, c, w);
+    K.line(gg, x0, t, x0, bt, r, c, w);
+    K.line(gg, x1, t, x1, bt, r, c, w);
+    K.curve(gg, 'M' + x0 + ' ' + bt + ' A' + rx + ' ' + ry + ' 0 0 0 ' + x1 + ' ' + bt, r, c, w);
+  }
+  function envGlyph(gg, b, r, c, w) {
+    K.rect(gg, b.x, b.y, b.w, b.h, r, c, w);
+    K.line(gg, b.x, b.y, b.cx, b.cy + 1, r, c, w);
+    K.line(gg, b.rt, b.y, b.cx, b.cy + 1, r, c, w);
+  }
+
+  function draw() {
+    var g = K.fresh(document.getElementById('lines'));
+    var box = K.rel(map);
+    var at = function (id) { return box(document.getElementById(id)); };
+    var i = STEPS.indexOf(picked);
+    var lit = LIT[picked] || [];
+    var state = function (k) { var n = STEPS.indexOf(k); return i < 0 ? 'all' : n === i ? 'now' : n < i ? 'done' : 'later'; };
+
+    // 머리 상자 셋 — 현장(집) · 경리(장부판) · 사장님 · 세무사(사람)
+    var fd = at('w-fd'), bk = at('w-bk'), bo = at('w-bo');
+    var side = parseFloat(getComputedStyle(document.getElementById('w-fd')).paddingLeft) > 40;   // 넓은 화면: 그림이 이름 왼쪽
+    [[fd, 'house', 'fd', 31], [bk, 'clip', 'bk', 41], [bo, 'person', 'bo', 51]].forEach(function (q) {
+      var b = q[0], r = K.rng(q[3]), hot = lit.indexOf(q[2]) >= 0;
+      K.rect(g, b.x, b.y, b.w, b.h, r, K.C.ink, hot ? 2.4 : 1.5);
+      if (hot) K.rect(g, b.x + 2, b.y + 2, b.w - 4, b.h - 4, r, K.C.ink, 1);
+      if (side) icon(g, q[1], b.x + 42, b.cy - 20, r, K.C.ink);
+      else icon(g, q[1], b.cx, b.y + 4, r, K.C.ink);
+    });
+
+    var L = {};
+    lanes.forEach(function (n) { L[n.id] = box(n); });
+    var xf = fd.cx, xb = bk.cx, xo = bo.cx;
+    var end = L.l6.b + 6;
+    // 생명선 셋
+    K.line(g, xf, fd.b + 4, xf, end, K.rng(61), K.C.faint, 1.2, '5 6');
+    K.line(g, xb, bk.b + 4, xb, end, K.rng(62), K.C.faint, 1.2, '5 6');
+    K.line(g, xo, bo.b + 4, xo, end, K.rng(63), K.C.faint, 1.2, '5 6');
+
+    // 일하는 동안의 막대 — 경리 혼자 하는 사이. ② 전표(저장 색) · ③④ 맞추기 · 보기(찾기 색)
+    var ra = K.rng(65);
+    var y2a = L.l2.y + 6, y2b = L.l2.b - 4, hot2 = picked === '2';
+    K.rect(g, xb - 4, y2a, 8, y2b - y2a, ra, K.C.db, hot2 ? 1.8 : 1.2);
+    K.hatch(g, xb - 4, y2a, 8, y2b - y2a, ra, 4, K.C.db, hot2 ? 0.4 : 0.2);
+    var y3a = L.l3.y + 6, y4b = L.l4.b - 4, hot34 = picked === '3' || picked === '4';
+    K.rect(g, xb - 4, y3a, 8, y4b - y3a, ra, K.C.find, hot34 ? 1.8 : 1.2);
+    K.hatch(g, xb - 4, y3a, 8, y4b - y3a, ra, 4, K.C.find, hot34 ? 0.4 : 0.2);
+
+    // 경리 혼자 — 생명선에서 오른쪽으로 나갔다 돌아오는 고리. ②③④ 같은 모양
+    function loop(gg, lane, seed, c, w) {
+      var r = K.rng(seed), x = xb + 4, x2 = xb + 28, y1 = lane.y + 9, y2 = lane.b - 9;
+      var d = 'M' + x + ' ' + y1 + ' L' + (x2 - 7) + ' ' + y1 + ' Q' + x2 + ' ' + y1 + ' ' + x2 + ' ' + (y1 + 7) + ' L' + x2 + ' ' + (y2 - 7) + ' Q' + x2 + ' ' + y2 + ' ' + (x2 - 7) + ' ' + y2 + ' L' + (x + 3) + ' ' + y2;
+      K.curve(gg, d, r, c, w);
+      K.head(gg, x + 1, y2, -1, r, c, Math.max(1.4, w * 0.8));
+    }
+
+    // ① 현장 → 경리 — 판 것 · 사 온 것이 장부로
+    inState(g, state('1'), K.C.db, function (gg, c, w) { K.hArrow(gg, xf + 5, xb - 6, L.l1.b - 8, K.rng(71), c, w); });
+    // ② 전표 — 경리 혼자, 저장은 아래 원기둥으로
+    inState(g, state('2'), K.C.db, function (gg, c, w) { loop(gg, L.l2, 72, c, w); });
+    // ③ 통장 · 카드 맞추기 — 경리 혼자
+    inState(g, state('3'), K.C.find, function (gg, c, w) { loop(gg, L.l3, 73, c, w); });
+    // ④ 원장 보기 — 경리 혼자
+    inState(g, state('4'), K.C.find, function (gg, c, w) { loop(gg, L.l4, 74, c, w); });
+    // ⑤ 경리 → 사장님
+    inState(g, state('5'), K.C.talk, function (gg, c, w) { K.hArrow(gg, xb + 5, xo - 6, L.l5.b - 8, K.rng(75), c, w); });
+    // ⑥ 경리 → 세무사 (자료 봉투)
+    inState(g, state('6'), K.C.talk, function (gg, c, w) {
+      var r = K.rng(76);
+      K.hArrow(gg, xb + 5, xo - 6, L.l6.b - 8, r, c, w);
+      envGlyph(gg, box(document.querySelector('#l6 .env')), r, c, Math.min(1.6, w * 0.7));
+    });
+
+    // 경리 뒤 저장 — 장부 (업체별). ② 전에는 흐리게
+    var dbb = box(document.querySelector('#db b')), rd = K.rng(91), dbHot = lit.indexOf('db') >= 0;
+    var before = i >= 0 && i < 1;
+    var dcol = before ? K.C.faint : K.C.db, dw = dbHot ? 2 : 1.3;
+    var gdb = K.el(g, 'g', before ? { opacity: 0.6 } : {});
+    cylinder(gdb, dbb, rd, dcol, dw);
+    var dx1 = xb + 6, dx2 = dbb.x - 4, dy = dbb.cy;
+    if (dx2 - dx1 > 4) K.line(gdb, dx1, dy, dx2, dy, rd, dcol, dw, '4 4');
+    if (dx2 - dx1 > 26) K.head(gdb, dx2, dy, 1, rd, dcol, 1.3);
+
+    // 왼쪽 괄호 — 쌓기 · 보기
+    [['g-in', 'in', 96], ['g-out', 'out', 97]].forEach(function (q) {
+      var b = at(q[0]), r = K.rng(q[2]), w = PHASE[picked] === q[1] ? 2.2 : 1.3, x = b.rt - 10;
+      K.line(g, x, b.y + 8, x, b.b - 8, r, K.C.ink, w);
+      K.line(g, x, b.y + 8, x + 5, b.y + 8, r, K.C.ink, w);
+      K.line(g, x, b.b - 8, x + 5, b.b - 8, r, K.C.ink, w);
+    });
+
+    // 걸음 단추 위 묶음 줄
+    var wg = K.fresh(document.getElementById('walkLines')), wbox = K.rel(walk);
+    Array.prototype.forEach.call(walk.querySelectorAll('.grp'), function (gr, n) {
+      if (gr.dataset.g === 'none') return;
+      var em = wbox(gr.querySelector('em')), bs = wbox(gr.querySelector('.bs')), r = K.rng(120 + n);
+      var y = (em.b + bs.y) / 2, x1 = bs.x + 2, x2 = bs.rt - 2, w = PHASE[picked] === gr.dataset.g ? 2 : 1.3;
+      K.line(wg, x1, y + 4, x1, y, r, K.C.ink, w);
+      K.line(wg, x1, y, x2, y, r, K.C.ink, w);
+      K.line(wg, x2, y, x2, y + 4, r, K.C.ink, w);
+    });
+
+    // 설명 공책 — 테두리 + 왼쪽에 고른 걸음의 색 줄 + 쪽지(편지면 봉투 덮개와 우표)
+    var pg = K.fresh(document.getElementById('panelLines'));
+    var pw = panel.offsetWidth, ph = panel.offsetHeight, r9 = K.rng(9);
+    K.rect(pg, 2, 2, pw - 4, ph - 4, r9, K.C.ink, 1.4);
+    K.line(pg, 13, 7, 13, ph - 7, r9, color(picked), 2.2);
+    var card = document.getElementById('card');
+    if (card) {
+      var cb = K.rel(panel)(card), rc = K.rng(19), ccol = color(picked);
+      K.rect(pg, cb.x, cb.y, cb.w, cb.h, rc, ccol, 1.4);
+      if (card.classList.contains('letter')) {
+        K.line(pg, cb.x + 2, cb.y + 2, cb.cx, cb.y + 15, rc, ccol, 1.1);
+        K.line(pg, cb.rt - 2, cb.y + 2, cb.cx, cb.y + 15, rc, ccol, 1.1);
+        K.rect(pg, cb.rt - 30, cb.y + 8, 19, 15, rc, ccol, 1.1);
+        K.hatch(pg, cb.rt - 29, cb.y + 9, 17, 13, rc, 4, ccol, 0.3);
+      } else {
+        K.hatch(pg, cb.x + 1, cb.y + 1, cb.w - 2, 6, rc, 6, ccol, 0.2);
+      }
+    }
+
+    // 해 보기 — 테두리와 손으로 그린 네모, 체크
+    var gg2 = K.fresh(document.getElementById('gradLines')), gb = K.rel(grad), r8 = K.rng(8);
+    K.rect(gg2, 2, 2, grad.offsetWidth - 4, grad.offsetHeight - 4, r8, K.C.ink, 1.4);
+    Array.prototype.forEach.call(grad.querySelectorAll('label'), function (lb, n) {
+      var b = gb(lb.querySelector('.bx')), r = K.rng(130 + n), on = lb.querySelector('input').checked;
+      K.rect(gg2, b.x, b.y, b.w, b.h, r, K.C.ink, 1.3);
+      if (on) K.curve(gg2, 'M' + (b.x + 4) + ' ' + (b.cy + 1) + ' L' + (b.x + 8) + ' ' + (b.b - 4) + ' L' + (b.rt - 2) + ' ' + (b.y + 2), r, K.C.find, 2.2);
+    });
+  }
+
+  var queued = false;
+  function schedule() {
+    if (queued) return;
+    queued = true;
+    setTimeout(function () { queued = false; draw(); }, 40);
+  }
+  function use(style) {
+    K = SketchKit(style);
+    document.documentElement.dataset.style = K.style;
+    Array.prototype.forEach.call(document.querySelectorAll('#pick button'), function (b) { b.classList.toggle('on', b.dataset.s === K.style); });
+    select(picked);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+  }
+
+  // 체 고르기
+  document.getElementById('pick').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-s]');
+    if (b) { use(b.dataset.s); if (history.replaceState) history.replaceState(null, '', '#' + b.dataset.s); }
+  });
+  // 걸음 고르기 — 단추 · 그림 안 이름표 · 설명 공책의 이전/다음
+  walk.addEventListener('click', function (e) { var b = e.target.closest('button[data-k]'); if (b) select(b.dataset.k); });
+  map.addEventListener('click', function (e) { var s = e.target.closest('.spot'); if (s) select(s.dataset.k); });
+  map.addEventListener('keydown', function (e) {
+    var s = e.target.closest('.spot');
+    if (s && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(s.dataset.k); }
+  });
+  panel.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-go]');
+    if (b && b.dataset.go) { select(b.dataset.go); walk.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
+
+  // 해 보기 체크는 이 브라우저에만 남는다
+  var GK = 'ubo-ojt-map-6';
+  var boxes = grad.querySelectorAll('input');
+  try { var saved = JSON.parse(localStorage.getItem(GK) || '{}'); Array.prototype.forEach.call(boxes, function (b) { b.checked = !!saved[b.dataset.k]; }); } catch (e) {}
+  function paintGrad() {
+    Array.prototype.forEach.call(boxes, function (b) { b.parentNode.querySelector('span').classList.toggle('on', b.checked); });
+  }
+  grad.addEventListener('change', function () {
+    paintGrad();
+    try { var o = {}; Array.prototype.forEach.call(boxes, function (b) { o[b.dataset.k] = b.checked; }); localStorage.setItem(GK, JSON.stringify(o)); } catch (e) {}
+    schedule();
+  });
+  paintGrad();
+
+  function fromHash() {
+    var h = (location.hash || '').slice(1);
+    use(['pencil', 'textbook', 'blueprint'].indexOf(h) >= 0 ? h : 'pencil');
+  }
+  fromHash();
+  window.addEventListener('hashchange', fromHash);
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', schedule);
+  window.addEventListener('load', schedule);
+  window.addEventListener('resize', schedule);
+  if (window.ResizeObserver) { var ro = new ResizeObserver(schedule); ro.observe(map); ro.observe(panel); ro.observe(grad); }
+})();
+</script>
+</body>
+</html>

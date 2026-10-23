@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ko" data-style="pencil">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>세금계산서는 어느 업체 명의로</title>
+<!--
+  우보브랜드샵 신입 교재 · 5장 「세금계산서는 어느 업체 명의로」 — 슈니버시티 그림체(한 장 지도). 뼈대는 본보기 ch1-order.html 그대로.
+  글자는 HTML, 선은 그 위에 덮은 svg.over 에 sketch-kit.js 가 글자 자리를 재서 긋는다 (draw()).
+  그림체는 <html data-style> 과 SketchKit(…) 둘 다 바꾼다. 주소 #pencil · #textbook · #blueprint.
+  '지금 · 이카운트' 카드만 갈아끼우면 같은 그림이 UBO ONE 교재가 된다 — 이치(그림)는 그대로.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Brush+Script&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  /* ---------- 연필 손그림(원본) ---------- */
+  :root {
+    --paper: #f8f4ea; --ink: #36332d; --ink-soft: #5d584e; --ink-faint: #8b8476;
+    --marker: rgba(255, 214, 64, 0.55); --find: #2f5d87; --talk: #b5523b; --db: #4f7d4a;
+    --mono: ui-monospace, 'Cascadia Mono', Consolas, 'D2Coding', monospace;
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.3  0 0 0 0 0.22  0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--paper); }
+  body {
+    min-height: 100vh; color: var(--ink);
+    font-family: 'Gaegu', cursive; background-color: var(--paper); background-image: var(--grain);
+    padding: 18px 16px 28px; word-break: keep-all; overflow-wrap: anywhere;
+  }
+  .page { max-width: 860px; margin: 0 auto; }
+  .brush { font-family: 'Nanum Brush Script', 'Gaegu', cursive; font-weight: 400; }
+  button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+  svg.over { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+  .spot { cursor: pointer; }
+  .spot:focus-visible, button:focus-visible { outline: 2px dashed var(--find); outline-offset: 2px; }
+
+  .pick { display: flex; justify-content: center; gap: 6px; margin-bottom: 14px; font-family: system-ui, sans-serif; }
+  .pick button { font-size: 13px; border: 1px solid #c9ced6; background: #fff; border-radius: 999px; padding: 5px 12px; }
+  .pick button.on { background: #1f2937; border-color: #1f2937; color: #fff; }
+
+  .hero { text-align: center; }
+  .hero .kick { font-size: clamp(14px, 1.7vw, 17px); color: var(--ink-soft); letter-spacing: 0.04em; }
+  .hero h1 { font-size: clamp(36px, 6.4vw, 56px); line-height: 1.05; margin-top: 2px; }
+  .hero h1 span { display: inline-block; }
+  .hero p { margin-top: 4px; font-size: clamp(15px, 1.9vw, 18px); color: var(--ink-soft); }
+
+  /* 걸음 단추 — 발행(①~③) · 맞추기(④~⑥) 두 묶음 */
+  .walk { position: relative; display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 8px 16px; margin-top: 14px; }
+  .grp { position: relative; z-index: 1; display: inline-flex; flex-direction: column; align-items: center; gap: 8px; }
+  .grp em { font-style: normal; font-size: 15px; font-weight: 700; line-height: 1; padding: 0 4px; }
+  .grp[data-g="none"] em { visibility: hidden; }
+  .bs { display: flex; gap: 6px; }
+  .walk button, .panel .nav button { font-size: 18px; line-height: 1; padding: 6px 9px 4px; border-radius: 6px; }
+  .bs button:nth-child(odd) { transform: rotate(-2deg); }
+  .bs button:nth-child(even) { transform: rotate(1.5deg); }
+  .walk button.on { background: var(--marker); }
+  .walk .nm { display: none; }
+  @media (min-width: 760px) { .walk .nm { display: inline; } }
+  @media (max-width: 400px) { .walk { gap: 8px 9px; } .bs { gap: 5px; } .walk button { font-size: 16px; padding: 6px 7px 4px; } }
+  .n { font-style: normal; }
+  .n.t { color: var(--talk); } .n.f { color: var(--find); } .n.d { color: var(--db); }
+
+  /* 시퀀스 — 여섯 칸 격자. 생명선은 1/6(거래처) · 3/6(경리) · 5/6(국세청 · 세무사) 자리로 내려간다 */
+  .map { position: relative; margin-top: 10px; }
+  .seq { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); margin-top: 8px; }
+  .who { text-align: center; margin: 0 clamp(6px, 1.1vw, 14px); padding: 48px 3px 8px; }
+  .who .name { display: inline-block; font-size: clamp(23px, 3.8vw, 34px); line-height: 1; padding: 0 4px; }
+  .who small { display: block; margin-top: 3px; font-size: clamp(12px, 1.8vw, 16px); color: var(--ink-soft); line-height: 1.2; }
+  .who.lit .name { background: linear-gradient(transparent 55%, var(--marker) 55%, var(--marker) 94%, transparent 94%); }
+  @media (min-width: 760px) {
+    .who { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 76px; padding: 11px 8px 10px 78px; }
+  }
+  #w-pa { grid-area: 1 / 1 / 2 / 3; }
+  #w-ac { grid-area: 1 / 3 / 2 / 5; }
+  #w-tx { grid-area: 1 / 5 / 2 / 7; }
+  #w-tx .name { font-size: clamp(19px, 3vw, 27px); }   /* 이름이 둘이라 한 줄에 맞게 조금 작게 */
+
+  /* 이름표가 위, 화살표가 아래 — 한 칸 = 이름표 + 그 화살표 */
+  .lane { position: relative; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0 8px; text-align: center; padding: 8px 6px 16px; }
+  .lane.pair { padding-bottom: 28px; }
+  .lane.self { justify-content: flex-start; text-align: left; padding: 8px 6px 8px 42px; }
+  .lane b { font-size: clamp(15px, 2.3vw, 21px); line-height: 1.15; padding: 0 3px; }
+  .lane span { font-size: clamp(12px, 1.75vw, 16px); color: var(--ink-soft); line-height: 1.2; }
+  .lane .env { display: block; width: 22px; height: 15px; flex: none; }
+  .lane:hover b, .lane:focus-visible b { text-decoration: underline wavy rgba(54, 51, 45, 0.35); text-underline-offset: 5px; }
+  .lane.now b { background: linear-gradient(transparent 52%, var(--marker) 52%, var(--marker) 94%, transparent 94%); }
+  .lane.later b, .lane.later span, .lane.later .n { color: var(--ink-faint); }
+  .lane.done span { color: var(--ink-faint); }
+  #l1 { grid-area: 2 / 4 / 3 / 6; }
+  #l2 { grid-area: 3 / 4 / 4 / 6; }
+  #l3 { grid-area: 4 / 2 / 5 / 6; }
+  #l4 { grid-area: 5 / 2 / 6 / 4; }
+  #l5 { grid-area: 6 / 4 / 7 / 6; }
+  #l6 { grid-area: 7 / 4 / 8 / 6; }
+
+  /* 왼쪽 여백 — 두 갈래 괄호 */
+  .gut { display: flex; flex-direction: column; justify-content: center; align-items: flex-end; text-align: right; gap: 2px; padding: 6px 18px 6px 0; }
+  .gut b { font-size: clamp(14px, 1.9vw, 18px); line-height: 1.1; }
+  .gut span { font-size: clamp(12px, 1.55vw, 15px); color: var(--ink-soft); line-height: 1.15; }
+  #g-i { grid-area: 2 / 1 / 5 / 2; }
+  #g-m { grid-area: 5 / 1 / 8 / 2; }
+  .gut.on b { background: linear-gradient(transparent 55%, var(--marker) 55%, var(--marker) 94%, transparent 94%); }
+  @media (max-width: 559px) {
+    .gut { align-items: center; padding-right: 16px; }
+    .gut b { writing-mode: vertical-rl; text-orientation: upright; letter-spacing: 3px; }
+    .gut span { display: none; }
+  }
+  .pad { height: 10px; }
+
+  /* 설명 공책 */
+  .panel { position: relative; margin-top: 18px; padding: 14px 18px 14px 28px; }
+  .panel > div { position: relative; z-index: 1; }
+  .panel h3 { font-size: clamp(30px, 4.2vw, 38px); line-height: 1.05; }
+  .cols { display: grid; gap: 14px 26px; margin-top: 6px; }
+  @media (min-width: 760px) { .cols.two { grid-template-columns: minmax(0, 1fr) minmax(240px, 330px); align-items: start; } }
+  .one { font-size: clamp(17px, 2vw, 19px); line-height: 1.38; }
+  .facts { display: grid; gap: 5px; margin-top: 9px; font-size: clamp(15px, 1.8vw, 17px); line-height: 1.35; color: var(--ink-soft); }
+  .facts > span > i { font-style: normal; font-weight: 700; color: var(--ink); margin-right: 6px; }
+  .steps { list-style: none; display: grid; gap: 4px; margin-top: 8px; }
+  .steps button { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; text-align: left; font-size: clamp(15px, 1.8vw, 17px); line-height: 1.3; padding: 2px 4px; border-radius: 4px; }
+  .steps button:hover { background: var(--marker); }
+  .steps b { white-space: nowrap; }
+  .card { position: relative; padding: 12px 14px 11px; }
+  .card.letter { padding-top: 24px; }
+  .card .ct { display: block; font-size: 16px; font-weight: 700; color: var(--ink-soft); line-height: 1.1; margin-bottom: 7px; }
+  .card .ln { font-size: clamp(14px, 1.6vw, 16px); line-height: 1.4; color: var(--ink); padding-left: 14px; text-indent: -14px; }
+  .card .ln::before { content: '› '; color: var(--ink-faint); }
+  .card .cap { font-size: 15px; color: var(--ink-soft); line-height: 1.3; margin-top: 6px; }
+  .card .cap b { color: var(--ink); }
+  .card .rep { font-size: clamp(15px, 1.8vw, 17px); line-height: 1.45; }
+  .try { font-family: 'Nanum Pen Script', cursive; font-size: 23px; line-height: 1.15; color: var(--find); margin-top: 10px; }
+  .panel .nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; }
+  .panel .nav button { font-size: 17px; }
+  .panel .nav button[disabled] { visibility: hidden; }
+
+  .legend { margin: 16px auto 0; max-width: 780px; display: grid; gap: 5px; font-size: clamp(15px, 1.9vw, 17px); color: var(--ink-soft); text-align: center; line-height: 1.3; }
+  .legend .f { color: var(--find); font-weight: 700; }
+  .legend .t { color: var(--talk); font-weight: 700; }
+  .legend .d { color: var(--db); font-weight: 700; }
+
+  /* 해 보기 — 졸업 체크. 상자는 손으로 그린다 */
+  .grad { position: relative; margin-top: 22px; padding: 14px 18px 12px; }
+  .grad > * { position: relative; z-index: 1; }
+  .grad h3 { font-size: clamp(26px, 3.6vw, 32px); line-height: 1.05; margin-bottom: 6px; }
+  .grad label { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; font-size: clamp(15px, 1.9vw, 18px); line-height: 1.3; cursor: pointer; }
+  .grad input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .grad .bx { display: block; flex: none; width: 20px; height: 20px; margin-top: 1px; }
+  .grad .on { color: var(--ink-faint); text-decoration: line-through; text-decoration-color: rgba(54, 51, 45, 0.3); }
+  .grad .warn { margin-top: 10px; font-size: clamp(15px, 1.9vw, 18px); font-weight: 700; line-height: 1.3; }
+  .grad .sign { margin-top: 6px; font-size: clamp(13px, 1.6vw, 15px); color: var(--ink-soft); }
+  .foot { margin-top: 14px; text-align: center; font-size: clamp(12px, 1.4vw, 13.5px); color: var(--ink-faint); line-height: 1.4; }
+
+  /* ---------- 교과서 도식 — 위 규칙을 덮는다 ---------- */
+  html[data-style="textbook"] { --paper: #ffffff; --ink: #1f2937; --ink-soft: #4b5563; --ink-faint: #a3aab5; --find: #1f5fae; --talk: #b8432f; --db: #2f7d4f; --marker: rgba(31, 95, 174, 0.14); }
+  html[data-style="textbook"] body { font-family: 'Noto Sans KR', system-ui, sans-serif; background: #fff; background-image: none; letter-spacing: -0.01em; }
+  html[data-style="textbook"] .brush { font-family: 'Noto Sans KR', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; }
+  html[data-style="textbook"] .hero h1 { font-size: clamp(25px, 3.8vw, 34px); }
+  html[data-style="textbook"] .hero p, html[data-style="textbook"] .hero .kick { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="textbook"] .walk button, html[data-style="textbook"] .panel .nav button { font-size: 14px; border-radius: 999px; border: 1px solid var(--ink-faint); padding: 5px 11px; }
+  html[data-style="textbook"] .bs button { transform: none; }
+  html[data-style="textbook"] .walk button.on { border-color: var(--find); }
+  html[data-style="textbook"] .grp em { font-size: 12.5px; }
+  html[data-style="textbook"] .who .name { font-size: clamp(16px, 2.5vw, 22px); font-weight: 800; }
+  html[data-style="textbook"] #w-tx .name { font-size: clamp(14px, 2.1vw, 18.5px); }
+  html[data-style="textbook"] .who small { font-size: clamp(11px, 1.4vw, 13px); }
+  html[data-style="textbook"] .lane b { font-size: clamp(13px, 1.9vw, 16px); font-weight: 700; }
+  html[data-style="textbook"] .lane span { font-size: clamp(11px, 1.4vw, 13px); }
+  html[data-style="textbook"] .gut b { font-size: clamp(12px, 1.6vw, 15px); }
+  html[data-style="textbook"] .gut span { font-size: 11.5px; }
+  html[data-style="textbook"] .panel h3 { font-size: clamp(20px, 2.8vw, 25px); }
+  html[data-style="textbook"] .one { font-size: clamp(14px, 1.6vw, 16px); }
+  html[data-style="textbook"] .facts, html[data-style="textbook"] .steps button, html[data-style="textbook"] .card .rep { font-size: clamp(13px, 1.5vw, 14.5px); }
+  html[data-style="textbook"] .card .ln { font-size: clamp(12.5px, 1.4vw, 14px); }
+  html[data-style="textbook"] .card .cap, html[data-style="textbook"] .card .ct { font-size: 13px; }
+  html[data-style="textbook"] .try { font-family: inherit; font-size: clamp(13px, 1.5vw, 14.5px); font-weight: 700; }
+  html[data-style="textbook"] .legend { font-size: clamp(12px, 1.5vw, 13.5px); }
+  html[data-style="textbook"] .grad h3 { font-size: clamp(18px, 2.5vw, 22px); }
+  html[data-style="textbook"] .grad label, html[data-style="textbook"] .grad .warn { font-size: clamp(13px, 1.6vw, 15px); }
+
+  /* ---------- 설계 도면 — 위 규칙을 덮는다 ---------- */
+  html[data-style="blueprint"] { --paper: #f6f8fb; --ink: #16365c; --ink-soft: #3d5878; --ink-faint: #9db0c6; --find: #1d6fb8; --talk: #c23b2e; --db: #2b7a5a; --marker: rgba(29, 111, 184, 0.13); --mono: 'IBM Plex Mono', 'IBM Plex Sans KR', ui-monospace, Consolas, monospace; }
+  html[data-style="blueprint"] body {
+    font-family: 'IBM Plex Sans KR', system-ui, sans-serif; background-color: var(--paper);
+    background-image:
+      linear-gradient(rgba(29, 111, 184, 0.10) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(29, 111, 184, 0.10) 1px, transparent 1px),
+      linear-gradient(rgba(29, 111, 184, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(29, 111, 184, 0.045) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+  }
+  html[data-style="blueprint"] .page { border: 1.5px solid var(--ink); outline: 1px solid var(--ink); outline-offset: 5px; padding: 16px; background: rgba(246, 248, 251, 0.6); }
+  html[data-style="blueprint"] .brush { font-family: 'IBM Plex Sans KR', sans-serif; font-weight: 700; letter-spacing: 0.01em; }
+  html[data-style="blueprint"] .hero h1 { font-size: clamp(23px, 3.5vw, 32px); }
+  /* FIG. 처럼 라틴 글자만 있는 자리에만 Mono — 한글에 Mono 를 주면 띄어쓰기가 벌어진다 */
+  html[data-style="blueprint"] .hero .kick::before { content: 'FIG. 5  '; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.2em; color: var(--ink-soft); }
+  html[data-style="blueprint"] .hero p, html[data-style="blueprint"] .hero .kick { font-size: clamp(13px, 1.45vw, 14.5px); }
+  html[data-style="blueprint"] .walk button, html[data-style="blueprint"] .panel .nav button { font-size: 13.5px; border-radius: 0; border: 1px solid var(--ink-faint); padding: 5px 10px; letter-spacing: 0.02em; }
+  html[data-style="blueprint"] .bs button { transform: none; }
+  html[data-style="blueprint"] .walk button.on { background: none; border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  html[data-style="blueprint"] .grp em { font-size: 12px; letter-spacing: 0.06em; }
+  html[data-style="blueprint"] .who .name { font-size: clamp(15px, 2.3vw, 20px); font-weight: 700; }
+  html[data-style="blueprint"] #w-tx .name { font-size: clamp(13.5px, 2vw, 17.5px); }
+  html[data-style="blueprint"] .who small { font-size: clamp(10.5px, 1.3vw, 12.5px); }
+  html[data-style="blueprint"] .who.lit .name, html[data-style="blueprint"] .lane.now b, html[data-style="blueprint"] .gut.on b { background: none; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  html[data-style="blueprint"] .lane b { font-size: clamp(12.5px, 1.8vw, 15.5px); font-weight: 700; }
+  html[data-style="blueprint"] .lane span { font-size: clamp(10.5px, 1.3vw, 12.5px); }
+  html[data-style="blueprint"] .gut b { font-size: clamp(12px, 1.5vw, 14px); letter-spacing: 0.06em; }
+  html[data-style="blueprint"] .gut span { font-size: 11px; }
+  html[data-style="blueprint"] .panel h3 { font-size: clamp(18px, 2.6vw, 23px); }
+  html[data-style="blueprint"] .one { font-size: clamp(13.5px, 1.55vw, 15.5px); }
+  html[data-style="blueprint"] .facts, html[data-style="blueprint"] .steps button, html[data-style="blueprint"] .card .rep { font-size: clamp(12.5px, 1.45vw, 14px); }
+  html[data-style="blueprint"] .card .ln { font-size: clamp(12px, 1.35vw, 13.5px); }
+  html[data-style="blueprint"] .card .cap, html[data-style="blueprint"] .card .ct { font-size: 12.5px; }
+  html[data-style="blueprint"] .try { font-family: inherit; font-size: clamp(12.5px, 1.45vw, 14px); font-weight: 600; }
+  html[data-style="blueprint"] .legend { font-size: clamp(11.5px, 1.4vw, 13px); }
+  html[data-style="blueprint"] .grad h3 { font-size: clamp(17px, 2.3vw, 20px); }
+  html[data-style="blueprint"] .grad label, html[data-style="blueprint"] .grad .warn { font-size: clamp(12.5px, 1.5vw, 14.5px); }
+
+  @media print { .pick, .panel .nav { display: none !important; } body { padding: 0; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="pick" id="pick">
+    <button type="button" data-s="pencil">연필 손그림</button>
+    <button type="button" data-s="textbook">교과서 도식</button>
+    <button type="button" data-s="blueprint">설계 도면</button>
+    <a href="textbook.html" id="back" style="font-size:13px;color:var(--ink-soft);align-self:center;margin-left:10px;text-decoration:none" onclick="this.href='textbook.html#'+(document.documentElement.dataset.style||'pencil')">← 교재 목차</a>
+  </div>
+
+  <header class="hero">
+    <div class="kick">신입 교재 · 5장 · 주문 하나의 일생</div>
+    <h1 class="brush"><span>세금계산서는</span> <span>어느 업체 명의로</span></h1>
+    <p>판매 업체 명의로 발행하고, 장부와 홈택스를 맞춰 세무사에게 — 여섯 걸음. 그림은 위에서 아래로 시간이 흐른다.</p>
+  </header>
+
+  <nav class="walk" id="walk" aria-label="여섯 걸음 고르기">
+    <svg class="over" id="walkLines" aria-hidden="true"></svg>
+    <span class="grp" data-g="none"><em>·</em><span class="bs"><button type="button" data-k="all">전체</button></span></span>
+    <span class="grp" data-g="i"><em>발행 · 국세청으로</em><span class="bs">
+      <button type="button" data-k="1"><span class="n f">①</span><span class="nm"> 고르기</span></button>
+      <button type="button" data-k="2"><span class="n d">②</span><span class="nm"> 발행</span></button>
+      <button type="button" data-k="3"><span class="n t">③</span><span class="nm"> 거래처에</span></button>
+    </span></span>
+    <span class="grp" data-g="m"><em>맞추기 · 장부와 홈택스</em><span class="bs">
+      <button type="button" data-k="4"><span class="n t">④</span><span class="nm"> 매입 계산서</span></button>
+      <button type="button" data-k="5"><span class="n f">⑤</span><span class="nm"> 홈택스와</span></button>
+      <button type="button" data-k="6"><span class="n t">⑥</span><span class="nm"> 세무사에게</span></button>
+    </span></span>
+  </nav>
+
+  <section class="map" id="map">
+    <svg class="over" id="lines" aria-hidden="true"></svg>
+    <div class="seq" id="seq">
+      <div class="who" id="w-pa"><span class="name brush">거래처</span><small>손님 회사 · 공급처</small></div>
+      <div class="who" id="w-ac"><span class="name brush">경리</span><small>나 · 계산서를 내고 맞추는 사람</small></div>
+      <div class="who" id="w-tx"><span class="name brush">국세청 · 세무사</span><small>홈택스 · 바깥</small></div>
+
+      <div class="gut" id="g-i"><b>발행</b><span>명의는 판매 업체</span></div>
+      <div class="gut" id="g-m"><b>맞추기</b><span>장부 = 홈택스</span></div>
+
+      <div class="lane spot self" id="l1" data-k="1" tabindex="0" role="button"><b><i class="n f">①</i> 발행할 것 고르기</b><span>판매 확정 건 · 명의는 판매 업체</span></div>
+      <div class="lane spot" id="l2" data-k="2" tabindex="0" role="button"><b><i class="n d">②</i> 발행</b><span>바깥 서비스를 거쳐 국세청으로 · 되돌리기 없음</span></div>
+      <div class="lane spot" id="l3" data-k="3" tabindex="0" role="button"><i class="env" aria-hidden="true"></i><b><i class="n t">③</i> 거래처에 간다</b><span>이메일로 받고 승인 (추정)</span></div>
+      <div class="lane spot" id="l4" data-k="4" tabindex="0" role="button"><b><i class="n t">④</i> 매입 계산서 받기</b><span>공급처가 보낸 것 · 장부와 맞나</span></div>
+      <div class="lane spot pair" id="l5" data-k="5" tabindex="0" role="button"><b><i class="n f">⑤</i> 홈택스와 맞추기</b><span>우리 장부 vs 홈택스 자료 · 현금영수증도</span></div>
+      <div class="lane spot" id="l6" data-k="6" tabindex="0" role="button"><b><i class="n t">⑥</i> 부가세 자료 → 세무사</b><span>업체별 부가세 · 원천징수</span></div>
+      <div class="pad"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel" aria-live="polite">
+    <svg class="over" id="panelLines" aria-hidden="true"></svg>
+    <div id="panelBody"></div>
+  </section>
+
+  <footer class="legend">
+    <div><span class="t">③ ④ ⑥ 사람끼리 주고받기</span> · <span class="f">① ⑤ 고르기 · 맞추기</span> · <span class="d">② 발행 · 국세청에 기록</span></div>
+    <div><b>①~③ 발행</b>은 우리가 보내는 쪽 — 명의는 판매 업체, 연습 금지 · <b>④~⑥ 맞추기</b>는 받고 비교하는 쪽 — 장부 = 홈택스, 업체별로 따로</div>
+  </footer>
+
+  <section class="grad" id="grad">
+    <svg class="over" id="gradLines" aria-hidden="true"></svg>
+    <h3 class="brush">해 보기 · 5장 졸업</h3>
+    <label><input type="checkbox" data-k="g1"><i class="bx"></i><span>세금계산서 발행 시점(출고 때 · 월말)을 말할 수 있다 — 회사가 채움</span></label>
+    <label><input type="checkbox" data-k="g2"><i class="bx"></i><span>어느 업체 명의인지 판매 업체로 확인하는 법을 보여 줄 수 있다</span></label>
+    <label><input type="checkbox" data-k="g3"><i class="bx"></i><span>홈택스 비교 화면을 열었다 — 보기만</span></label>
+    <label><input type="checkbox" data-k="g4"><i class="bx"></i><span>매입 계산서 1장을 장부(매입(세금)계산서조회)에서 찾았다</span></label>
+    <p class="warn">연습으로 발행하지 않는다 — 발행은 국세청에 바로 간다.</p>
+    <p class="sign">옆에서 본 선배 ____________ · 날짜 ____________</p>
+  </section>
+
+  <p class="foot">주소는 회사 안에서만 나눈다 · 실제 거래처 이름 · 금액 · 사업자번호는 적지 않는다 · (추정) 은 실무자 확인 전 · 기능 번호(LDG-05 …)는 새 프로그램의 같은 기능을 가리키는 열쇠</p>
+</div>
+
+<script src="sketch-kit.js"></script>
+<script>
+(function () {
+  'use strict';
+  var STEPS = ['1', '2', '3', '4', '5', '6'];
+  var NUM = { 1: '①', 2: '②', 3: '③', 4: '④', 5: '⑤', 6: '⑥' };
+  var NAME = { 1: '발행할 것 고르기', 2: '발행', 3: '거래처에 간다', 4: '매입 계산서 받기', 5: '홈택스와 맞추기', 6: '세무사에게' };
+  var KIND = { 1: 'find', 2: 'db', 3: 'talk', 4: 'talk', 5: 'find', 6: 'talk' };   // 색은 뜻으로만
+  var PHASE = { 1: 'i', 2: 'i', 3: 'i', 4: 'm', 5: 'm', 6: 'm' };                 // 발행 · 맞추기
+  // 걸음을 고르면 함께 밝아지는 상자
+  var LIT = { 1: ['ac'], 2: ['ac', 'tx'], 3: ['tx', 'pa'], 4: ['pa', 'ac'], 5: ['ac', 'tx'], 6: ['ac', 'tx'] };
+
+  // 설명 — one 은 한 줄, facts 는 [이름표, 내용], card 는 오른쪽 쪽지(지금 · 이카운트). letter 면 편지 모양
+  var INFO = {
+    all: { title: '세금계산서는 어느 업체 명의로',
+      one: '판매가 끝나면 세금계산서가 나간다 — 명의는 판매 업체, 발행은 국세청에 바로 간다. 번호를 누르면 그 걸음만 밝아진다.',
+      list: { 1: '판매 확정 건에서 발행할 것을 고른다 — 명의는 판매 업체', 2: '바깥 서비스를 거쳐 국세청에 발행', 3: '거래처가 이메일로 받고 승인', 4: '공급처가 보낸 매입 계산서를 받는다', 5: '우리 장부와 홈택스 자료를 맞춘다', 6: '업체별 부가세 자료를 세무사에게' },
+      card: { t: '한 줄로', html: '<p class="rep"><b>명의는 판매 업체</b> — 업체 5개마다 사업자번호 · 부가세가 따로.<br><b>발행은 국세청에 바로 간다</b> — 연습으로 발행하지 않는다.</p>' } },
+    1: { title: '① 발행할 것 고르기',
+      one: '판매가 확정된 건 가운데 세금계산서를 낼 것을 고른다. 명의는 그 건을 판 업체 — 사업자번호 · 양식이 그 업체 것으로 따라온다.',
+      facts: [['어느 건', '판매 확정 건. 거래처 · 공급가 · 세액 (LDG-05)'], ['어느 명의', '판매 업체. 업체 5개마다 사업자번호 · 부가세가 따로 (회사법 가-2)'], ['언제', '출고 때 · 월말 묶어서 — 회사가 채움']],
+      card: { t: '지금 · 이카운트', lines: ['판 업체의 계정으로 로그인 — 5계정 중 하나', '회계 I › 전자(세금)계산서 (추정)', '판매입력 건을 골라 발행 화면으로 (추정)'], cap: '조심: 다른 업체 계정에서 고르면 명의가 틀린다' },
+      tryit: '연습 거래처의 판매 1건을 「고르기」까지만 — 발행 단추는 누르지 않는다' },
+    2: { title: '② 발행',
+      one: '고른 건을 발행한다. 전자세금계산서는 바깥 서비스를 거쳐 국세청에 바로 간다 — 되돌리기 없음.',
+      facts: [['바깥 서비스', '우리가 직접 만들지 않고 전자세금계산서 서비스를 거친다 (LDG-05)'], ['내용', '공급자 = 판매 업체 · 공급받는 자 = 거래처 · 공급가 · 세액 · 작성일'], ['틀리면', '취소가 아니라 수정 발행 — 그래서 한 번에 맞게']],
+      card: { t: '지금 · 이카운트', lines: ['회계 I › 전자(세금)계산서 › 발행 (추정)', '(세금)계산서진행단계 (E010849) 에서 진행 상태 확인'], cap: '<b>연습으로 발행하지 않는다 — 발행은 국세청에 바로 간다.</b> 공급가 · 세액 자리 바뀜도 조심' } },
+    3: { title: '③ 거래처에 간다',
+      one: '발행된 세금계산서가 거래처에 이메일로 간다 (추정). 받았나 · 승인했나는 진행 단계에서 본다.',
+      facts: [['어떻게', '이메일 — 거래처 담당자 주소가 맞아야 간다 (추정)'], ['확인', '거래처가 봤나 · 승인했나 — 진행 단계 화면에서']],
+      card: { letter: true, t: '지금 · 이카운트', lines: ['(세금)계산서진행단계 (E010849) — 발행 · 전송 · 승인', '거래처 이메일은 거래처등록에 (추정)'], cap: '조심: 거래처 이메일 · 사업자번호가 옛것이면 엉뚱한 곳에 간다' } },
+    4: { title: '④ 매입 계산서 받기',
+      one: '이번엔 받는 쪽. 공급처가 우리 업체 명의로 발행한 매입 계산서가 온다 — 장부의 구매 건과 맞는지 본다.',
+      facts: [['어느 업체로', '공급받는 자 = 우리 업체 5개 중 하나. 다른 업체로 왔으면 바로잡아 달라고 (회사법 가-2)'], ['맞나', '구매 건 · 공급가 · 세액이 장부와 같은가'], ['어디서', '홈택스에 쌓인다 — ⑤ 에서 한꺼번에 본다']],
+      card: { t: '지금 · 이카운트', lines: ['재고 I › 구매관리 › 매입(세금)계산서조회 (E040219)', '구매입력 건과 맞춰 본다 (추정)'], cap: '조심: 공급처가 다른 업체 명의로 발행한 것을 그냥 받는다' } },
+    5: { title: '⑤ 홈택스와 맞추기',
+      one: '우리 장부와 홈택스 자료를 나란히 놓고 맞춘다. 매출 · 매입 계산서, 현금영수증까지 — 업체마다 따로.',
+      facts: [['무엇과', '이카운트 장부 vs 홈택스 자료 (LDG-06 · 10-19 설문)'], ['빠진 것', '홈택스에만 있는 것 · 우리에만 있는 것을 찾는다'], ['현금영수증', '매출 · 매입 둘 다 맞춘다']],
+      card: { t: '지금 · 이카운트', lines: ['회계 I › 이카운트 vs 홈택스 자료비교 (E010726)', '홈택스자료조회 › 전자(세금)계산서 (E010729) · 현금영수증 (E010732)', '매출(세금)계산서요약 (E030206) 으로 합계 확인'], cap: '조심: 5계정을 다 돌아야 끝난다 — 한 업체만 맞추고 끝내지 않는다 (추정)' },
+      tryit: '홈택스 비교 화면을 연다 — 보기만' },
+    6: { title: '⑥ 부가세 자료 → 세무사',
+      one: '맞춘 자료를 업체별로 묶어 세무사에게 넘긴다. 부가세 신고 · 원천징수 자료.',
+      facts: [['업체별', '부가세는 업체 5개마다 따로 (LDG-09 · 회사법 가-2)'], ['무엇을', '매출 · 매입 계산서 · 현금영수증 · 원천징수 자료'], ['언제', '세무사가 정한 날까지 — 회사가 채움']],
+      card: { t: '지금 · 이카운트', lines: ['세무 › 부가세 — 과장님 목록 (추정)', '요약 · 조회 화면에서 뽑아 세무사에게 보냄 (추정)'], cap: '나중 · UBO ONE: 업체별 부가세 자료가 한 화면에 모여 세무사에게 바로 (LDG-09)' },
+      tryit: '세무사에게 가는 자료 셋을 말해 본다' }
+  };
+
+  var K;
+  var map = document.getElementById('map');
+  var walk = document.getElementById('walk');
+  var panel = document.getElementById('panel');
+  var panelBody = document.getElementById('panelBody');
+  var grad = document.getElementById('grad');
+  var lanes = Array.prototype.slice.call(map.querySelectorAll('.lane'));
+  var picked = 'all';
+  var esc = function (s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var label = function (k) { return k === 'all' ? '전체' : NUM[k] + ' ' + NAME[k]; };
+  var color = function (k) { return k === 'all' ? K.C.ink : K.C[KIND[k]]; };
+
+  function select(k) {
+    picked = k;
+    var i = STEPS.indexOf(k);
+    lanes.forEach(function (el) {
+      var n = STEPS.indexOf(el.dataset.k);
+      el.classList.toggle('now', i >= 0 && n === i);
+      el.classList.toggle('done', i >= 0 && n < i);
+      el.classList.toggle('later', i >= 0 && n > i);
+      el.setAttribute('aria-pressed', String(n === i));
+    });
+    var lit = LIT[k] || [];
+    [['w-pa', 'pa'], ['w-ac', 'ac'], ['w-tx', 'tx']].forEach(function (p) {
+      document.getElementById(p[0]).classList.toggle('lit', lit.indexOf(p[1]) >= 0);
+    });
+    document.getElementById('g-i').classList.toggle('on', PHASE[k] === 'i');
+    document.getElementById('g-m').classList.toggle('on', PHASE[k] === 'm');
+    Array.prototype.forEach.call(walk.querySelectorAll('button'), function (b) {
+      b.classList.toggle('on', b.dataset.k === k);
+      b.setAttribute('aria-pressed', String(b.dataset.k === k));
+    });
+
+    var info = INFO[k], col = color(k);
+    var h = '<h3 class="brush" style="color:' + col + '">' + info.title + '</h3>';
+    h += '<div class="cols' + (info.card ? ' two' : '') + '"><div>';
+    h += '<p class="one">' + info.one + '</p>';
+    if (info.facts) h += '<div class="facts">' + info.facts.map(function (f) { return '<span><i>' + f[0] + '</i>' + f[1] + '</span>'; }).join('') + '</div>';
+    if (info.list) {
+      h += '<ul class="steps">' + STEPS.map(function (s) {
+        return '<li><button type="button" data-go="' + s + '"><b style="color:' + color(s) + '">' + NUM[s] + ' ' + NAME[s] + '</b>' + info.list[s] + '</button></li>';
+      }).join('') + '</ul>';
+    }
+    if (info.tryit) h += '<p class="try">해 보기: ' + info.tryit + '</p>';
+    h += '</div>';
+    var prev = i < 0 ? null : (i === 0 ? 'all' : STEPS[i - 1]);
+    var next = i < 0 ? '1' : (i === STEPS.length - 1 ? 'all' : STEPS[i + 1]);
+    var nav = '<div class="nav"><button type="button" data-go="' + (prev || '') + '"' + (prev ? '' : ' disabled') + '>← ' + (prev ? label(prev) : '') + '</button>' +
+      '<button type="button" data-go="' + next + '">' + (i < 0 ? '① 발행할 것 고르기부터' : label(next)) + ' →</button></div>';
+    if (info.card) {
+      var body = info.card.html || '';
+      if (info.card.lines) body += info.card.lines.map(function (l) { return '<div class="ln">' + esc(l) + '</div>'; }).join('');
+      if (info.card.cap) body += '<p class="cap">' + info.card.cap + '</p>';
+      h += '<div><div class="card' + (info.card.letter ? ' letter' : '') + '" id="card"><span class="ct">' + info.card.t + '</span>' + body + '</div>' + nav + '</div>';
+      h += '</div>';
+    } else {
+      h += '</div>' + nav;
+    }
+    panelBody.innerHTML = h;
+    schedule();
+  }
+
+  // 지금 이야기하는 선은 굵게, 지나간 선은 옅게, 아직 안 온 선은 흐린 색
+  function inState(g, st, col, fn) {
+    var gg = st === 'done' ? K.el(g, 'g', { opacity: 0.5 }) : g;
+    fn(gg, st === 'later' ? K.C.faint : col, st === 'now' ? 2.6 : 1.8);
+  }
+  // 머리 상자 그림 — 44 × 40 칸, (x, y) 는 위 가운데. person = 거래처, clip = 경리, house = 국세청(관청)
+  function icon(g, kind, x, y, r, c) {
+    if (kind === 'person') {
+      K.curve(g, 'M' + (x - 7) + ' ' + (y + 9) + ' a7 7 0 1 0 14 0 a7 7 0 1 0 -14 0', r, c, 1.5);
+      K.curve(g, 'M' + (x - 17) + ' ' + (y + 37) + ' Q' + x + ' ' + (y + 15) + ' ' + (x + 17) + ' ' + (y + 37), r, c, 1.5);
+      K.line(g, x - 17, y + 37, x + 17, y + 37, r, c, 1.3);
+    } else if (kind === 'clip') {
+      K.rect(g, x - 13, y + 5, 26, 32, r, c, 1.5);
+      K.rect(g, x - 6, y + 1, 12, 7, r, c, 1.3);
+      K.line(g, x - 7, y + 17, x + 7, y + 17, r, c, 1.2);
+      K.line(g, x - 7, y + 24, x + 7, y + 24, r, c, 1.2);
+      K.line(g, x - 7, y + 31, x + 2, y + 31, r, c, 1.2);
+    } else {
+      K.curve(g, 'M' + (x - 21) + ' ' + (y + 17) + ' L' + x + ' ' + (y + 3) + ' L' + (x + 21) + ' ' + (y + 17), r, c, 1.5);
+      K.rect(g, x - 17, y + 17, 34, 20, r, c, 1.5);
+      K.rect(g, x - 5, y + 25, 10, 12, r, c, 1.2);
+      K.hatch(g, x - 17, y + 17, 34, 8, r, 5, c, 0.12);
+    }
+  }
+  function envGlyph(gg, b, r, c, w) {
+    K.rect(gg, b.x, b.y, b.w, b.h, r, c, w);
+    K.line(gg, b.x, b.y, b.cx, b.cy + 1, r, c, w);
+    K.line(gg, b.rt, b.y, b.cx, b.cy + 1, r, c, w);
+  }
+
+  function draw() {
+    var g = K.fresh(document.getElementById('lines'));
+    var box = K.rel(map);
+    var at = function (id) { return box(document.getElementById(id)); };
+    var i = STEPS.indexOf(picked);
+    var lit = LIT[picked] || [];
+    var state = function (k) { var n = STEPS.indexOf(k); return i < 0 ? 'all' : n === i ? 'now' : n < i ? 'done' : 'later'; };
+
+    // 머리 상자 셋
+    var pa = at('w-pa'), ac = at('w-ac'), tx = at('w-tx');
+    var side = parseFloat(getComputedStyle(document.getElementById('w-pa')).paddingLeft) > 40;   // 넓은 화면: 그림이 이름 왼쪽
+    [[pa, 'person', 'pa', 31], [ac, 'clip', 'ac', 41], [tx, 'house', 'tx', 51]].forEach(function (q) {
+      var b = q[0], r = K.rng(q[3]), hot = lit.indexOf(q[2]) >= 0;
+      K.rect(g, b.x, b.y, b.w, b.h, r, K.C.ink, hot ? 2.4 : 1.5);
+      if (hot) K.rect(g, b.x + 2, b.y + 2, b.w - 4, b.h - 4, r, K.C.ink, 1);
+      if (side) icon(g, q[1], b.x + 42, b.cy - 20, r, K.C.ink);
+      else icon(g, q[1], b.cx, b.y + 4, r, K.C.ink);
+    });
+
+    var L = {};
+    lanes.forEach(function (n) { L[n.id] = box(n); });
+    var xp = pa.cx, xa = ac.cx, xt = tx.cx;
+    var end = L.l6.b + 6;
+    // 생명선 셋 — 경리 선은 ③ 이름표(가운데에 걸친다)를 피해 끊어 긋는다
+    var t3 = box(document.querySelector('#l3 b')), s3 = box(document.querySelector('#l3 span'));
+    var gapTop = Math.min(t3.y, s3.y) - 5, gapBot = Math.max(t3.b, s3.b) + 3;
+    K.line(g, xp, pa.b + 4, xp, end, K.rng(61), K.C.faint, 1.2, '5 6');
+    K.line(g, xa, ac.b + 4, xa, gapTop, K.rng(62), K.C.faint, 1.2, '5 6');
+    K.line(g, xa, gapBot, xa, end, K.rng(64), K.C.faint, 1.2, '5 6');
+    K.line(g, xt, tx.b + 4, xt, end, K.rng(63), K.C.faint, 1.2, '5 6');
+
+    // 일하는 동안의 막대 — 경리는 ① 고르는 사이와 ⑤ 맞추는 사이, 홈택스는 ⑤ 답하는 사이
+    var ra = K.rng(65), y5a = L.l5.b - 20, y5b = L.l5.b - 8;
+    var bar = function (x, y1, y2, hot) {
+      K.rect(g, x - 4, y1, 8, y2 - y1, ra, K.C.find, hot ? 1.8 : 1.2);
+      K.hatch(g, x - 4, y1, 8, y2 - y1, ra, 4, K.C.find, hot ? 0.4 : 0.2);
+    };
+    bar(xa, L.l1.y + 6, L.l1.b - 4, picked === '1');
+    bar(xa, y5a - 4, y5b + 4, picked === '5');
+    bar(xt, y5a - 4, y5b + 4, picked === '5');
+
+    // ① 경리 혼자 — 생명선에서 오른쪽으로 나갔다 돌아오는 고리
+    inState(g, state('1'), K.C.find, function (gg, c, w) {
+      var r = K.rng(71), x = xa + 4, x2 = xa + 28, y1 = L.l1.y + 9, y2 = L.l1.b - 9;
+      var d = 'M' + x + ' ' + y1 + ' L' + (x2 - 7) + ' ' + y1 + ' Q' + x2 + ' ' + y1 + ' ' + x2 + ' ' + (y1 + 7) + ' L' + x2 + ' ' + (y2 - 7) + ' Q' + x2 + ' ' + y2 + ' ' + (x2 - 7) + ' ' + y2 + ' L' + (x + 3) + ' ' + y2;
+      K.curve(gg, d, r, c, w);
+      K.head(gg, x + 1, y2, -1, r, c, Math.max(1.4, w * 0.8));
+    });
+    // ② 경리 → 국세청 (바깥 서비스를 거쳐)
+    inState(g, state('2'), K.C.db, function (gg, c, w) { K.hArrow(gg, xa + 5, xt - 6, L.l2.b - 8, K.rng(72), c, w); });
+    // ③ 국세청 → 거래처 — 오른쪽에서 왼쪽으로 걸치는 긴 화살표 (이메일 봉투)
+    inState(g, state('3'), K.C.talk, function (gg, c, w) {
+      var r = K.rng(73);
+      K.hArrow(gg, xt - 5, xp + 6, L.l3.b - 8, r, c, w);
+      envGlyph(gg, box(document.querySelector('#l3 .env')), r, c, Math.min(1.6, w * 0.7));
+    });
+    // ④ 거래처(공급처) → 경리
+    inState(g, state('4'), K.C.talk, function (gg, c, w) { K.hArrow(gg, xp + 5, xa - 6, L.l4.b - 8, K.rng(74), c, w); });
+    // ⑤ 홈택스에 묻고(→) 자료를 받는다(←)
+    inState(g, state('5'), K.C.find, function (gg, c, w) {
+      var r = K.rng(75);
+      K.hArrow(gg, xa + 5, xt - 6, y5a, r, c, w);
+      K.hArrow(gg, xt - 6, xa + 5, y5b, r, c, w);
+    });
+    // ⑥ 경리 → 세무사
+    inState(g, state('6'), K.C.talk, function (gg, c, w) { K.hArrow(gg, xa + 5, xt - 6, L.l6.b - 8, K.rng(76), c, w); });
+
+    // 왼쪽 괄호 — 발행 · 맞추기
+    [['g-i', 'i', 96], ['g-m', 'm', 97]].forEach(function (q) {
+      var b = at(q[0]), r = K.rng(q[2]), w = PHASE[picked] === q[1] ? 2.2 : 1.3, x = b.rt - 10;
+      K.line(g, x, b.y + 8, x, b.b - 8, r, K.C.ink, w);
+      K.line(g, x, b.y + 8, x + 5, b.y + 8, r, K.C.ink, w);
+      K.line(g, x, b.b - 8, x + 5, b.b - 8, r, K.C.ink, w);
+    });
+
+    // 걸음 단추 위 묶음 줄
+    var wg = K.fresh(document.getElementById('walkLines')), wbox = K.rel(walk);
+    Array.prototype.forEach.call(walk.querySelectorAll('.grp'), function (gr, n) {
+      if (gr.dataset.g === 'none') return;
+      var em = wbox(gr.querySelector('em')), bs = wbox(gr.querySelector('.bs')), r = K.rng(120 + n);
+      var y = (em.b + bs.y) / 2, x1 = bs.x + 2, x2 = bs.rt - 2, w = PHASE[picked] === gr.dataset.g ? 2 : 1.3;
+      K.line(wg, x1, y + 4, x1, y, r, K.C.ink, w);
+      K.line(wg, x1, y, x2, y, r, K.C.ink, w);
+      K.line(wg, x2, y, x2, y + 4, r, K.C.ink, w);
+    });
+
+    // 설명 공책 — 테두리 + 왼쪽에 고른 걸음의 색 줄 + 쪽지(편지면 봉투 덮개와 우표)
+    var pg = K.fresh(document.getElementById('panelLines'));
+    var pw = panel.offsetWidth, ph = panel.offsetHeight, r9 = K.rng(9);
+    K.rect(pg, 2, 2, pw - 4, ph - 4, r9, K.C.ink, 1.4);
+    K.line(pg, 13, 7, 13, ph - 7, r9, color(picked), 2.2);
+    var card = document.getElementById('card');
+    if (card) {
+      var cb = K.rel(panel)(card), rc = K.rng(19), ccol = color(picked);
+      K.rect(pg, cb.x, cb.y, cb.w, cb.h, rc, ccol, 1.4);
+      if (card.classList.contains('letter')) {
+        K.line(pg, cb.x + 2, cb.y + 2, cb.cx, cb.y + 15, rc, ccol, 1.1);
+        K.line(pg, cb.rt - 2, cb.y + 2, cb.cx, cb.y + 15, rc, ccol, 1.1);
+        K.rect(pg, cb.rt - 30, cb.y + 8, 19, 15, rc, ccol, 1.1);
+        K.hatch(pg, cb.rt - 29, cb.y + 9, 17, 13, rc, 4, ccol, 0.3);
+      } else {
+        K.hatch(pg, cb.x + 1, cb.y + 1, cb.w - 2, 6, rc, 6, ccol, 0.2);
+      }
+    }
+
+    // 해 보기 — 테두리와 손으로 그린 네모, 체크
+    var gg2 = K.fresh(document.getElementById('gradLines')), gb = K.rel(grad), r8 = K.rng(8);
+    K.rect(gg2, 2, 2, grad.offsetWidth - 4, grad.offsetHeight - 4, r8, K.C.ink, 1.4);
+    Array.prototype.forEach.call(grad.querySelectorAll('label'), function (lb, n) {
+      var b = gb(lb.querySelector('.bx')), r = K.rng(130 + n), on = lb.querySelector('input').checked;
+      K.rect(gg2, b.x, b.y, b.w, b.h, r, K.C.ink, 1.3);
+      if (on) K.curve(gg2, 'M' + (b.x + 4) + ' ' + (b.cy + 1) + ' L' + (b.x + 8) + ' ' + (b.b - 4) + ' L' + (b.rt - 2) + ' ' + (b.y + 2), r, K.C.find, 2.2);
+    });
+  }
+
+  var queued = false;
+  function schedule() {
+    if (queued) return;
+    queued = true;
+    setTimeout(function () { queued = false; draw(); }, 40);
+  }
+  function use(style) {
+    K = SketchKit(style);
+    document.documentElement.dataset.style = K.style;
+    Array.prototype.forEach.call(document.querySelectorAll('#pick button'), function (b) { b.classList.toggle('on', b.dataset.s === K.style); });
+    select(picked);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+  }
+
+  // 체 고르기
+  document.getElementById('pick').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-s]');
+    if (b) { use(b.dataset.s); if (history.replaceState) history.replaceState(null, '', '#' + b.dataset.s); }
+  });
+  // 걸음 고르기 — 단추 · 그림 안 이름표 · 설명 공책의 이전/다음
+  walk.addEventListener('click', function (e) { var b = e.target.closest('button[data-k]'); if (b) select(b.dataset.k); });
+  map.addEventListener('click', function (e) { var s = e.target.closest('.spot'); if (s) select(s.dataset.k); });
+  map.addEventListener('keydown', function (e) {
+    var s = e.target.closest('.spot');
+    if (s && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(s.dataset.k); }
+  });
+  panel.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-go]');
+    if (b && b.dataset.go) { select(b.dataset.go); walk.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
+
+  // 해 보기 체크는 이 브라우저에만 남는다
+  var GK = 'ubo-ojt-map-5';
+  var boxes = grad.querySelectorAll('input');
+  try { var saved = JSON.parse(localStorage.getItem(GK) || '{}'); Array.prototype.forEach.call(boxes, function (b) { b.checked = !!saved[b.dataset.k]; }); } catch (e) {}
+  function paintGrad() {
+    Array.prototype.forEach.call(boxes, function (b) { b.parentNode.querySelector('span').classList.toggle('on', b.checked); });
+  }
+  grad.addEventListener('change', function () {
+    paintGrad();
+    try { var o = {}; Array.prototype.forEach.call(boxes, function (b) { o[b.dataset.k] = b.checked; }); localStorage.setItem(GK, JSON.stringify(o)); } catch (e) {}
+    schedule();
+  });
+  paintGrad();
+
+  function fromHash() {
+    var h = (location.hash || '').slice(1);
+    use(['pencil', 'textbook', 'blueprint'].indexOf(h) >= 0 ? h : 'pencil');
+  }
+  fromHash();
+  window.addEventListener('hashchange', fromHash);
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', schedule);
+  window.addEventListener('load', schedule);
+  window.addEventListener('resize', schedule);
+  if (window.ResizeObserver) { var ro = new ResizeObserver(schedule); ro.observe(map); ro.observe(panel); ro.observe(grad); }
+})();
+</script>
+</body>
+</html>

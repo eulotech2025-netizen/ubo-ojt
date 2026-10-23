@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ko" data-style="pencil">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>이카운트 길잡이 E5 · 구매 길</title>
+<!--
+  이카운트 길잡이 · E5 「발주서에서 입고까지」 — 구매가 이카운트에서 누르는 순서.
+  상자 = 화면, 아래로 가는 화살표 = 누르는 단추, 오른쪽 점선 = 그 화면의 조회 · 현황(고치기 · 지우기 · 보기).
+  글자는 HTML, 선은 svg.over 에 sketch-kit.js 가 자리를 재서 긋는다. 교재 쪽수는 이카운트 공식 교재(초급 재고 · 유통)에 찍힌 쪽 번호.
+  교재에 없고 메뉴 지도에만 있는 것(단가요청 · 작업지시서 · 생산불출)은 (추정), 회사가 정해야 쓰는 것은 「회사가 채움」. 교재 7장의 「지금 · 이카운트」 카드가 이 길로 이어진다.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Brush+Script&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f8f4ea; --ink: #36332d; --ink-soft: #5d584e; --ink-faint: #8b8476;
+    --marker: rgba(255, 214, 64, 0.55); --find: #2f5d87; --talk: #b5523b; --db: #4f7d4a;
+    --mono: ui-monospace, 'Cascadia Mono', Consolas, 'D2Coding', monospace;
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.3  0 0 0 0 0.22  0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--paper); }
+  body { min-height: 100vh; color: var(--ink); font-family: 'Gaegu', cursive; background-color: var(--paper); background-image: var(--grain); padding: 18px 16px 28px; word-break: keep-all; overflow-wrap: anywhere; }
+  .page { max-width: 900px; margin: 0 auto; }
+  .brush { font-family: 'Nanum Brush Script', 'Gaegu', cursive; font-weight: 400; }
+  a { color: inherit; }
+  button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+  svg.over { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+  .spot { cursor: pointer; }
+  .spot:focus-visible, button:focus-visible { outline: 2px dashed var(--find); outline-offset: 2px; }
+
+  .pick { display: flex; justify-content: center; align-items: center; gap: 6px; margin-bottom: 14px; font-family: system-ui, sans-serif; }
+  .pick button { font-size: 13px; border: 1px solid #c9ced6; background: #fff; border-radius: 999px; padding: 5px 12px; }
+  .pick button.on { background: #1f2937; border-color: #1f2937; color: #fff; }
+  .pick a { font-size: 13px; color: var(--ink-soft); margin-left: 10px; text-decoration: none; }
+
+  .hero { text-align: center; }
+  .hero .kick { font-size: clamp(14px, 1.7vw, 17px); color: var(--ink-soft); letter-spacing: 0.04em; }
+  .hero h1 { font-size: clamp(34px, 6vw, 52px); line-height: 1.05; margin-top: 2px; }
+  .hero p { margin-top: 4px; font-size: clamp(15px, 1.9vw, 18px); color: var(--ink-soft); }
+
+  /* 걸음 단추 */
+  .walk { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 8px; margin-top: 12px; }
+  .walk button { font-size: 17px; line-height: 1; padding: 6px 9px 4px; border-radius: 6px; }
+  .walk button:nth-child(odd) { transform: rotate(-1.5deg); }
+  .walk button:nth-child(even) { transform: rotate(1.2deg); }
+  .walk button.on { background: var(--marker); }
+  .walk .nm { display: none; }
+  @media (min-width: 760px) { .walk .nm { display: inline; } }
+  .n { font-style: normal; font-weight: 700; }
+  .n.t { color: var(--talk); } .n.f { color: var(--find); } .n.d { color: var(--db); }
+
+  /* 화면 순서도 — 왼쪽 메뉴 경로 · 가운데 화면 · 오른쪽 조회 · 현황 */
+  .map { position: relative; margin-top: 14px; }
+  .flow { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(120px, 170px) minmax(0, 1fr) minmax(150px, 230px); column-gap: 26px; align-items: center; }
+  /* 칸 자리를 못 박는다 — .act 뒤의 .path 가 3칸으로 밀리지 않게 */
+  .path { grid-column: 1; text-align: right; font-size: clamp(12px, 1.5vw, 14px); color: var(--ink-soft); line-height: 1.25; padding-right: 4px; }
+  .path b { display: block; color: var(--ink); font-weight: 700; }
+  .scr { grid-column: 2; position: relative; padding: 12px 14px 12px; min-height: 76px; }
+  .side { grid-column: 3; }
+  .pad { grid-column: 1 / -1; }
+  .scr .nm { display: inline-block; font-size: clamp(20px, 2.8vw, 27px); line-height: 1.05; padding: 0 3px; }
+  .scr .code { margin-left: 6px; font-size: 12px; color: var(--ink-faint); font-family: var(--mono); }
+  .scr .sub { display: block; margin-top: 2px; font-size: clamp(12px, 1.6vw, 14.5px); color: var(--ink-soft); line-height: 1.25; }
+  .scr .fields { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 9px; }
+  .scr .fld { position: relative; font-size: clamp(12.5px, 1.5vw, 14px); line-height: 1; padding: 6px 8px 5px; }
+  .scr .fld.must::after { content: '*'; color: var(--talk); font-weight: 700; margin-left: 2px; }
+  .scr .btn { position: relative; font-size: clamp(12.5px, 1.5vw, 14px); font-weight: 700; line-height: 1; padding: 6px 10px 5px; color: var(--find); }
+  .scr:hover .nm, .scr:focus-visible .nm { text-decoration: underline wavy rgba(54, 51, 45, 0.35); text-underline-offset: 5px; }
+  .scr.now .nm { background: linear-gradient(transparent 52%, var(--marker) 52%, var(--marker) 94%, transparent 94%); }
+  .scr.later .nm, .scr.later .sub, .scr.later .fld, .scr.later .btn { color: var(--ink-faint); }
+  .scr.done .sub, .scr.done .fld { color: var(--ink-faint); }
+  .act { grid-column: 2; text-align: left; padding: 10px 0 10px calc(50% + 16px); font-size: clamp(12.5px, 1.6vw, 15px); color: var(--ink-soft); line-height: 1.25; min-height: 38px; }
+  .act b { color: var(--ink); }
+  .side { font-size: clamp(12px, 1.5vw, 14px); line-height: 1.3; padding: 8px 10px; color: var(--ink-soft); }
+  .side b { display: block; color: var(--ink); font-size: clamp(13.5px, 1.7vw, 16px); }
+  .side.later { opacity: 0.45; }
+  .pad { height: 6px; }
+  @media (max-width: 640px) {
+    .flow { grid-template-columns: minmax(0, 1fr); column-gap: 0; }
+    .path, .scr, .side, .act { grid-column: 1; }
+    .path { text-align: left; padding: 0 4px 2px; }
+    .side { margin: 2px 0 8px 24px; }
+  }
+
+  /* 설명 공책 */
+  .panel { position: relative; margin-top: 18px; padding: 14px 18px 14px 28px; }
+  .panel > div { position: relative; z-index: 1; }
+  .panel h3 { font-size: clamp(28px, 4vw, 36px); line-height: 1.05; }
+  .cols { display: grid; gap: 14px 26px; margin-top: 6px; }
+  @media (min-width: 760px) { .cols.two { grid-template-columns: minmax(0, 1fr) minmax(240px, 320px); align-items: start; } }
+  .one { font-size: clamp(16px, 1.9vw, 18px); line-height: 1.38; }
+  .rows { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 5px 10px; margin-top: 9px; font-size: clamp(14.5px, 1.7vw, 16.5px); line-height: 1.35; color: var(--ink-soft); }
+  .rows dt { font-weight: 700; color: var(--ink); }
+  .rows dd { margin: 0; }
+  .rows dd b { color: var(--ink); }
+  .steps { list-style: none; display: grid; gap: 4px; margin-top: 8px; }
+  .steps button { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; text-align: left; font-size: clamp(15px, 1.8vw, 17px); line-height: 1.3; padding: 2px 4px; border-radius: 4px; }
+  .steps button:hover { background: var(--marker); }
+  .steps b { white-space: nowrap; }
+  .card { position: relative; padding: 12px 14px 11px; }
+  .card .ct { display: block; font-size: 16px; font-weight: 700; color: var(--ink-soft); line-height: 1.1; margin-bottom: 7px; }
+  .card .ln { font-size: clamp(14px, 1.6vw, 15.5px); line-height: 1.4; color: var(--ink); padding-left: 14px; text-indent: -14px; }
+  .card .ln::before { content: '› '; color: var(--ink-faint); }
+  .card .cap { font-size: 14px; color: var(--ink-soft); line-height: 1.3; margin-top: 6px; }
+  .card .rep { font-size: clamp(15px, 1.8vw, 17px); line-height: 1.45; }
+  .ref { margin-top: 8px; font-size: 13px; color: var(--ink-faint); }
+  .try { font-family: 'Nanum Pen Script', cursive; font-size: 22px; line-height: 1.15; color: var(--find); margin-top: 10px; }
+  .panel .nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; }
+  .panel .nav button { font-size: 17px; line-height: 1; padding: 6px 9px 4px; border-radius: 6px; }
+  .panel .nav button[disabled] { visibility: hidden; }
+
+  .legend { margin: 16px auto 0; max-width: 800px; display: grid; gap: 4px; font-size: clamp(14px, 1.8vw, 16px); color: var(--ink-soft); text-align: center; line-height: 1.3; }
+  .legend .f { color: var(--find); font-weight: 700; } .legend .t { color: var(--talk); font-weight: 700; } .legend .d { color: var(--db); font-weight: 700; }
+
+  .grad { position: relative; margin-top: 22px; padding: 14px 18px 12px; }
+  .grad > * { position: relative; z-index: 1; }
+  .grad h3 { font-size: clamp(24px, 3.4vw, 30px); line-height: 1.05; margin-bottom: 6px; }
+  .grad label { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; font-size: clamp(15px, 1.9vw, 17px); line-height: 1.3; cursor: pointer; }
+  .grad input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .grad .bx { display: block; flex: none; width: 20px; height: 20px; margin-top: 1px; }
+  .grad .on { color: var(--ink-faint); text-decoration: line-through; text-decoration-color: rgba(54, 51, 45, 0.3); }
+  .grad .sign { margin-top: 8px; font-size: clamp(13px, 1.6vw, 15px); color: var(--ink-soft); }
+  .foot { margin-top: 14px; text-align: center; font-size: clamp(12px, 1.4vw, 13.5px); color: var(--ink-faint); line-height: 1.4; }
+
+  /* ---------- 교과서 도식 ---------- */
+  html[data-style="textbook"] { --paper: #ffffff; --ink: #1f2937; --ink-soft: #4b5563; --ink-faint: #a3aab5; --find: #1f5fae; --talk: #b8432f; --db: #2f7d4f; --marker: rgba(31, 95, 174, 0.14); }
+  html[data-style="textbook"] body { font-family: 'Noto Sans KR', system-ui, sans-serif; background: #fff; background-image: none; letter-spacing: -0.01em; }
+  html[data-style="textbook"] .brush { font-family: 'Noto Sans KR', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; }
+  html[data-style="textbook"] .hero h1 { font-size: clamp(24px, 3.6vw, 32px); }
+  html[data-style="textbook"] .hero p, html[data-style="textbook"] .hero .kick { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="textbook"] .walk button, html[data-style="textbook"] .panel .nav button { font-size: 13.5px; border-radius: 999px; border: 1px solid var(--ink-faint); padding: 5px 11px; transform: none; }
+  html[data-style="textbook"] .walk button.on { border-color: var(--find); }
+  html[data-style="textbook"] .scr .nm { font-size: clamp(15px, 2.1vw, 19px); font-weight: 800; }
+  html[data-style="textbook"] .scr .sub, html[data-style="textbook"] .path, html[data-style="textbook"] .act, html[data-style="textbook"] .side { font-size: clamp(11.5px, 1.35vw, 13px); }
+  html[data-style="textbook"] .side b { font-size: clamp(12.5px, 1.5vw, 14px); }
+  html[data-style="textbook"] .scr .fld, html[data-style="textbook"] .scr .btn { font-size: 12px; }
+  html[data-style="textbook"] .panel h3 { font-size: clamp(19px, 2.6vw, 24px); }
+  html[data-style="textbook"] .one { font-size: clamp(13.5px, 1.55vw, 15.5px); }
+  html[data-style="textbook"] .rows, html[data-style="textbook"] .steps button, html[data-style="textbook"] .card .rep { font-size: clamp(12.5px, 1.45vw, 14px); }
+  html[data-style="textbook"] .card .ln { font-size: clamp(12px, 1.35vw, 13.5px); }
+  html[data-style="textbook"] .card .cap, html[data-style="textbook"] .card .ct { font-size: 12.5px; }
+  html[data-style="textbook"] .try { font-family: inherit; font-size: clamp(12.5px, 1.45vw, 14px); font-weight: 700; }
+  html[data-style="textbook"] .legend { font-size: clamp(12px, 1.5vw, 13.5px); }
+  html[data-style="textbook"] .grad h3 { font-size: clamp(17px, 2.4vw, 21px); }
+  html[data-style="textbook"] .grad label { font-size: clamp(12.5px, 1.55vw, 14.5px); }
+
+  /* ---------- 설계 도면 ---------- */
+  html[data-style="blueprint"] { --paper: #f6f8fb; --ink: #16365c; --ink-soft: #3d5878; --ink-faint: #9db0c6; --find: #1d6fb8; --talk: #c23b2e; --db: #2b7a5a; --marker: rgba(29, 111, 184, 0.13); --mono: 'IBM Plex Mono', 'IBM Plex Sans KR', ui-monospace, Consolas, monospace; }
+  html[data-style="blueprint"] body { font-family: 'IBM Plex Sans KR', system-ui, sans-serif; background-color: var(--paper);
+    background-image: linear-gradient(rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(rgba(29, 111, 184, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.045) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px; }
+  html[data-style="blueprint"] .page { border: 1.5px solid var(--ink); outline: 1px solid var(--ink); outline-offset: 5px; padding: 16px; background: rgba(246, 248, 251, 0.6); }
+  html[data-style="blueprint"] .brush { font-family: 'IBM Plex Sans KR', sans-serif; font-weight: 700; letter-spacing: 0.01em; }
+  html[data-style="blueprint"] .hero .kick::before { content: 'FIG. E5  '; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.2em; color: var(--ink-soft); }
+  html[data-style="blueprint"] .hero h1 { font-size: clamp(22px, 3.4vw, 30px); }
+  html[data-style="blueprint"] .hero p, html[data-style="blueprint"] .hero .kick { font-size: clamp(13px, 1.45vw, 14.5px); }
+  html[data-style="blueprint"] .walk button, html[data-style="blueprint"] .panel .nav button { font-size: 13px; border-radius: 0; border: 1px solid var(--ink-faint); padding: 5px 10px; letter-spacing: 0.02em; transform: none; }
+  html[data-style="blueprint"] .walk button.on { background: none; border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  html[data-style="blueprint"] .scr .nm { font-size: clamp(14px, 2vw, 18px); font-weight: 700; }
+  html[data-style="blueprint"] .scr.now .nm { background: none; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  html[data-style="blueprint"] .scr .sub, html[data-style="blueprint"] .path, html[data-style="blueprint"] .act, html[data-style="blueprint"] .side { font-size: clamp(11px, 1.3vw, 12.5px); }
+  html[data-style="blueprint"] .side b { font-size: clamp(12px, 1.45vw, 13.5px); }
+  html[data-style="blueprint"] .scr .fld, html[data-style="blueprint"] .scr .btn { font-size: 11.5px; }
+  html[data-style="blueprint"] .panel h3 { font-size: clamp(17px, 2.4vw, 22px); }
+  html[data-style="blueprint"] .one { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="blueprint"] .rows, html[data-style="blueprint"] .steps button, html[data-style="blueprint"] .card .rep { font-size: clamp(12px, 1.4vw, 13.5px); }
+  html[data-style="blueprint"] .card .ln { font-size: clamp(11.5px, 1.3vw, 13px); }
+  html[data-style="blueprint"] .card .cap, html[data-style="blueprint"] .card .ct { font-size: 12px; }
+  html[data-style="blueprint"] .try { font-family: inherit; font-size: clamp(12px, 1.4vw, 13.5px); font-weight: 600; }
+  html[data-style="blueprint"] .legend { font-size: clamp(11.5px, 1.4vw, 13px); }
+  html[data-style="blueprint"] .grad h3 { font-size: clamp(16px, 2.2vw, 19px); }
+  html[data-style="blueprint"] .grad label { font-size: clamp(12px, 1.5vw, 14px); }
+
+  @media print { .pick, .panel .nav { display: none !important; } body { padding: 0; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="pick" id="pick">
+    <button type="button" data-s="pencil">연필 손그림</button>
+    <button type="button" data-s="textbook">교과서 도식</button>
+    <button type="button" data-s="blueprint">설계 도면</button>
+    <a href="ecount.html" id="back">← 길잡이 목차</a>
+  </div>
+
+  <header class="hero">
+    <div class="kick">이카운트 길잡이 · E5 · 구매 길 (교재 7장의 「지금 · 이카운트」)</div>
+    <h1 class="brush">발주서에서 입고까지</h1>
+    <p>물건 하나를 사 들이는 순서. 상자 = 화면, 아래 화살표 = 누르는 단추, 오른쪽 점선 = 그 화면의 조회 · 현황.</p>
+  </header>
+
+  <nav class="walk" id="walk" aria-label="걸음 고르기">
+    <button type="button" data-k="all">전체</button>
+    <button type="button" data-k="1"><span class="n t">①</span><span class="nm"> 단가요청입력</span></button>
+    <button type="button" data-k="2"><span class="n t">②</span><span class="nm"> 발주서입력</span></button>
+    <button type="button" data-k="3"><span class="n d">③</span><span class="nm"> 구매입력</span></button>
+    <button type="button" data-k="4"><span class="n f">④</span><span class="nm"> 미구매현황 · 종결</span></button>
+    <button type="button" data-k="5"><span class="n f">⑤</span><span class="nm"> 거래처별채무 · 지급</span></button>
+    <button type="button" data-k="6"><span class="n d">⑥</span><span class="nm"> 세트 · 생산입고</span></button>
+  </nav>
+
+  <section class="map" id="map">
+    <svg class="over" id="lines" aria-hidden="true"></svg>
+    <div class="flow" id="flow">
+      <div class="path"><b>재고Ⅰ › 구매관리</b>› 단가요청입력 (추정)</div>
+      <div class="scr spot" id="s1" data-k="1" tabindex="0" role="button"><span class="nm brush">단가요청입력</span><span class="code">E040321</span><span class="sub">사기 전에 공급처에 값을 묻는 자리. 교재에 없다 — 회사가 쓰는지는 회사가 채움 (추정)</span>
+        <div class="fields"><span class="fld must">일자</span><span class="fld must">거래처</span><span class="fld must">품목</span><span class="fld">수량</span><span class="fld">단가</span><span class="fld">적요</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d1"><b>단가요청조회 · 진행단계 · 현황</b>E040322 · E040323 · E040325 — 고치기 · 지우기 · 어디까지 왔나 (추정)</div>
+
+      <div class="act" id="a1">값이 정해지면 → <b>발주서입력</b>으로. 단가요청을 안 쓰는 회사는 ② 에서 시작한다</div>
+
+      <div class="path"><b>재고Ⅰ › 구매관리</b>› 발주서입력 › 신규</div>
+      <div class="scr spot" id="s2" data-k="2" tabindex="0" role="button"><span class="nm brush">발주서입력</span><span class="code">E040301</span><span class="sub">공급처에 「이만큼 보내 주세요」. 재고 · 돈은 아직 안 바뀐다 — 발주계획에서 자동 또는 직접</span>
+        <div class="fields"><span class="fld must">일자</span><span class="fld must">거래처(구매처)</span><span class="fld must">납기일자</span><span class="fld must">입고예정창고</span><span class="fld must">품목</span><span class="fld must">수량</span><span class="fld">단가</span><span class="fld">적요</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d2"><b>발주서조회 · 발주서현황</b>E040302 · E040306 — 고치기 · 지우기 · 인쇄(양식) · 메일 · 진행관리 · 하단 [전자결재]. 발주요청현황 E040318</div>
+
+      <div class="act" id="a2">저장 → 발주서조회에서 인쇄 · 메일로 공급처에 → 물건이 오면 <b>구매입력에서 [발주] 단추로 불러온다</b></div>
+
+      <div class="path"><b>재고Ⅰ › 구매관리</b>› 구매입력</div>
+      <div class="scr spot" id="s3" data-k="3" tabindex="0" role="button"><span class="nm brush">구매입력</span><span class="code">E040303</span><span class="sub">물건이 들어온 날. 저장하는 순간 재고가 늘고 줄 돈(채무)이 는다. 일부만 오면 잔량이 남는다</span>
+        <div class="fields"><span class="btn">발주 불러오기</span><span class="fld must">일자</span><span class="fld must">거래처</span><span class="fld must">창고</span><span class="fld must">품목 · 입고수량</span><span class="fld must">단가</span><span class="fld">현금지급 · 어음지급</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d3"><b>구매조회 · 구매현황</b>E040304 · E040305 — 고치기 · 지우기 · 인쇄. 상단 [+] 매입전표 · 구매일괄회계반영은 경리 몫(E4)</div>
+
+      <div class="act" id="a3">저장 → 덜 왔으면 <b>미구매현황에서 잔량</b>을 본다</div>
+
+      <div class="path"><b>재고Ⅰ › 구매관리</b>› 구매관리현황 › 미구매현황</div>
+      <div class="scr spot" id="s4" data-k="4" tabindex="0" role="button"><span class="nm brush">미구매현황 · 종결</span><span class="code">E040307</span><span class="sub">발주했는데 아직 안 들어온 잔량. 다 들어오면 종결처리로 닫는다 — 발주와 입고의 대조가 이 한 장</span>
+        <div class="fields"><span class="fld">기간</span><span class="fld">거래처</span><span class="fld">품목</span><span class="fld">발주수량</span><span class="fld">구매수량</span><span class="fld">미구매수량 = 잔량</span><span class="btn">종결처리 (발주서조회 › 진행관리)</span></div></div>
+      <div class="side" id="d4"><b>구매할인현황 · 회계미반영현황(구매)</b>E040313 · E040319 — 할인 받은 것 · 아직 경리에 안 넘긴 구매전표</div>
+
+      <div class="act" id="a4">잔량 0 이면 <b>종결처리</b> → 줄 돈은 <b>거래처별채무</b>에서 본다</div>
+
+      <div class="path"><b>재고Ⅰ › 구매관리</b>› 구매관리현황 › 거래처별채무</div>
+      <div class="scr spot" id="s5" data-k="5" tabindex="0" role="button"><span class="nm brush">거래처별채무 · 지급</span><span class="code">E040309</span><span class="sub">공급처에 줄 돈. 과장님 「중요!!」 — 재고매입금액과 회계매입금액이 따로 보인다</span>
+        <div class="fields"><span class="fld">기간</span><span class="fld">거래처</span><span class="fld">재고매입금액</span><span class="fld">회계매입금액</span><span class="fld">잔액</span><span class="fld">거래처명 클릭 = 거래처원장 (추정)</span><span class="fld">돈 내보내기 = 지출결의서 (E3 ④)</span></div></div>
+      <div class="side" id="d5"><b>지급현황 · 매입(세금)계산서조회</b>E040310 · E040219 — 준 돈 · 받은 세금계산서. 지급은 구매입력 하단 또는 경리의 지출결의서(외상매입금)</div>
+
+      <div class="act" id="a5">세트(묶음) 상품이면 <b>구성품이 빠지는 자리</b>를 하나 더 본다</div>
+
+      <div class="path"><b>재고Ⅰ › 생산/외주</b>› BOM(소요량)조회 › 세트 탭</div>
+      <div class="scr spot" id="s6" data-k="6" tabindex="0" role="button"><span class="nm brush">세트 · 생산입고</span><span class="sub">묶음 상품. 품목등록 세트여부 「사용」 → BOM 세트 탭에 구성품 → 팔 때 판매입력 상단 [+] 생산입고로 구성품이 빠진다</span>
+        <div class="fields"><span class="fld must">품목등록 › 세트여부 「사용」</span><span class="fld must">BOM(소요량)조회 › 세트 탭 › 구성품</span><span class="fld">구성 수량</span><span class="btn">판매입력 상단 [+] 생산입고</span><span class="fld">세트품목 우측 「생산전표생성」 체크</span><span class="fld">환경설정 › 전표자동생성(생산전표–판매) [사용]</span><span class="fld">작업지시서 · 생산불출 (추정)</span></div></div>
+      <div class="side" id="d6"><b>재고현황 · 재고수불부</b>재고Ⅰ › 출력물 — 팔고 나서 구성품 재고가 줄었나, 품목코드 클릭. 작업지시서 · 생산불출은 교재에 없다 (추정)</div>
+      <div class="pad"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel" aria-live="polite">
+    <svg class="over" id="panelLines" aria-hidden="true"></svg>
+    <div id="panelBody"></div>
+  </section>
+
+  <footer class="legend">
+    <div><span class="d">초록</span> = 저장하면 재고 · 줄 돈(채무)이 바뀌는 화면 · <span class="t">붉은 갈색</span> = 공급처로 보내기(단가 묻기 · 발주서 인쇄 · 메일) · <span class="f">파랑</span> = 보기 · 확인</div>
+    <div>칸 뒤의 <span class="t">*</span> = 꼭 넣는 칸 (추정 — 회사 계정의 필수 칸 설정은 확인 전)</div>
+  </footer>
+
+  <section class="grad" id="grad">
+    <svg class="over" id="gradLines" aria-hidden="true"></svg>
+    <h3 class="brush">해 보기 · E5 졸업</h3>
+    <label><input type="checkbox" data-k="g1"><i class="bx"></i><span>연습 거래처로 발주서 1장을 넣고 PDF 로 뽑았다</span></label>
+    <label><input type="checkbox" data-k="g2"><i class="bx"></i><span>[발주] 단추로 불러와 일부만 구매입력하고, 미구매현황에서 잔량을 찾았다</span></label>
+    <label><input type="checkbox" data-k="g3"><i class="bx"></i><span>잔량을 전부 구매입력하고 종결처리했다 — 미구매현황에서 사라졌다</span></label>
+    <label><input type="checkbox" data-k="g4"><i class="bx"></i><span>거래처별채무에서 연습 거래처를 찾았다 — 재고매입금액과 회계매입금액이 따로인 것을 봤다</span></label>
+    <p class="sign">옆에서 본 선배 ____________ · 날짜 ____________</p>
+  </section>
+
+  <p class="foot">연습은 회사가 정한 연습 거래처 · 연습 품목으로만 (실제 공급처에 넣지 않는다) · 주소는 회사 안에서만 나눈다 · 교재 = 이카운트 공식 교재(초급 재고 · 유통)</p>
+</div>
+
+<script src="sketch-kit.js"></script>
+<script>
+(function () {
+  'use strict';
+  var STEPS = ['1', '2', '3', '4', '5', '6'];
+  var NUM = { 1: '①', 2: '②', 3: '③', 4: '④', 5: '⑤', 6: '⑥' };
+  var NAME = { 1: '단가요청입력', 2: '발주서입력', 3: '구매입력', 4: '미구매현황 · 종결', 5: '거래처별채무 · 지급', 6: '세트 · 생산입고' };
+  var KIND = { 1: 'talk', 2: 'talk', 3: 'db', 4: 'find', 5: 'find', 6: 'db' };
+
+  // 설명 — one 한 줄 · rows [이름표, 내용] · card 「틀렸을 때」 · ref 교재 쪽
+  var INFO = {
+    all: { title: '발주서에서 입고까지',
+      one: '구매가 누르는 화면 여섯. 저장할 때마다 무엇이 바뀌는지가 핵심이다 — 단가요청 · 발주는 아무것도, 구매입력은 재고와 줄 돈, 세트는 구성품.',
+      list: { 1: '공급처에 값을 묻는다 (쓰는 회사만, 추정)', 2: '이만큼 보내 달라고 발주서 — 인쇄 · 메일', 3: '물건이 오면 발주를 불러와 구매입력', 4: '덜 온 것은 미구매현황, 다 오면 종결', 5: '줄 돈은 거래처별채무, 내보내기는 경리', 6: '세트는 BOM 에 구성품, 팔 때 생산입고로 빠진다' },
+      card: { t: '한 줄로', html: '<p class="rep"><b>불러오기</b>로 잇는다 — 발주서 → [발주] → 구매입력. 다시 치지 않으면 잔량(미구매)이 저절로 맞고, 발주 없이 구매만 치면 대조할 것이 없다.</p>' } },
+    1: { title: '① 단가요청입력 (추정)',
+      one: '사기 전에 공급처에 「얼마예요」 를 묻는 자리. 메뉴 지도에는 있고 교재에는 없다 — 회사가 쓰는지는 회사가 채움.',
+      rows: [['경로', '재고Ⅰ › 구매관리 › 단가요청입력 › 신규 (추정)'], ['넣는 칸', '일자 · 거래처 · 품목 · 수량 · 단가 · 적요 — 칸 이름은 화면을 열어 보고 맞춘다 (추정)'], ['저장 뒤', '재고 · 돈은 안 바뀐다. 단가요청조회에서 고치기 · 지우기, 단가요청진행단계에서 어디까지 왔나 (추정)'], ['회사가 채움', '이 메뉴를 쓰는지 · 안 쓰면 전화 · 카톡으로 들은 단가를 어디에 적는지 — 적어 두지 않으면 ⑤ 에서 맞출 것이 없다'], ['조심', '단가는 거래처마다 다르다 — 어느 업체 명의로 사나(계정)부터 맞다 (E1 ①)']],
+      card: { t: '틀렸을 때', lines: ['고치기 · 지우기: 단가요청조회에서 열어 [수정] · [삭제] (추정)', '요청만 있고 발주가 없는 건은 그대로 두어도 재고 · 돈에 영향이 없다'], cap: '쓰지 않는 회사면 이 걸음은 건너뛰고 ② 부터' },
+      ref: '메뉴 지도 (교재에 없음)' },
+    2: { title: '② 발주서입력',
+      one: '공급처에 「이만큼 보내 주세요」. 재고도 돈도 안 바뀌는 「약속」 서류 — 그래도 이것이 있어야 뒤의 잔량 · 대조가 맞는다.',
+      rows: [['경로', '재고Ⅰ › 구매관리 › 발주서입력 › 신규 — 발주계획에서 자동으로 만들거나 직접 친다'], ['넣는 칸', '일자 · 거래처(구매처) · 납기일자(언제 오나) · 입고예정창고(어디로 오나) · 품목 · 수량 · 단가 · 적요'], ['저장 뒤', '발주서조회에서 인쇄(양식) · 메일 · PDF → 공급처에. 진행관리 · 보낸 메일 기록도 여기'], ['결재', '발주서조회에서 전표 선택 › 하단 [전자결재] › 기안 양식 › 결재자 지정 → 결재가 끝나야 실제 발주. 결재선은 회사가 채움'], ['조심', '결재 중인 전표는 수정 · 삭제 · 인쇄 · 외부전송이 막힌다 · 창고를 안 고르면 구매입력에서 다시 고른다 · 다른 업체 계정에 넣으면 그 업체가 사는 것이 된다']],
+      card: { t: '틀렸을 때', lines: ['고치기 · 지우기: 발주서조회에서 열어 [수정] · [삭제]', '결재 중이면 못 고친다 — 결재를 되돌리거나 끝낸 뒤에 (추정)', '안 올 물건은 [종결처리]로 닫는다 — 지우지 않는다 (추정)'], cap: '발주는 지워도 재고 · 돈에 영향이 없다. 다만 구매까지 넘어간 발주서를 지우면 미구매현황이 어긋난다 (추정)' },
+      ref: '교재 초급 p.18 (발주서) · p.22~23 (발주/구매 전 기안 상신)',
+      tryit: '연습 거래처로 발주서 1장 → 발주서조회에서 PDF' },
+    3: { title: '③ 구매입력',
+      one: '물건이 들어온 날. 저장하는 순간 재고가 늘고, 거래처별채무(줄 돈)가 는다. 매입세금계산서도 이 전표에서 시작한다.',
+      rows: [['경로', '재고Ⅰ › 구매관리 › 구매입력 › [발주] 불러오기 — 발주서 불러오기와 미구매현황 관리가 이 단추 하나'], ['넣는 칸', '일자 · 거래처 · 창고(들어온 곳) · 품목 · 입고수량(일부만 왔으면 줄인다) · 단가 · 운송비 같은 품목'], ['저장 뒤', '재고 증가 · 채무 증가. 남은 수량은 미구매현황에. 매입세금계산서는 상단 [+] 매입전표 또는 구매일괄회계반영 — 경리 몫(E4)'], ['지급', '하단 [현금지급] · [어음지급], 또는 경리가 회계Ⅰ › FastEntry › 지출결의서(외상매입금) — E3 ④'], ['조심', '치는 시점(물건 온 날인지 명세서 받은 날인지)은 회사가 채움 (회사법 나-3) · 발주 없이 바로 치면 미구매현황이 안 맞는다 · 수입의 부대비용(관세 · 하역비)은 원가에만 들어가고 구매금액 · 회계에는 안 들어간다']],
+      card: { t: '틀렸을 때', lines: ['고치기 · 지우기: 구매조회에서 열어 [수정] · [삭제]', '매입전표(회계반영)까지 된 전표는 매입전표를 먼저 떼야 지워진다 (E4)', '구매전표와 매입전표를 따로 치면 채무가 두 배로 보인다 — 매입전표Ⅰ 의 [미청구재고전표연결]로 잇는다'], cap: '지운 전표는 재고Ⅰ › 출력물 › 거래이력조회에서 복구할 수 있다' },
+      ref: '교재 초급 p.19 (구매입력 · 외자입력 · 부대비용) · p.20 (구매조회) · p.29 (미청구재고전표연결)',
+      tryit: '발주의 절반만 입고로 저장 → 미구매현황에서 잔량 확인' },
+    4: { title: '④ 미구매현황 · 종결',
+      one: '발주했는데 아직 안 들어온 잔량. 일부만 왔으면 잔량이 남고, 다 왔으면 종결처리로 닫는다 — 발주와 입고의 대조가 이 한 장이다.',
+      rows: [['경로', '재고Ⅰ › 구매관리 › 구매관리현황 › 미구매현황'], ['보는 칸', '거래처 · 품목 · 발주수량 · 구매수량 · 미구매수량(잔량). 기간 · 거래처로 걸러 본다 (칸 이름은 추정)'], ['종결', '잔량이 0 이면 완료. 안 올 잔량은 발주서조회 › 진행관리에서 강제 [종결처리] (추정) — 지우지 않는다'], ['저장 뒤', '현황은 보기만 — 여기서 고치지 않는다. 숫자가 틀리면 구매조회 · 발주서조회에서 그 전표를 고친다'], ['조심', '발주 없이 구매입력만 친 건은 여기 안 뜬다 · 다른 업체 계정의 발주는 그 계정에서 본다 (추정)']],
+      card: { t: '틀렸을 때', lines: ['잔량이 남아 있는데 물건은 다 왔다 → 구매입력에서 [발주]로 안 불러온 것. 그 구매전표를 지우고 다시 불러온다', '잘못 종결했으면 발주서조회 › 진행관리에서 되돌린다 (추정)'], cap: '현황 화면에는 지우기 · 고치기가 없다 — 전표가 있는 조회 화면으로' },
+      ref: '교재 초급 p.18 (기본 흐름 — 발주서 · 구매입력 · 미구매현황) · p.29 (미구매현황 · 종결처리)',
+      tryit: '잔량을 전부 입고 → 미구매현황에서 사라졌나 → 종결처리' },
+    5: { title: '⑤ 거래처별채무 · 지급',
+      one: '공급처에 줄 돈. 과장님이 「중요!!」 — 재고매입금액(구매전표)과 회계매입금액(매입전표)이 따로 보이고, 둘을 안 이으면 잔액이 두 배다.',
+      rows: [['경로', '재고Ⅰ › 구매관리 › 구매관리현황 › 거래처별채무 · 지급현황'], ['보는 칸', '거래처 · 재고매입금액 · 회계매입금액 · 잔액. 거래처명을 누르면 거래처원장 (채권 화면과 같은 식, 추정)'], ['지급', '돈 내보내기는 구매입력 하단 [현금지급] · [어음지급], 또는 경리가 회계Ⅰ › FastEntry › 지출결의서(외상매입금) — E3 ④'], ['세금계산서', '받은 매입세금계산서는 매입(세금)계산서조회, 아직 안 넘긴 전표는 회계미반영현황(구매) — 경리 몫(E4)'], ['조심', '구매전표와 매입전표를 안 이으면 채무가 두 배로 보인다 → 매입전표Ⅰ 의 [미청구재고전표연결] · 계정(업체)마다 따로다 — 5계정을 돌며 본다 (추정)']],
+      card: { t: '틀렸을 때', lines: ['잔액이 두 배: 매입전표Ⅰ 에서 [미청구재고전표연결]로 구매전표와 잇는다', '거래처가 다르게 적힌 전표는 양쪽 거래처에 차액이 뜬다 — 전표의 거래처를 맞춘다 (E3 ⑤)'], cap: '지급을 두 번 쳤으면 그 전표가 있는 조회 화면에서 하나 지운다 — 구매조회 또는 회계거래조회 (추정)' },
+      ref: '교재 초급 p.19 (채무 · 지급처리) · p.29 (거래처별채무 · 미청구재고전표연결) · p.30 (지출입력)' },
+    6: { title: '⑥ 세트 · 생산입고',
+      one: '묶음 상품(세트). 품목등록에서 세트여부 「사용」, BOM 세트 탭에 구성품을 적고, 팔 때 판매입력 상단 [+] 생산입고로 구성품이 빠지고 세트가 들어온다.',
+      rows: [['경로', '재고Ⅰ › 기초등록 › 품목등록 › 세트여부 「사용」 → 재고Ⅰ › 생산/외주 › BOM(소요량)조회 › 세트 탭에 구성품'], ['팔 때', '판매입력 › 상단 [+] 생산입고 › 세트품목 우측 「생산전표생성」 체크 → 구성품 재고 ↓ 세트 재고 ↑ 가 같은 자리에서'], ['자동', 'Self-Customizing › 환경설정 › 기능설정 › 재고 › 전표자동생성(생산전표–판매) [사용] — 팔 때마다 체크하지 않아도 된다'], ['회사가 채움', '구성품이 빠지는 시점 — 팔 때(교재 방식)인지, 미리 묶어 두는 작업을 마칠 때인지. 미결정 4'], ['조심', '작업지시서 · 생산불출은 교재에 없다 — 이카운트 기능 목록에만 보인다 (추정) · 팔고 나서 재고Ⅰ › 출력물 › 재고현황에서 구성품 수량 · 수불부를 본다 — 생산전표가 안 만들어졌으면 구성품이 안 줄어 있다 (추정)']],
+      card: { t: '나중 · UBO ONE', lines: ['발주 vs 입고 대조가 한 화면에 — 차이가 저절로 보인다 (BUY-02)', '세트 차감 시점은 회사가 정한 대로 한 번만 (STK-04 · 미결정 4)', '5계정을 돌지 않는다 — 업체는 칸 하나'], cap: '이 길 전체가 교재 7장의 「지금 · 이카운트」 카드다' },
+      ref: '교재 초급 p.7 (품목등록 세트여부 · BOM · 생산전표생성) · p.25 (세트 추가문제 · 전표자동생성)' }
+  };
+
+  var K;
+  var map = document.getElementById('map');
+  var flow = document.getElementById('flow');
+  var walk = document.getElementById('walk');
+  var panel = document.getElementById('panel');
+  var panelBody = document.getElementById('panelBody');
+  var grad = document.getElementById('grad');
+  var scrs = Array.prototype.slice.call(map.querySelectorAll('.scr'));
+  var picked = 'all';
+  var esc = function (s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var label = function (k) { return k === 'all' ? '전체' : NUM[k] + ' ' + NAME[k]; };
+  var color = function (k) { var c = k === 'all' ? 'ink' : KIND[k]; return c === 'ink' ? K.C.ink : K.C[c]; };
+
+  function select(k) {
+    picked = k;
+    var i = STEPS.indexOf(k);
+    scrs.forEach(function (el) {
+      var n = STEPS.indexOf(el.dataset.k);
+      el.classList.toggle('now', i >= 0 && n === i);
+      el.classList.toggle('done', i >= 0 && n < i);
+      el.classList.toggle('later', i >= 0 && n > i);
+      el.setAttribute('aria-pressed', String(n === i));
+      var side = document.getElementById('d' + el.dataset.k);
+      if (side) side.classList.toggle('later', i >= 0 && n > i);
+    });
+    Array.prototype.forEach.call(walk.querySelectorAll('button'), function (b) {
+      b.classList.toggle('on', b.dataset.k === k);
+      b.setAttribute('aria-pressed', String(b.dataset.k === k));
+    });
+    var info = INFO[k], col = color(k);
+    var h = '<h3 class="brush" style="color:' + col + '">' + info.title + '</h3>';
+    h += '<div class="cols' + (info.card ? ' two' : '') + '"><div>';
+    h += '<p class="one">' + info.one + '</p>';
+    if (info.rows) h += '<dl class="rows">' + info.rows.map(function (r) { return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join('') + '</dl>';
+    if (info.list) {
+      h += '<ul class="steps">' + STEPS.map(function (s) {
+        return '<li><button type="button" data-go="' + s + '"><b style="color:' + color(s) + '">' + NUM[s] + ' ' + NAME[s] + '</b>' + info.list[s] + '</button></li>';
+      }).join('') + '</ul>';
+    }
+    if (info.tryit) h += '<p class="try">해 보기: ' + info.tryit + '</p>';
+    if (info.ref) h += '<p class="ref">' + info.ref + '</p>';
+    h += '</div>';
+    var prev = i < 0 ? null : (i === 0 ? 'all' : STEPS[i - 1]);
+    var next = i < 0 ? '1' : (i === STEPS.length - 1 ? 'all' : STEPS[i + 1]);
+    var nav = '<div class="nav"><button type="button" data-go="' + (prev || '') + '"' + (prev ? '' : ' disabled') + '>← ' + (prev ? label(prev) : '') + '</button>' +
+      '<button type="button" data-go="' + next + '">' + (i < 0 ? '① 단가요청입력부터' : label(next)) + ' →</button></div>';
+    if (info.card) {
+      var body = info.card.html || '';
+      if (info.card.lines) body += info.card.lines.map(function (l) { return '<div class="ln">' + esc(l) + '</div>'; }).join('');
+      if (info.card.cap) body += '<p class="cap">' + info.card.cap + '</p>';
+      h += '<div><div class="card" id="card"><span class="ct">' + info.card.t + '</span>' + body + '</div>' + nav + '</div></div>';
+    } else {
+      h += '</div>' + nav;
+    }
+    panelBody.innerHTML = h;
+    schedule();
+  }
+
+  function inState(g, st, col, fn) {
+    var gg = st === 'done' ? K.el(g, 'g', { opacity: 0.5 }) : g;
+    fn(gg, st === 'later' ? K.C.faint : col, st === 'now' ? 2.6 : 1.8);
+  }
+  // 세로 화살표 — 몸통은 K.line, 촉은 두 획
+  function vArrow(g, x, y1, y2, r, c, w) {
+    K.line(g, x, y1, x + (r() - 0.5) * 1.5, y2 - 2, r, c, w);
+    K.line(g, x, y2, x - 6, y2 - 9, r, c, Math.max(1.4, w * 0.8));
+    K.line(g, x, y2, x + 6, y2 - 9, r, c, Math.max(1.4, w * 0.8));
+  }
+
+  function draw() {
+    var g = K.fresh(document.getElementById('lines'));
+    var box = K.rel(map);
+    var i = STEPS.indexOf(picked);
+    var state = function (k) { var n = STEPS.indexOf(k); return i < 0 ? 'all' : n === i ? 'now' : n < i ? 'done' : 'later'; };
+    var narrow = flow.offsetWidth < 640;
+
+    STEPS.forEach(function (k, n) {
+      var el = document.getElementById('s' + k), b = box(el), st = state(k), c = color(k);
+      var r = K.rng(10 + n), hot = st === 'now';
+      // 화면 상자 — 지금 보는 화면은 두 겹
+      K.rect(g, b.x, b.y, b.w, b.h, r, st === 'later' ? K.C.faint : c, hot ? 2.4 : 1.5);
+      if (hot) K.rect(g, b.x + 3, b.y + 3, b.w - 6, b.h - 6, r, c, 1);
+      // 칸 · 단추 — 칸은 가는 네모, 단추는 알약처럼 두 겹
+      Array.prototype.forEach.call(el.querySelectorAll('.fld, .btn'), function (f, m) {
+        var fb = box(f), rr = K.rng(100 + n * 20 + m), isBtn = f.classList.contains('btn');
+        var fc = st === 'later' ? K.C.faint : (isBtn ? K.C.find : K.C.ink);
+        K.rect(g, fb.x, fb.y, fb.w, fb.h, rr, fc, isBtn ? 1.5 : 1);
+        if (isBtn) K.hatch(g, fb.x, fb.y, fb.w, fb.h, rr, 6, K.C.find, 0.08);
+      });
+      // 아래 화살표 — 다음 화면으로
+      if (n < STEPS.length - 1) {
+        var nb = box(document.getElementById('s' + STEPS[n + 1]));
+        inState(g, state(STEPS[n + 1]), color(STEPS[n + 1]), function (gg, cc, w) { vArrow(gg, b.cx, b.b + 3, nb.y - 3, K.rng(40 + n), cc, w); });
+      }
+      // 오른쪽 점선 — 조회 · 현황
+      var side = document.getElementById('d' + k);
+      if (side && !narrow) {
+        var sb = box(side), rs = K.rng(60 + n), sc = st === 'later' ? K.C.faint : K.C.find;
+        K.rect(g, sb.x, sb.y, sb.w, sb.h, rs, sc, 1.1, '5 4');
+        var y = Math.min(b.cy, sb.cy);
+        K.line(g, b.rt + 4, y, sb.x - 6, y, rs, sc, 1.2, '4 4');
+        K.head(g, sb.x - 4, y, 1, rs, sc, 1.2);
+      }
+    });
+
+    // 설명 공책 테두리 + 색 줄 + 카드
+    var pg = K.fresh(document.getElementById('panelLines'));
+    var pw = panel.offsetWidth, ph = panel.offsetHeight, r9 = K.rng(9);
+    K.rect(pg, 2, 2, pw - 4, ph - 4, r9, K.C.ink, 1.4);
+    K.line(pg, 13, 7, 13, ph - 7, r9, color(picked), 2.2);
+    var card = document.getElementById('card');
+    if (card) {
+      var cb = K.rel(panel)(card), rc = K.rng(19), ccol = color(picked);
+      K.rect(pg, cb.x, cb.y, cb.w, cb.h, rc, ccol, 1.4);
+      K.hatch(pg, cb.x + 1, cb.y + 1, cb.w - 2, 6, rc, 6, ccol, 0.2);
+    }
+
+    // 해 보기
+    var gg2 = K.fresh(document.getElementById('gradLines')), gb = K.rel(grad), r8 = K.rng(8);
+    K.rect(gg2, 2, 2, grad.offsetWidth - 4, grad.offsetHeight - 4, r8, K.C.ink, 1.4);
+    Array.prototype.forEach.call(grad.querySelectorAll('label'), function (lb, n) {
+      var b = gb(lb.querySelector('.bx')), r = K.rng(130 + n), on = lb.querySelector('input').checked;
+      K.rect(gg2, b.x, b.y, b.w, b.h, r, K.C.ink, 1.3);
+      if (on) K.curve(gg2, 'M' + (b.x + 4) + ' ' + (b.cy + 1) + ' L' + (b.x + 8) + ' ' + (b.b - 4) + ' L' + (b.rt - 2) + ' ' + (b.y + 2), r, K.C.find, 2.2);
+    });
+  }
+
+  var queued = false;
+  function schedule() { if (queued) return; queued = true; setTimeout(function () { queued = false; draw(); }, 40); }
+  function use(style) {
+    K = SketchKit(style);
+    document.documentElement.dataset.style = K.style;
+    Array.prototype.forEach.call(document.querySelectorAll('#pick button'), function (b) { b.classList.toggle('on', b.dataset.s === K.style); });
+    var back = document.getElementById('back'); back.href = back.getAttribute('href').split('#')[0] + '#' + K.style;
+    select(picked);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+  }
+
+  document.getElementById('pick').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-s]');
+    if (b) { use(b.dataset.s); if (history.replaceState) history.replaceState(null, '', '#' + b.dataset.s); }
+  });
+  walk.addEventListener('click', function (e) { var b = e.target.closest('button[data-k]'); if (b) select(b.dataset.k); });
+  map.addEventListener('click', function (e) { var s = e.target.closest('.spot'); if (s) select(s.dataset.k); });
+  map.addEventListener('keydown', function (e) { var s = e.target.closest('.spot'); if (s && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(s.dataset.k); } });
+  panel.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-go]');
+    if (b && b.dataset.go) { select(b.dataset.go); walk.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
+
+  var GK = 'ubo-ecount-e5';
+  var boxes = grad.querySelectorAll('input');
+  try { var saved = JSON.parse(localStorage.getItem(GK) || '{}'); Array.prototype.forEach.call(boxes, function (b) { b.checked = !!saved[b.dataset.k]; }); } catch (e) {}
+  function paintGrad() { Array.prototype.forEach.call(boxes, function (b) { b.parentNode.querySelector('span').classList.toggle('on', b.checked); }); }
+  grad.addEventListener('change', function () {
+    paintGrad();
+    try { var o = {}; Array.prototype.forEach.call(boxes, function (b) { o[b.dataset.k] = b.checked; }); localStorage.setItem(GK, JSON.stringify(o)); } catch (e) {}
+    schedule();
+  });
+  paintGrad();
+
+  function fromHash() { var h = (location.hash || '').slice(1); use(['pencil', 'textbook', 'blueprint'].indexOf(h) >= 0 ? h : 'pencil'); }
+  fromHash();
+  window.addEventListener('hashchange', fromHash);
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', schedule);
+  window.addEventListener('load', schedule);
+  window.addEventListener('resize', schedule);
+  if (window.ResizeObserver) { var ro = new ResizeObserver(schedule); ro.observe(map); ro.observe(panel); ro.observe(grad); }
+})();
+</script>
+</body>
+</html>

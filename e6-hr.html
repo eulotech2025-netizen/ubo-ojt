@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ko" data-style="pencil">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>이카운트 길잡이 E6 · 근태 · 급여 길</title>
+<!--
+  이카운트 길잡이 · E6 「출퇴근 기록에서 이체까지」 — 직원 한 사람의 한 달을 이카운트에서 누르는 순서 (근태 · 급여 길).
+  상자 = 화면, 아래로 가는 화살표 = 누르는 단추, 오른쪽 점선 = 그 화면의 조회 · 현황(고치기 · 지우기 · 보기).
+  글자는 HTML, 선은 svg.over 에 sketch-kit.js 가 자리를 재서 긋는다. 교재 쪽수는 이카운트 공식 교재(초급 재고 · 유통 / 중급 회계)에 찍힌 쪽.
+  출퇴근 · 근태 화면은 교재에 없고 메뉴 지도에만 있다 — 칸 이름은 (추정). 어느 출퇴근기록부를 쓰는지 · 결재선은 회사가 채움.
+  교재 9장의 「지금 · 이카운트」 카드가 이 길로 이어진다.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Brush+Script&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f8f4ea; --ink: #36332d; --ink-soft: #5d584e; --ink-faint: #8b8476;
+    --marker: rgba(255, 214, 64, 0.55); --find: #2f5d87; --talk: #b5523b; --db: #4f7d4a;
+    --mono: ui-monospace, 'Cascadia Mono', Consolas, 'D2Coding', monospace;
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.3  0 0 0 0 0.22  0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--paper); }
+  body { min-height: 100vh; color: var(--ink); font-family: 'Gaegu', cursive; background-color: var(--paper); background-image: var(--grain); padding: 18px 16px 28px; word-break: keep-all; overflow-wrap: anywhere; }
+  .page { max-width: 900px; margin: 0 auto; }
+  .brush { font-family: 'Nanum Brush Script', 'Gaegu', cursive; font-weight: 400; }
+  a { color: inherit; }
+  button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+  svg.over { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+  .spot { cursor: pointer; }
+  .spot:focus-visible, button:focus-visible { outline: 2px dashed var(--find); outline-offset: 2px; }
+
+  .pick { display: flex; justify-content: center; align-items: center; gap: 6px; margin-bottom: 14px; font-family: system-ui, sans-serif; }
+  .pick button { font-size: 13px; border: 1px solid #c9ced6; background: #fff; border-radius: 999px; padding: 5px 12px; }
+  .pick button.on { background: #1f2937; border-color: #1f2937; color: #fff; }
+  .pick a { font-size: 13px; color: var(--ink-soft); margin-left: 10px; text-decoration: none; }
+
+  .hero { text-align: center; }
+  .hero .kick { font-size: clamp(14px, 1.7vw, 17px); color: var(--ink-soft); letter-spacing: 0.04em; }
+  .hero h1 { font-size: clamp(34px, 6vw, 52px); line-height: 1.05; margin-top: 2px; }
+  .hero p { margin-top: 4px; font-size: clamp(15px, 1.9vw, 18px); color: var(--ink-soft); }
+
+  /* 걸음 단추 */
+  .walk { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 8px; margin-top: 12px; }
+  .walk button { font-size: 17px; line-height: 1; padding: 6px 9px 4px; border-radius: 6px; }
+  .walk button:nth-child(odd) { transform: rotate(-1.5deg); }
+  .walk button:nth-child(even) { transform: rotate(1.2deg); }
+  .walk button.on { background: var(--marker); }
+  .walk .nm { display: none; }
+  @media (min-width: 760px) { .walk .nm { display: inline; } }
+  .n { font-style: normal; font-weight: 700; }
+  .n.t { color: var(--talk); } .n.f { color: var(--find); } .n.d { color: var(--db); }
+
+  /* 화면 순서도 — 왼쪽 메뉴 경로 · 가운데 화면 · 오른쪽 조회 · 현황 */
+  .map { position: relative; margin-top: 14px; }
+  .flow { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(120px, 170px) minmax(0, 1fr) minmax(150px, 230px); column-gap: 26px; align-items: center; }
+  /* 칸 자리를 못 박는다 — .act 뒤의 .path 가 3칸으로 밀리지 않게 */
+  .path { grid-column: 1; text-align: right; font-size: clamp(12px, 1.5vw, 14px); color: var(--ink-soft); line-height: 1.25; padding-right: 4px; }
+  .path b { display: block; color: var(--ink); font-weight: 700; }
+  .scr { grid-column: 2; position: relative; padding: 12px 14px 12px; min-height: 76px; }
+  .side { grid-column: 3; }
+  .pad { grid-column: 1 / -1; }
+  .scr .nm { display: inline-block; font-size: clamp(20px, 2.8vw, 27px); line-height: 1.05; padding: 0 3px; }
+  .scr .code { margin-left: 6px; font-size: 12px; color: var(--ink-faint); font-family: var(--mono); }
+  .scr .sub { display: block; margin-top: 2px; font-size: clamp(12px, 1.6vw, 14.5px); color: var(--ink-soft); line-height: 1.25; }
+  .scr .fields { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 9px; }
+  .scr .fld { position: relative; font-size: clamp(12.5px, 1.5vw, 14px); line-height: 1; padding: 6px 8px 5px; }
+  .scr .fld.must::after { content: '*'; color: var(--talk); font-weight: 700; margin-left: 2px; }
+  .scr .btn { position: relative; font-size: clamp(12.5px, 1.5vw, 14px); font-weight: 700; line-height: 1; padding: 6px 10px 5px; color: var(--find); }
+  .scr:hover .nm, .scr:focus-visible .nm { text-decoration: underline wavy rgba(54, 51, 45, 0.35); text-underline-offset: 5px; }
+  .scr.now .nm { background: linear-gradient(transparent 52%, var(--marker) 52%, var(--marker) 94%, transparent 94%); }
+  .scr.later .nm, .scr.later .sub, .scr.later .fld, .scr.later .btn { color: var(--ink-faint); }
+  .scr.done .sub, .scr.done .fld { color: var(--ink-faint); }
+  .act { grid-column: 2; text-align: left; padding: 10px 0 10px calc(50% + 16px); font-size: clamp(12.5px, 1.6vw, 15px); color: var(--ink-soft); line-height: 1.25; min-height: 38px; }
+  .act b { color: var(--ink); }
+  .side { font-size: clamp(12px, 1.5vw, 14px); line-height: 1.3; padding: 8px 10px; color: var(--ink-soft); }
+  .side b { display: block; color: var(--ink); font-size: clamp(13.5px, 1.7vw, 16px); }
+  .side.later { opacity: 0.45; }
+  .pad { height: 6px; }
+  @media (max-width: 640px) {
+    .flow { grid-template-columns: minmax(0, 1fr); column-gap: 0; }
+    .path, .scr, .side, .act { grid-column: 1; }
+    .path { text-align: left; padding: 0 4px 2px; }
+    .side { margin: 2px 0 8px 24px; }
+  }
+
+  /* 설명 공책 */
+  .panel { position: relative; margin-top: 18px; padding: 14px 18px 14px 28px; }
+  .panel > div { position: relative; z-index: 1; }
+  .panel h3 { font-size: clamp(28px, 4vw, 36px); line-height: 1.05; }
+  .cols { display: grid; gap: 14px 26px; margin-top: 6px; }
+  @media (min-width: 760px) { .cols.two { grid-template-columns: minmax(0, 1fr) minmax(240px, 320px); align-items: start; } }
+  .one { font-size: clamp(16px, 1.9vw, 18px); line-height: 1.38; }
+  .rows { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 5px 10px; margin-top: 9px; font-size: clamp(14.5px, 1.7vw, 16.5px); line-height: 1.35; color: var(--ink-soft); }
+  .rows dt { font-weight: 700; color: var(--ink); }
+  .rows dd { margin: 0; }
+  .rows dd b { color: var(--ink); }
+  .steps { list-style: none; display: grid; gap: 4px; margin-top: 8px; }
+  .steps button { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; text-align: left; font-size: clamp(15px, 1.8vw, 17px); line-height: 1.3; padding: 2px 4px; border-radius: 4px; }
+  .steps button:hover { background: var(--marker); }
+  .steps b { white-space: nowrap; }
+  .card { position: relative; padding: 12px 14px 11px; }
+  .card .ct { display: block; font-size: 16px; font-weight: 700; color: var(--ink-soft); line-height: 1.1; margin-bottom: 7px; }
+  .card .ln { font-size: clamp(14px, 1.6vw, 15.5px); line-height: 1.4; color: var(--ink); padding-left: 14px; text-indent: -14px; }
+  .card .ln::before { content: '› '; color: var(--ink-faint); }
+  .card .cap { font-size: 14px; color: var(--ink-soft); line-height: 1.3; margin-top: 6px; }
+  .card .rep { font-size: clamp(15px, 1.8vw, 17px); line-height: 1.45; }
+  .ref { margin-top: 8px; font-size: 13px; color: var(--ink-faint); }
+  .try { font-family: 'Nanum Pen Script', cursive; font-size: 22px; line-height: 1.15; color: var(--find); margin-top: 10px; }
+  .panel .nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; }
+  .panel .nav button { font-size: 17px; line-height: 1; padding: 6px 9px 4px; border-radius: 6px; }
+  .panel .nav button[disabled] { visibility: hidden; }
+
+  .legend { margin: 16px auto 0; max-width: 800px; display: grid; gap: 4px; font-size: clamp(14px, 1.8vw, 16px); color: var(--ink-soft); text-align: center; line-height: 1.3; }
+  .legend .f { color: var(--find); font-weight: 700; } .legend .t { color: var(--talk); font-weight: 700; } .legend .d { color: var(--db); font-weight: 700; }
+
+  .grad { position: relative; margin-top: 22px; padding: 14px 18px 12px; }
+  .grad > * { position: relative; z-index: 1; }
+  .grad h3 { font-size: clamp(24px, 3.4vw, 30px); line-height: 1.05; margin-bottom: 6px; }
+  .grad label { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; font-size: clamp(15px, 1.9vw, 17px); line-height: 1.3; cursor: pointer; }
+  .grad input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .grad .bx { display: block; flex: none; width: 20px; height: 20px; margin-top: 1px; }
+  .grad .on { color: var(--ink-faint); text-decoration: line-through; text-decoration-color: rgba(54, 51, 45, 0.3); }
+  .grad .sign { margin-top: 8px; font-size: clamp(13px, 1.6vw, 15px); color: var(--ink-soft); }
+  .foot { margin-top: 14px; text-align: center; font-size: clamp(12px, 1.4vw, 13.5px); color: var(--ink-faint); line-height: 1.4; }
+
+  /* ---------- 교과서 도식 ---------- */
+  html[data-style="textbook"] { --paper: #ffffff; --ink: #1f2937; --ink-soft: #4b5563; --ink-faint: #a3aab5; --find: #1f5fae; --talk: #b8432f; --db: #2f7d4f; --marker: rgba(31, 95, 174, 0.14); }
+  html[data-style="textbook"] body { font-family: 'Noto Sans KR', system-ui, sans-serif; background: #fff; background-image: none; letter-spacing: -0.01em; }
+  html[data-style="textbook"] .brush { font-family: 'Noto Sans KR', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; }
+  html[data-style="textbook"] .hero h1 { font-size: clamp(24px, 3.6vw, 32px); }
+  html[data-style="textbook"] .hero p, html[data-style="textbook"] .hero .kick { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="textbook"] .walk button, html[data-style="textbook"] .panel .nav button { font-size: 13.5px; border-radius: 999px; border: 1px solid var(--ink-faint); padding: 5px 11px; transform: none; }
+  html[data-style="textbook"] .walk button.on { border-color: var(--find); }
+  html[data-style="textbook"] .scr .nm { font-size: clamp(15px, 2.1vw, 19px); font-weight: 800; }
+  html[data-style="textbook"] .scr .sub, html[data-style="textbook"] .path, html[data-style="textbook"] .act, html[data-style="textbook"] .side { font-size: clamp(11.5px, 1.35vw, 13px); }
+  html[data-style="textbook"] .side b { font-size: clamp(12.5px, 1.5vw, 14px); }
+  html[data-style="textbook"] .scr .fld, html[data-style="textbook"] .scr .btn { font-size: 12px; }
+  html[data-style="textbook"] .panel h3 { font-size: clamp(19px, 2.6vw, 24px); }
+  html[data-style="textbook"] .one { font-size: clamp(13.5px, 1.55vw, 15.5px); }
+  html[data-style="textbook"] .rows, html[data-style="textbook"] .steps button, html[data-style="textbook"] .card .rep { font-size: clamp(12.5px, 1.45vw, 14px); }
+  html[data-style="textbook"] .card .ln { font-size: clamp(12px, 1.35vw, 13.5px); }
+  html[data-style="textbook"] .card .cap, html[data-style="textbook"] .card .ct { font-size: 12.5px; }
+  html[data-style="textbook"] .try { font-family: inherit; font-size: clamp(12.5px, 1.45vw, 14px); font-weight: 700; }
+  html[data-style="textbook"] .legend { font-size: clamp(12px, 1.5vw, 13.5px); }
+  html[data-style="textbook"] .grad h3 { font-size: clamp(17px, 2.4vw, 21px); }
+  html[data-style="textbook"] .grad label { font-size: clamp(12.5px, 1.55vw, 14.5px); }
+
+  /* ---------- 설계 도면 ---------- */
+  html[data-style="blueprint"] { --paper: #f6f8fb; --ink: #16365c; --ink-soft: #3d5878; --ink-faint: #9db0c6; --find: #1d6fb8; --talk: #c23b2e; --db: #2b7a5a; --marker: rgba(29, 111, 184, 0.13); --mono: 'IBM Plex Mono', 'IBM Plex Sans KR', ui-monospace, Consolas, monospace; }
+  html[data-style="blueprint"] body { font-family: 'IBM Plex Sans KR', system-ui, sans-serif; background-color: var(--paper);
+    background-image: linear-gradient(rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(rgba(29, 111, 184, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.045) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px; }
+  html[data-style="blueprint"] .page { border: 1.5px solid var(--ink); outline: 1px solid var(--ink); outline-offset: 5px; padding: 16px; background: rgba(246, 248, 251, 0.6); }
+  html[data-style="blueprint"] .brush { font-family: 'IBM Plex Sans KR', sans-serif; font-weight: 700; letter-spacing: 0.01em; }
+  html[data-style="blueprint"] .hero .kick::before { content: 'FIG. E6  '; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.2em; color: var(--ink-soft); }
+  html[data-style="blueprint"] .hero h1 { font-size: clamp(22px, 3.4vw, 30px); }
+  html[data-style="blueprint"] .hero p, html[data-style="blueprint"] .hero .kick { font-size: clamp(13px, 1.45vw, 14.5px); }
+  html[data-style="blueprint"] .walk button, html[data-style="blueprint"] .panel .nav button { font-size: 13px; border-radius: 0; border: 1px solid var(--ink-faint); padding: 5px 10px; letter-spacing: 0.02em; transform: none; }
+  html[data-style="blueprint"] .walk button.on { background: none; border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  html[data-style="blueprint"] .scr .nm { font-size: clamp(14px, 2vw, 18px); font-weight: 700; }
+  html[data-style="blueprint"] .scr.now .nm { background: none; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  html[data-style="blueprint"] .scr .sub, html[data-style="blueprint"] .path, html[data-style="blueprint"] .act, html[data-style="blueprint"] .side { font-size: clamp(11px, 1.3vw, 12.5px); }
+  html[data-style="blueprint"] .side b { font-size: clamp(12px, 1.45vw, 13.5px); }
+  html[data-style="blueprint"] .scr .fld, html[data-style="blueprint"] .scr .btn { font-size: 11.5px; }
+  html[data-style="blueprint"] .panel h3 { font-size: clamp(17px, 2.4vw, 22px); }
+  html[data-style="blueprint"] .one { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="blueprint"] .rows, html[data-style="blueprint"] .steps button, html[data-style="blueprint"] .card .rep { font-size: clamp(12px, 1.4vw, 13.5px); }
+  html[data-style="blueprint"] .card .ln { font-size: clamp(11.5px, 1.3vw, 13px); }
+  html[data-style="blueprint"] .card .cap, html[data-style="blueprint"] .card .ct { font-size: 12px; }
+  html[data-style="blueprint"] .try { font-family: inherit; font-size: clamp(12px, 1.4vw, 13.5px); font-weight: 600; }
+  html[data-style="blueprint"] .legend { font-size: clamp(11.5px, 1.4vw, 13px); }
+  html[data-style="blueprint"] .grad h3 { font-size: clamp(16px, 2.2vw, 19px); }
+  html[data-style="blueprint"] .grad label { font-size: clamp(12px, 1.5vw, 14px); }
+
+  @media print { .pick, .panel .nav { display: none !important; } body { padding: 0; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="pick" id="pick">
+    <button type="button" data-s="pencil">연필 손그림</button>
+    <button type="button" data-s="textbook">교과서 도식</button>
+    <button type="button" data-s="blueprint">설계 도면</button>
+    <a href="ecount.html" id="back">← 길잡이 목차</a>
+  </div>
+
+  <header class="hero">
+    <div class="kick">이카운트 길잡이 · E6 · 근태 · 급여 길 (교재 9장의 「지금 · 이카운트」)</div>
+    <h1 class="brush">출퇴근 기록에서 이체까지</h1>
+    <p>직원 한 사람의 한 달을 이카운트에 넣는 순서 — 출퇴근 · 근태 · 결재 · 급여 · 이체 · 신고. 상자 = 화면, 아래 화살표 = 누르는 단추, 오른쪽 점선 = 그 화면의 조회 · 현황.</p>
+  </header>
+
+  <nav class="walk" id="walk" aria-label="걸음 고르기">
+    <button type="button" data-k="all">전체</button>
+    <button type="button" data-k="1"><span class="n d">①</span><span class="nm"> 출/퇴근 기록</span></button>
+    <button type="button" data-k="2"><span class="n d">②</span><span class="nm"> 근태입력 · 휴가</span></button>
+    <button type="button" data-k="3"><span class="n t">③</span><span class="nm"> 전자결재</span></button>
+    <button type="button" data-k="4"><span class="n d">④</span><span class="nm"> 근무확정 · 급여대장</span></button>
+    <button type="button" data-k="5"><span class="n t">⑤</span><span class="nm"> 급여이체 · 급여전표</span></button>
+    <button type="button" data-k="6"><span class="n t">⑥</span><span class="nm"> 4대보험 · 원천세</span></button>
+  </nav>
+
+  <section class="map" id="map">
+    <svg class="over" id="lines" aria-hidden="true"></svg>
+    <div class="flow" id="flow">
+      <div class="path"><b>그룹웨어 › 업무 · 출퇴근</b>› 출/퇴근 › 출/퇴근기록부(ID)<b>관리 › 근태관리</b>› 출/퇴근(사원) › 출/퇴근기록부(사원)</div>
+      <div class="scr spot" id="s1" data-k="1" tabindex="0" role="button"><span class="nm brush">출/퇴근 기록</span><span class="code">E070305 · E020726</span><span class="sub">하루 두 번. 같은 화면이 (ID) · (사원) 두 벌 — 어느 쪽에 찍는지는 회사가 채움</span>
+        <div class="fields"><span class="btn">출근</span><span class="btn">퇴근</span><span class="fld must">일자</span><span class="fld must">사원</span><span class="fld">출근시간</span><span class="fld">퇴근시간</span><span class="fld">비고</span></div></div>
+      <div class="side" id="d1"><b>출/퇴근현황 · 지각현황 · 일별근무시간</b>(ID) E070306 · E070307 · E070309 / (사원) E020722 · E020723 · E020728 — 누가 몇 시에, 늦었나, 하루 몇 시간</div>
+
+      <div class="act" id="a1">찍은 기록은 그대로 두고 → <b>쉬거나 · 나갔거나 · 늦은 날은 근태입력</b>에 적는다</div>
+
+      <div class="path"><b>관리 › 근태관리</b>› 근태 › 근태입력</div>
+      <div class="scr spot" id="s2" data-k="2" tabindex="0" role="button"><span class="nm brush">근태입력 · 휴가</span><span class="code">E020710</span><span class="sub">쉬거나 · 나갔거나 · 늦은 날. 근태항목 · 휴가항목은 설정에서 미리 등록돼 있다</span>
+        <div class="fields"><span class="fld must">일자</span><span class="fld must">사원</span><span class="fld must">근태항목</span><span class="fld">시작시간 · 종료시간</span><span class="fld">사유</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d2"><b>근태조회 · 근태현황 · 휴가잔여일수현황</b>E020711 · E020715 · E020716 · 휴가사용실적현황 E020719. 고치기 · 지우기는 근태조회, 남은 휴가는 잔여일수</div>
+
+      <div class="act" id="a2">윗사람 확인이 필요한 휴가 · 경비 · 발주는 → <b>전자결재로 기안을 올린다</b> (결재선은 회사가 채움)</div>
+
+      <div class="path"><b>그룹웨어 › 전자결재</b>› 기안 상신 — 전표를 붙일 땐 그 조회 화면 하단 [전자결재]</div>
+      <div class="scr spot" id="s3" data-k="3" tabindex="0" role="button"><span class="nm brush">전자결재</span><span class="sub">윗사람 확인이 필요한 일. 결재가 끝나기 전까지 붙인 전표는 수정 · 삭제 · 인쇄 · 외부전송이 막힌다</span>
+        <div class="fields"><span class="btn">전표 선택 (조회 화면)</span><span class="btn">전자결재</span><span class="fld must">기안 양식</span><span class="fld">첨부 전표</span><span class="fld must">결재자</span><span class="btn">상신</span><span class="btn">결재완료 (결재자)</span></div></div>
+      <div class="side" id="d3"><b>[결재중] 탭 · 결재 문서함</b>조회 화면(발주서조회 · 구매조회 …)의 [결재중] 탭에 결재 전 전표가 남는다. 문서함 이름은 회사 계정에서 (추정)</div>
+
+      <div class="act" id="a3">달이 바뀌면 → <b>급여 담당이 근무를 확정하고 급여대장</b>을 만든다</div>
+
+      <div class="path"><b>관리 › 급여관리</b>› 급여작업 › 근무확정현황 → 급여계산/대장</div>
+      <div class="scr spot" id="s4" data-k="4" tabindex="0" role="button"><span class="nm brush">근무확정 · 급여대장</span><span class="code">E090116 · E090106</span><span class="sub">한 달에 한 번. 근태를 확정하고 [신규] › 이번 달 › [전체계산] — 사원마다 수당 · 공제가 계산된다</span>
+        <div class="fields"><span class="btn">근무확정</span><span class="btn">신규</span><span class="fld must">귀속연월 (이번 달)</span><span class="fld">급여지급일</span><span class="fld">수당항목 · 공제항목</span><span class="btn">전체계산</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d4"><b>사원별급여조회 · 급여현황</b>E090110 · E090115 — 한 사람 명세 · 전체 합계. 고치기는 급여계산/대장에서 다시 [전체계산] (추정)</div>
+
+      <div class="act" id="a4">대장이 확정되면 → <b>은행에는 급여이체, 장부에는 급여전표</b> — 둘 다 급여대장을 불러온다</div>
+
+      <div class="path"><b>회계Ⅰ › 계좌/카드</b>› 이체관리 › 급여이체<b>회계Ⅰ › FastEntry</b>› 일반전표 › [전표불러오기] › [급여전표]</div>
+      <div class="scr spot" id="s5" data-k="5" tabindex="0" role="button"><span class="nm brush">급여이체 · 급여전표</span><span class="sub">확정된 급여대장 하나로 둘 — 은행으로 보내는 이체, 장부에 적는 급여전표(전표일자 = 급여지급일)</span>
+        <div class="fields"><span class="btn">급여대장 불러오기</span><span class="fld must">이체 통장 (계좌등록 › 이체정보)</span><span class="fld must">급여통장 (사원등록)</span><span class="btn">인터넷뱅킹 일괄 전송</span><span class="fld must">전표일자 = 급여지급일</span><span class="fld must">분개설정 (미지급금 / 보통예금)</span><span class="fld must">귀속연월</span><span class="btn">저장</span></div></div>
+      <div class="side" id="d5"><b>급여이체현황 · 회계거래조회</b>E090117 — 보냈나 확인. 급여전표의 고치기 · 지우기는 회계Ⅰ › 회계거래관리 › 회계거래조회</div>
+
+      <div class="act" id="a5">급여를 준 뒤 → <b>공단 · 국세청에 신고</b>하고, 낸 돈은 지출결의서로 적는다</div>
+
+      <div class="path"><b>관리 › 급여관리</b>› 4대보험신고<b>세무</b>› 원천징수 (과장님 목록 · 교재 밖)</div>
+      <div class="scr spot" id="s6" data-k="6" tabindex="0" role="button"><span class="nm brush">4대보험 · 원천세</span><span class="code">N001768</span><span class="sub">공단 · 국세청으로 나가는 신고. 납부는 지출결의서 — 직원 부담 「예수금」, 회사 부담 「복리후생비」</span>
+        <div class="fields"><span class="fld">4대보험신고</span><span class="fld">취득신고 (입사)</span><span class="fld">상실신고 (퇴사)</span><span class="fld">피부양자</span><span class="fld">원천징수 (세무 · 교재 밖)</span><span class="btn">지출결의서 › 예수금</span><span class="btn">지출결의서 › 복리후생비</span></div></div>
+      <div class="side" id="d6"><b>경리 · 세무사에게</b>신고 자료는 여기서. 돈 나가는 쪽은 E3 ④ 지출결의서, 장부는 E4 세금 · 장부 길</div>
+      <div class="pad"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel" aria-live="polite">
+    <svg class="over" id="panelLines" aria-hidden="true"></svg>
+    <div id="panelBody"></div>
+  </section>
+
+  <footer class="legend">
+    <div><span class="d">초록</span> = 저장하면 근태 · 급여 · 장부가 바뀌는 화면 · <span class="t">붉은 갈색</span> = 바깥으로 보내기(결재 · 은행 · 공단 · 국세청) · <span class="f">파랑</span> = 보기 · 확인(오른쪽 점선)</div>
+    <div>칸 뒤의 <span class="t">*</span> = 꼭 넣는 칸 (추정 — 회사 계정의 필수 칸 설정은 확인 전)</div>
+  </footer>
+
+  <section class="grad" id="grad">
+    <svg class="over" id="gradLines" aria-hidden="true"></svg>
+    <h3 class="brush">해 보기 · E6 졸업</h3>
+    <label><input type="checkbox" data-k="g1"><i class="bx"></i><span>내가 출퇴근을 찍는 화면이 (ID) 인지 (사원) 인지 말했다 — 회사가 채움</span></label>
+    <label><input type="checkbox" data-k="g2"><i class="bx"></i><span>연습 사원으로 휴가 1건을 근태입력하고 휴가잔여일수현황에서 찾았다</span></label>
+    <label><input type="checkbox" data-k="g3"><i class="bx"></i><span>연습 양식으로 기안 1건을 상신하고 결재완료까지 봤다 — 결재 중엔 전표를 못 고친다는 것 확인</span></label>
+    <label><input type="checkbox" data-k="g4"><i class="bx"></i><span>급여계산/대장의 수당 · 공제 항목 이름 셋을 말했다 (열어 보기만)</span></label>
+    <p class="sign">옆에서 본 선배 ____________ · 날짜 ____________</p>
+  </section>
+
+  <p class="foot">연습은 회사가 정한 연습 사원 · 연습 양식으로만 (실제 직원의 근태 · 급여에 넣지 않는다 · 이체 · 신고는 연습으로 보내지 않는다) · 주소는 회사 안에서만 나눈다 · 교재 = 이카운트 공식 교재(초급 재고 · 유통 / 중급 회계)</p>
+</div>
+
+<script src="sketch-kit.js"></script>
+<script>
+(function () {
+  'use strict';
+  var STEPS = ['1', '2', '3', '4', '5', '6'];
+  var NUM = { 1: '①', 2: '②', 3: '③', 4: '④', 5: '⑤', 6: '⑥' };
+  var NAME = { 1: '출/퇴근 기록', 2: '근태입력 · 휴가', 3: '전자결재', 4: '근무확정 · 급여대장', 5: '급여이체 · 급여전표', 6: '4대보험 · 원천세' };
+  var KIND = { 1: 'db', 2: 'db', 3: 'talk', 4: 'db', 5: 'talk', 6: 'talk' };
+
+  // 설명 — one 한 줄 · rows [이름표, 내용] · card 「틀렸을 때」 · ref 교재 쪽
+  var INFO = {
+    all: { title: '출퇴근 기록에서 이체까지',
+      one: '직원 한 사람의 한 달을 따라간다 — 매일 출퇴근, 쉬는 날 근태, 결재, 월말 급여대장, 은행 이체와 장부, 신고. 저장할 때마다 바뀌는 것은 근태 → 급여 → 돈 · 장부 순이다.',
+      list: { 1: '매일 출근 · 퇴근을 찍는다 — 화면이 두 벌', 2: '쉬거나 늦은 날은 근태입력, 남은 휴가는 현황에서', 3: '결재가 필요한 일은 기안 상신 — 결재 중 전표는 못 고친다', 4: '달이 바뀌면 근무확정 → 급여계산/대장 [전체계산]', 5: '급여대장으로 은행 이체, 같은 대장으로 급여전표', 6: '4대보험 · 원천세 신고, 납부는 지출결의서(예수금 · 복리후생비)' },
+      card: { t: '한 줄로', html: '<p class="rep"><b>급여대장</b>이 가운데다 — 출퇴근 · 근태가 대장으로 모이고, 대장 하나에서 이체 · 전표 · 신고가 갈라진다. 대장 뒤에 근태를 고치면 셋 다 다시 본다 (추정).</p>' } },
+    1: { title: '① 출/퇴근 기록',
+      one: '하루 두 번, 출근과 퇴근을 찍는다. 이카운트에는 같은 화면이 두 벌 — 그룹웨어의 (ID) 기준과 관리 › 근태관리의 (사원) 기준. 어느 쪽에 찍는지는 회사가 채움.',
+      rows: [['경로', '그룹웨어 › 업무 · 출퇴근 › 출/퇴근 › 출/퇴근기록부(ID) E070305 / 관리 › 근태관리 › 출/퇴근(사원) › 출/퇴근기록부(사원) E020726'], ['넣는 칸', '[출근] · [퇴근] 단추 — 시간은 찍는 순간 들어간다 (추정, 교재에 없다). 늦게 찍었으면 일자 · 사원 · 시간을 고친다'], ['설정', '출/퇴근반영기준 E020725 — 몇 시부터 지각인지 · 하루 근무시간. 회사가 한 번 정한다'], ['저장 뒤', '출/퇴근현황 · 지각현황 · 일별근무시간에 바로 보인다. 급여의 근무확정현황(E090116)으로 이어지는지는 확인 전'], ['조심', '두 곳에 찍으면 기록이 두 벌 — 하나만 쓴다 · 다른 사람 ID 로 찍지 않는다 · 지금 카카오워크나 종이로 찍고 있다면 이카운트 기록은 비어 있다 (추정)']],
+      card: { t: '틀렸을 때', lines: ['잘못 찍은 시간: 출/퇴근기록부에서 그 날을 열어 고친다 — 고칠 권한이 관리자에게만 있을 수 있다 (추정)', '아예 못 찍은 날: 근태입력(②)에 사유를 적는다'], cap: '찍은 기록은 급여의 근거다 — 지우지 않고 고친다' },
+      ref: '메뉴 지도 (그룹웨어 › 업무 · 출퇴근 · 관리 › 근태관리) — 교재에 없다' },
+    2: { title: '② 근태입력 · 휴가',
+      one: '쉬는 날 · 외근 · 지각 · 조퇴를 적는 화면. 근태항목과 휴가항목은 설정에서 미리 등록돼 있고, 여기서는 고르기만 한다.',
+      rows: [['경로', '관리 › 근태관리 › 근태 › 근태입력 E020710'], ['넣는 칸', '일자 · 사원 · 근태항목(휴가 · 외근 · 지각 · 조퇴 …) · 시간 · 사유 (추정 — 칸 이름은 회사 계정에서 확인)'], ['설정', '근태항목등록 E020701 · 휴가항목등록 E020702 · 사원별휴가일수조회 E020703(한 해 며칠). 외근은 그룹웨어 › 외근조회 E070254 가 따로 있다'], ['저장 뒤', '근태조회 · 근태현황에 보이고, 휴가면 휴가잔여일수현황 E020716 의 남은 날이 준다 (추정)'], ['조심', '승인 전에 쉬고 나중에 적으면 결재와 근태가 어긋난다 · 휴가 종류(연차 · 반차 · 병가)를 잘못 고르면 남은 날이 틀린다 · 외근을 근태입력과 외근조회 두 곳에 적지 않는다 (추정)']],
+      card: { t: '틀렸을 때', lines: ['고치기 · 지우기: 근태조회 E020711 에서 그 줄을 열어 [수정] · [삭제]', '급여대장을 만든 뒤 고쳤으면 ④ 에서 다시 [전체계산] (추정)'], cap: '근태는 급여의 재료 — 월말 전에 맞춘다' },
+      ref: '메뉴 지도 (관리 › 근태관리) — 교재에 없다',
+      tryit: '연습 사원으로 휴가 1건을 근태입력 → 휴가잔여일수현황에서 찾기' },
+    3: { title: '③ 전자결재',
+      one: '휴가 · 경비 · 발주처럼 윗사람 확인이 필요한 일은 기안을 올린다. 전표(견적 · 주문 · 발주서 · 구매)를 붙일 수 있고, 결재가 끝나기 전까지 그 전표는 못 고친다.',
+      rows: [['경로', '그룹웨어 › 전자결재 › 기안 상신. 전표를 붙일 때는 그 조회 화면(발주서조회 · 구매조회 …)에서 전표 선택 › 하단 [전자결재]'], ['순서', '기안 양식 고르기 → 전표가 결재문서로 붙은 것 확인 → 결재자 지정 → [상신] → 결재자들이 [결재완료] → 최종결재가 끝나면 실제 진행'], ['결재선', '누가 1차 · 최종인지 — 회사가 채움. 지금 카카오워크로 결재한다면 이카운트 결재함은 비어 있다 (추정)'], ['경비', '직원이 쓴 돈은 회계Ⅰ › FastEntry › 가지급금정산서 — 회사 돈을 받아 썼으면 지출결의서 → 가지급금정산서, 내 돈을 먼저 썼으면 가지급금정산서 → 지출결의서'], ['조심', '결재 중 전표는 수정 · 삭제 · 인쇄 · 외부전송이 전부 막힌다 — 급한 발주는 결재 끝난 뒤 · 결재자를 빠뜨리면 상신이 안 된다 (추정)']],
+      card: { t: '틀렸을 때', lines: ['결재 전: 기안을 회수(또는 삭제)하고 다시 올린다 — 단추 이름은 회사 계정에서 확인 (추정)', '결재 뒤: 붙인 전표를 조회 화면에서 고친다 — 결재 기록은 남는다 (추정)'], cap: '결재 전 전표는 조회 메뉴의 [결재중] 탭에 있다' },
+      ref: '교재 초급 p.22~23 (발주/구매 전 기안 상신) · 교재 회계 p.19 (가지급금정산서)',
+      tryit: '연습 양식으로 기안 1건 상신 → 선배가 [결재완료] 누르는 것까지 보기' },
+    4: { title: '④ 근무확정 · 급여대장',
+      one: '한 달에 한 번. 근태를 확정하고 급여계산/대장에서 [신규] › 이번 달 › [전체계산] 을 누르면 사원마다 수당 · 공제가 계산된 대장이 생긴다.',
+      rows: [['경로', '관리 › 급여관리 › 급여작업 › 근무확정현황 E090116 → 급여계산/대장 E090106 › 하단 [신규] › 이번 달 › [전체계산]'], ['설정', '사원등록 E090101(급여통장) · 수당항목등록 E090103 · 공제항목등록 E090114 · 수당/공제그룹등록 E090104 — 급여 담당이 한 번 맞춘다'], ['저장 뒤', '사원별급여조회 E090110(한 사람 명세) · 급여현황 E090115(전체). 이 대장이 ⑤ 이체와 급여전표의 재료다'], ['조심', '[전체계산] 뒤에 근태를 고치면 다시 계산한다 (추정) · 급여 장부는 업체(계정)마다 따로 — 소속 업체 계정에서 만든다 (추정) · 실제 직원 대장은 연습으로 만들지 않는다']],
+      card: { t: '틀렸을 때', lines: ['수당 · 공제 금액이 다르면 항목 설정을 고치고 다시 [전체계산]', '잘못 만든 대장은 급여계산/대장에서 지운다 — 이미 이체 · 전표를 만들었으면 그것부터 되돌린다 (추정)'], cap: '대장을 고치면 ⑤ 이체 · 전표 · ⑥ 신고 금액이 다 달라진다' },
+      ref: '교재 회계 p.20 (실습-4 급여대장의 작성) · 메뉴 지도 (관리 › 급여관리)',
+      tryit: '급여계산/대장을 열어 보기만 — 수당 · 공제 항목 이름 셋 적기 ([전체계산] 은 안 누른다)' },
+    5: { title: '⑤ 급여이체 · 급여전표',
+      one: '확정된 급여대장 하나로 두 가지 — 은행에 보내는 급여이체, 장부에 적는 급여전표. 급여전표는 일반전표에서 [전표불러오기] › [급여전표] › 귀속연월을 고르면 자동으로 나뉜다(자동분개).',
+      rows: [['이체', '회계Ⅰ › 계좌/카드 › 이체관리 › 급여이체 — 급여대장 내역을 인터넷뱅킹으로 일괄 전송. 기초세팅: 이체기본정보등록 · 계좌등록의 은행통장별 [이체정보] · 사원등록의 급여통장'], ['전표', '회계Ⅰ › FastEntry › 일반전표 › [전표불러오기] › [급여전표] › 귀속연월 — 전표일자는 급여지급일, [분개설정]은 미지급금 또는 보통예금'], ['분개', '아직 안 줬으면 실지급액을 「미지급금」으로, 줬으면 「보통예금」에 거래처 칸에 통장계좌를 넣고 저장'], ['저장 뒤', '급여이체현황 E090117 에서 보냈나 확인. 전표는 회계거래조회에서 고치기 · 지우기'], ['조심', '이체는 은행으로 바로 간다 — 연습으로 보내지 않는다 · 급여통장이 빈 사원은 이체 줄에서 빠진다 (추정) · 전표일자를 귀속월로 치면 장부 달이 어긋난다']],
+      card: { t: '틀렸을 때', lines: ['이체 전: 급여이체 화면에서 그 줄을 빼고 다시 보낸다 (추정)', '이체 뒤: 은행에서는 못 되돌린다 — 다음 달 급여에서 맞춘다 (추정)', '전표: 회계거래조회에서 [수정] · [삭제], 편집제한일자 이전은 못 고친다'], cap: '서비스 은행이 정해져 있다 — 회사 통장의 은행이 되는지 먼저 본다' },
+      ref: '교재 회계 p.19 (급여전표 작성순서) · p.24 (이체관리)' },
+    6: { title: '⑥ 4대보험 · 원천세',
+      one: '급여를 준 뒤 공단과 국세청에 신고하고, 낸 돈은 지출결의서로 적는다. 직원 부담분은 「예수금」, 회사 부담분은 「복리후생비」 — 계정 둘만 기억하면 된다.',
+      rows: [['경로', '관리 › 급여관리 › 4대보험신고 N001768 · 4대보험취득신고입력 N001769(입사) · 4대보험상실신고입력 N001770(퇴사) · 피부양자자격신고입력 N001771'], ['원천세', '세무 › 원천징수 — 과장님 목록에 있고 교재에는 없다 (추정). 소득세 · 주민세를 국세청에 신고'], ['납부', '회계Ⅰ › FastEntry › 지출결의서 — 소득세 · 주민세와 4대보험 직원 부담금은 「예수금」, 4대보험 회사 부담금은 「복리후생비」'], ['조심', '신고는 바깥으로 나간다 — 연습으로 보내지 않는다 · 입사 · 퇴사 때 취득 · 상실 신고를 빠뜨리면 다음 달 보험료가 어긋난다 (추정) · 업체(계정)마다 따로 신고한다 (추정)']],
+      card: { t: '나중 · UBO ONE', lines: ['폰으로 출퇴근을 찍고 휴가를 신청하고 승인한다 (TIM-01 · TIM-02 · TIM-04)', '급여는 근태에서 바로 — 두 벌 기록이 없다 (LDG-10)', '알림센터가 되면 카카오워크를 끊는다 (TIM-06)'], cap: '이 길 전체가 교재 9장의 「지금 · 이카운트」 카드다' },
+      ref: '교재 회계 p.20 (급여지급 이후 후속처리사항) · 메뉴 지도 (관리 › 급여관리 · 과장님 목록)' }
+  };
+
+  var K;
+  var map = document.getElementById('map');
+  var flow = document.getElementById('flow');
+  var walk = document.getElementById('walk');
+  var panel = document.getElementById('panel');
+  var panelBody = document.getElementById('panelBody');
+  var grad = document.getElementById('grad');
+  var scrs = Array.prototype.slice.call(map.querySelectorAll('.scr'));
+  var picked = 'all';
+  var esc = function (s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var label = function (k) { return k === 'all' ? '전체' : NUM[k] + ' ' + NAME[k]; };
+  var color = function (k) { var c = k === 'all' ? 'ink' : KIND[k]; return c === 'ink' ? K.C.ink : K.C[c]; };
+
+  function select(k) {
+    picked = k;
+    var i = STEPS.indexOf(k);
+    scrs.forEach(function (el) {
+      var n = STEPS.indexOf(el.dataset.k);
+      el.classList.toggle('now', i >= 0 && n === i);
+      el.classList.toggle('done', i >= 0 && n < i);
+      el.classList.toggle('later', i >= 0 && n > i);
+      el.setAttribute('aria-pressed', String(n === i));
+      var side = document.getElementById('d' + el.dataset.k);
+      if (side) side.classList.toggle('later', i >= 0 && n > i);
+    });
+    Array.prototype.forEach.call(walk.querySelectorAll('button'), function (b) {
+      b.classList.toggle('on', b.dataset.k === k);
+      b.setAttribute('aria-pressed', String(b.dataset.k === k));
+    });
+    var info = INFO[k], col = color(k);
+    var h = '<h3 class="brush" style="color:' + col + '">' + info.title + '</h3>';
+    h += '<div class="cols' + (info.card ? ' two' : '') + '"><div>';
+    h += '<p class="one">' + info.one + '</p>';
+    if (info.rows) h += '<dl class="rows">' + info.rows.map(function (r) { return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join('') + '</dl>';
+    if (info.list) {
+      h += '<ul class="steps">' + STEPS.map(function (s) {
+        return '<li><button type="button" data-go="' + s + '"><b style="color:' + color(s) + '">' + NUM[s] + ' ' + NAME[s] + '</b>' + info.list[s] + '</button></li>';
+      }).join('') + '</ul>';
+    }
+    if (info.tryit) h += '<p class="try">해 보기: ' + info.tryit + '</p>';
+    if (info.ref) h += '<p class="ref">' + info.ref + '</p>';
+    h += '</div>';
+    var prev = i < 0 ? null : (i === 0 ? 'all' : STEPS[i - 1]);
+    var next = i < 0 ? '1' : (i === STEPS.length - 1 ? 'all' : STEPS[i + 1]);
+    var nav = '<div class="nav"><button type="button" data-go="' + (prev || '') + '"' + (prev ? '' : ' disabled') + '>← ' + (prev ? label(prev) : '') + '</button>' +
+      '<button type="button" data-go="' + next + '">' + (i < 0 ? '① 출/퇴근 기록부터' : label(next)) + ' →</button></div>';
+    if (info.card) {
+      var body = info.card.html || '';
+      if (info.card.lines) body += info.card.lines.map(function (l) { return '<div class="ln">' + esc(l) + '</div>'; }).join('');
+      if (info.card.cap) body += '<p class="cap">' + info.card.cap + '</p>';
+      h += '<div><div class="card" id="card"><span class="ct">' + info.card.t + '</span>' + body + '</div>' + nav + '</div></div>';
+    } else {
+      h += '</div>' + nav;
+    }
+    panelBody.innerHTML = h;
+    schedule();
+  }
+
+  function inState(g, st, col, fn) {
+    var gg = st === 'done' ? K.el(g, 'g', { opacity: 0.5 }) : g;
+    fn(gg, st === 'later' ? K.C.faint : col, st === 'now' ? 2.6 : 1.8);
+  }
+  // 세로 화살표 — 몸통은 K.line, 촉은 두 획
+  function vArrow(g, x, y1, y2, r, c, w) {
+    K.line(g, x, y1, x + (r() - 0.5) * 1.5, y2 - 2, r, c, w);
+    K.line(g, x, y2, x - 6, y2 - 9, r, c, Math.max(1.4, w * 0.8));
+    K.line(g, x, y2, x + 6, y2 - 9, r, c, Math.max(1.4, w * 0.8));
+  }
+
+  function draw() {
+    var g = K.fresh(document.getElementById('lines'));
+    var box = K.rel(map);
+    var i = STEPS.indexOf(picked);
+    var state = function (k) { var n = STEPS.indexOf(k); return i < 0 ? 'all' : n === i ? 'now' : n < i ? 'done' : 'later'; };
+    var narrow = flow.offsetWidth < 640;
+
+    STEPS.forEach(function (k, n) {
+      var el = document.getElementById('s' + k), b = box(el), st = state(k), c = color(k);
+      var r = K.rng(10 + n), hot = st === 'now';
+      // 화면 상자 — 지금 보는 화면은 두 겹
+      K.rect(g, b.x, b.y, b.w, b.h, r, st === 'later' ? K.C.faint : c, hot ? 2.4 : 1.5);
+      if (hot) K.rect(g, b.x + 3, b.y + 3, b.w - 6, b.h - 6, r, c, 1);
+      // 칸 · 단추 — 칸은 가는 네모, 단추는 알약처럼 두 겹
+      Array.prototype.forEach.call(el.querySelectorAll('.fld, .btn'), function (f, m) {
+        var fb = box(f), rr = K.rng(100 + n * 20 + m), isBtn = f.classList.contains('btn');
+        var fc = st === 'later' ? K.C.faint : (isBtn ? K.C.find : K.C.ink);
+        K.rect(g, fb.x, fb.y, fb.w, fb.h, rr, fc, isBtn ? 1.5 : 1);
+        if (isBtn) K.hatch(g, fb.x, fb.y, fb.w, fb.h, rr, 6, K.C.find, 0.08);
+      });
+      // 아래 화살표 — 다음 화면으로
+      if (n < STEPS.length - 1) {
+        var nb = box(document.getElementById('s' + STEPS[n + 1]));
+        inState(g, state(STEPS[n + 1]), color(STEPS[n + 1]), function (gg, cc, w) { vArrow(gg, b.cx, b.b + 3, nb.y - 3, K.rng(40 + n), cc, w); });
+      }
+      // 오른쪽 점선 — 조회 · 현황
+      var side = document.getElementById('d' + k);
+      if (side && !narrow) {
+        var sb = box(side), rs = K.rng(60 + n), sc = st === 'later' ? K.C.faint : K.C.find;
+        K.rect(g, sb.x, sb.y, sb.w, sb.h, rs, sc, 1.1, '5 4');
+        var y = Math.min(b.cy, sb.cy);
+        K.line(g, b.rt + 4, y, sb.x - 6, y, rs, sc, 1.2, '4 4');
+        K.head(g, sb.x - 4, y, 1, rs, sc, 1.2);
+      }
+    });
+
+    // 설명 공책 테두리 + 색 줄 + 카드
+    var pg = K.fresh(document.getElementById('panelLines'));
+    var pw = panel.offsetWidth, ph = panel.offsetHeight, r9 = K.rng(9);
+    K.rect(pg, 2, 2, pw - 4, ph - 4, r9, K.C.ink, 1.4);
+    K.line(pg, 13, 7, 13, ph - 7, r9, color(picked), 2.2);
+    var card = document.getElementById('card');
+    if (card) {
+      var cb = K.rel(panel)(card), rc = K.rng(19), ccol = color(picked);
+      K.rect(pg, cb.x, cb.y, cb.w, cb.h, rc, ccol, 1.4);
+      K.hatch(pg, cb.x + 1, cb.y + 1, cb.w - 2, 6, rc, 6, ccol, 0.2);
+    }
+
+    // 해 보기
+    var gg2 = K.fresh(document.getElementById('gradLines')), gb = K.rel(grad), r8 = K.rng(8);
+    K.rect(gg2, 2, 2, grad.offsetWidth - 4, grad.offsetHeight - 4, r8, K.C.ink, 1.4);
+    Array.prototype.forEach.call(grad.querySelectorAll('label'), function (lb, n) {
+      var b = gb(lb.querySelector('.bx')), r = K.rng(130 + n), on = lb.querySelector('input').checked;
+      K.rect(gg2, b.x, b.y, b.w, b.h, r, K.C.ink, 1.3);
+      if (on) K.curve(gg2, 'M' + (b.x + 4) + ' ' + (b.cy + 1) + ' L' + (b.x + 8) + ' ' + (b.b - 4) + ' L' + (b.rt - 2) + ' ' + (b.y + 2), r, K.C.find, 2.2);
+    });
+  }
+
+  var queued = false;
+  function schedule() { if (queued) return; queued = true; setTimeout(function () { queued = false; draw(); }, 40); }
+  function use(style) {
+    K = SketchKit(style);
+    document.documentElement.dataset.style = K.style;
+    Array.prototype.forEach.call(document.querySelectorAll('#pick button'), function (b) { b.classList.toggle('on', b.dataset.s === K.style); });
+    var back = document.getElementById('back'); back.href = back.getAttribute('href').split('#')[0] + '#' + K.style;
+    select(picked);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+  }
+
+  document.getElementById('pick').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-s]');
+    if (b) { use(b.dataset.s); if (history.replaceState) history.replaceState(null, '', '#' + b.dataset.s); }
+  });
+  walk.addEventListener('click', function (e) { var b = e.target.closest('button[data-k]'); if (b) select(b.dataset.k); });
+  map.addEventListener('click', function (e) { var s = e.target.closest('.spot'); if (s) select(s.dataset.k); });
+  map.addEventListener('keydown', function (e) { var s = e.target.closest('.spot'); if (s && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(s.dataset.k); } });
+  panel.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-go]');
+    if (b && b.dataset.go) { select(b.dataset.go); walk.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
+
+  var GK = 'ubo-ecount-e6';
+  var boxes = grad.querySelectorAll('input');
+  try { var saved = JSON.parse(localStorage.getItem(GK) || '{}'); Array.prototype.forEach.call(boxes, function (b) { b.checked = !!saved[b.dataset.k]; }); } catch (e) {}
+  function paintGrad() { Array.prototype.forEach.call(boxes, function (b) { b.parentNode.querySelector('span').classList.toggle('on', b.checked); }); }
+  grad.addEventListener('change', function () {
+    paintGrad();
+    try { var o = {}; Array.prototype.forEach.call(boxes, function (b) { o[b.dataset.k] = b.checked; }); localStorage.setItem(GK, JSON.stringify(o)); } catch (e) {}
+    schedule();
+  });
+  paintGrad();
+
+  function fromHash() { var h = (location.hash || '').slice(1); use(['pencil', 'textbook', 'blueprint'].indexOf(h) >= 0 ? h : 'pencil'); }
+  fromHash();
+  window.addEventListener('hashchange', fromHash);
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', schedule);
+  window.addEventListener('load', schedule);
+  window.addEventListener('resize', schedule);
+  if (window.ResizeObserver) { var ro = new ResizeObserver(schedule); ro.observe(map); ro.observe(panel); ro.observe(grad); }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ko" data-style="pencil">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>사 오기</title>
+<!--
+  우보브랜드샵 신입 교재 · 7장 「사 오기」 (곁가지) — 슈니버시티 그림체(한 장 지도). 뼈대는 ch1-order.html.
+  글자는 HTML, 선은 그 위에 덮은 svg.over 에 sketch-kit.js 가 글자 자리를 재서 긋는다 (draw()).
+  그림체는 <html data-style> 과 SketchKit(…) 둘 다 바꾼다. 주소 #pencil · #textbook · #blueprint.
+  위 '지금 · 이카운트' 카드만 갈아끼우면 같은 그림이 UBO ONE 교재가 된다 — 이치(그림)는 그대로.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Brush+Script&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  /* ---------- 연필 손그림(원본) ---------- */
+  :root {
+    --paper: #f8f4ea; --ink: #36332d; --ink-soft: #5d584e; --ink-faint: #8b8476;
+    --marker: rgba(255, 214, 64, 0.55); --find: #2f5d87; --talk: #b5523b; --db: #4f7d4a;
+    --mono: ui-monospace, 'Cascadia Mono', Consolas, 'D2Coding', monospace;
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.3  0 0 0 0 0.22  0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--paper); }
+  body {
+    min-height: 100vh; color: var(--ink);
+    font-family: 'Gaegu', cursive; background-color: var(--paper); background-image: var(--grain);
+    padding: 18px 16px 28px; word-break: keep-all; overflow-wrap: anywhere;
+  }
+  .page { max-width: 860px; margin: 0 auto; }
+  .brush { font-family: 'Nanum Brush Script', 'Gaegu', cursive; font-weight: 400; }
+  button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+  svg.over { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+  .spot { cursor: pointer; }
+  .spot:focus-visible, button:focus-visible { outline: 2px dashed var(--find); outline-offset: 2px; }
+
+  .pick { display: flex; justify-content: center; gap: 6px; margin-bottom: 14px; font-family: system-ui, sans-serif; }
+  .pick button { font-size: 13px; border: 1px solid #c9ced6; background: #fff; border-radius: 999px; padding: 5px 12px; }
+  .pick button.on { background: #1f2937; border-color: #1f2937; color: #fff; }
+
+  .hero { text-align: center; }
+  .hero .kick { font-size: clamp(14px, 1.7vw, 17px); color: var(--ink-soft); letter-spacing: 0.04em; }
+  .hero h1 { font-size: clamp(36px, 6.4vw, 56px); line-height: 1.05; margin-top: 2px; }
+  .hero h1 span { display: inline-block; }
+  .hero p { margin-top: 4px; font-size: clamp(15px, 1.9vw, 18px); color: var(--ink-soft); }
+
+  /* 걸음 단추 — 주문(①②) · 들어옴(③~⑥) 두 묶음 */
+  .walk { position: relative; display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 8px 16px; margin-top: 14px; }
+  .grp { position: relative; z-index: 1; display: inline-flex; flex-direction: column; align-items: center; gap: 8px; }
+  .grp em { font-style: normal; font-size: 15px; font-weight: 700; line-height: 1; padding: 0 4px; }
+  .grp[data-g="none"] em { visibility: hidden; }
+  .bs { display: flex; gap: 6px; }
+  .walk button, .panel .nav button { font-size: 18px; line-height: 1; padding: 6px 9px 4px; border-radius: 6px; }
+  .bs button:nth-child(odd) { transform: rotate(-2deg); }
+  .bs button:nth-child(even) { transform: rotate(1.5deg); }
+  .walk button.on { background: var(--marker); }
+  .walk .nm { display: none; }
+  @media (min-width: 760px) { .walk .nm { display: inline; } }
+  @media (max-width: 400px) { .walk { gap: 8px 9px; } .bs { gap: 5px; } .walk button { font-size: 16px; padding: 6px 7px 4px; } }
+  .n { font-style: normal; }
+  .n.t { color: var(--talk); } .n.f { color: var(--find); } .n.d { color: var(--db); }
+
+  /* 시퀀스 — 여섯 칸 격자. 생명선은 1/6(공급처) · 3/6(구매) · 5/6(창고) 자리로 내려간다 */
+  .map { position: relative; margin-top: 10px; }
+  .seq { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); margin-top: 8px; }
+  .who { text-align: center; margin: 0 clamp(6px, 1.1vw, 14px); padding: 48px 3px 8px; }
+  .who .name { display: inline-block; font-size: clamp(23px, 3.8vw, 34px); line-height: 1; padding: 0 4px; }
+  .who small { display: block; margin-top: 3px; font-size: clamp(12px, 1.8vw, 16px); color: var(--ink-soft); line-height: 1.2; }
+  .who.lit .name { background: linear-gradient(transparent 55%, var(--marker) 55%, var(--marker) 94%, transparent 94%); }
+  @media (min-width: 760px) {
+    .who { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 76px; padding: 11px 8px 10px 78px; }
+  }
+  #w-sp { grid-area: 1 / 1 / 2 / 3; }
+  #w-bu { grid-area: 1 / 3 / 2 / 5; }
+  #w-wh { grid-area: 1 / 5 / 2 / 7; }
+
+  /* 이름표가 위, 화살표가 아래 — 한 칸 = 이름표 + 그 화살표 */
+  .lane { position: relative; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0 8px; text-align: center; padding: 8px 6px 16px; }
+  .lane.pair { padding-bottom: 28px; }
+  .lane.self { justify-content: flex-start; text-align: left; padding: 8px 6px 8px 42px; }
+  .lane b { font-size: clamp(15px, 2.3vw, 21px); line-height: 1.15; padding: 0 3px; }
+  .lane span { font-size: clamp(12px, 1.75vw, 16px); color: var(--ink-soft); line-height: 1.2; }
+  .lane .env { display: block; width: 22px; height: 15px; flex: none; }
+  .lane:hover b, .lane:focus-visible b { text-decoration: underline wavy rgba(54, 51, 45, 0.35); text-underline-offset: 5px; }
+  .lane.now b { background: linear-gradient(transparent 52%, var(--marker) 52%, var(--marker) 94%, transparent 94%); }
+  .lane.later b, .lane.later span, .lane.later .n { color: var(--ink-faint); }
+  .lane.done span { color: var(--ink-faint); }
+  #l1 { grid-area: 2 / 2 / 3 / 4; }
+  #l2 { grid-area: 3 / 2 / 4 / 4; }
+  #l3 { grid-area: 4 / 2 / 5 / 6; }
+  #l4 { grid-area: 5 / 2 / 6 / 6; }
+  #db { grid-area: 6 / 6 / 7 / 7; }
+  #l5 { grid-area: 7 / 4 / 8 / 6; }
+  #l6 { grid-area: 8 / 2 / 9 / 6; }
+
+  /* 왼쪽 여백 — 두 갈래 괄호 */
+  .gut { display: flex; flex-direction: column; justify-content: center; align-items: flex-end; text-align: right; gap: 2px; padding: 6px 18px 6px 0; }
+  .gut b { font-size: clamp(14px, 1.9vw, 18px); line-height: 1.1; }
+  .gut span { font-size: clamp(12px, 1.55vw, 15px); color: var(--ink-soft); line-height: 1.15; }
+  #g-q { grid-area: 2 / 1 / 4 / 2; }
+  #g-o { grid-area: 4 / 1 / 9 / 2; }
+  .gut.on b { background: linear-gradient(transparent 55%, var(--marker) 55%, var(--marker) 94%, transparent 94%); }
+  @media (max-width: 559px) {
+    .gut { align-items: center; padding-right: 16px; }
+    .gut b { writing-mode: vertical-rl; text-orientation: upright; letter-spacing: 3px; }
+    .gut span { display: none; }
+  }
+
+  /* 창고 뒤 저장 — 입고 기록 */
+  .dbx { justify-self: start; align-self: center; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 2px 0 2px 28px; }
+  .dbx b { display: block; font-size: 14px; line-height: 1; padding: 11px 10px 6px; color: var(--db); white-space: nowrap; }
+  .dbx small { font-size: 12px; color: var(--ink-faint); line-height: 1; white-space: nowrap; }
+  .dbx.lit small { color: var(--ink); font-weight: 700; }
+  .pad { height: 10px; }
+
+  /* 설명 공책 */
+  .panel { position: relative; margin-top: 18px; padding: 14px 18px 14px 28px; }
+  .panel > div { position: relative; z-index: 1; }
+  .panel h3 { font-size: clamp(30px, 4.2vw, 38px); line-height: 1.05; }
+  .cols { display: grid; gap: 14px 26px; margin-top: 6px; }
+  @media (min-width: 760px) { .cols.two { grid-template-columns: minmax(0, 1fr) minmax(240px, 330px); align-items: start; } }
+  .one { font-size: clamp(17px, 2vw, 19px); line-height: 1.38; }
+  .facts { display: grid; gap: 5px; margin-top: 9px; font-size: clamp(15px, 1.8vw, 17px); line-height: 1.35; color: var(--ink-soft); }
+  .facts > span > i { font-style: normal; font-weight: 700; color: var(--ink); margin-right: 6px; }
+  .steps { list-style: none; display: grid; gap: 4px; margin-top: 8px; }
+  .steps button { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; text-align: left; font-size: clamp(15px, 1.8vw, 17px); line-height: 1.3; padding: 2px 4px; border-radius: 4px; }
+  .steps button:hover { background: var(--marker); }
+  .steps b { white-space: nowrap; }
+  .card { position: relative; padding: 12px 14px 11px; }
+  .card.letter { padding-top: 24px; }
+  .card .ct { display: block; font-size: 16px; font-weight: 700; color: var(--ink-soft); line-height: 1.1; margin-bottom: 7px; }
+  .card .ln { font-size: clamp(14px, 1.6vw, 16px); line-height: 1.4; color: var(--ink); padding-left: 14px; text-indent: -14px; }
+  .card .ln::before { content: '› '; color: var(--ink-faint); }
+  .card .cap { font-size: 15px; color: var(--ink-soft); line-height: 1.3; margin-top: 6px; }
+  .card .rep { font-size: clamp(15px, 1.8vw, 17px); line-height: 1.45; }
+  .try { font-family: 'Nanum Pen Script', cursive; font-size: 23px; line-height: 1.15; color: var(--find); margin-top: 10px; }
+  .panel .nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; }
+  .panel .nav button { font-size: 17px; }
+  .panel .nav button[disabled] { visibility: hidden; }
+
+  .legend { margin: 16px auto 0; max-width: 780px; display: grid; gap: 5px; font-size: clamp(15px, 1.9vw, 17px); color: var(--ink-soft); text-align: center; line-height: 1.3; }
+  .legend .f { color: var(--find); font-weight: 700; }
+  .legend .t { color: var(--talk); font-weight: 700; }
+  .legend .d { color: var(--db); font-weight: 700; }
+
+  /* 해 보기 — 졸업 체크. 상자는 손으로 그린다 */
+  .grad { position: relative; margin-top: 22px; padding: 14px 18px 12px; }
+  .grad > * { position: relative; z-index: 1; }
+  .grad h3 { font-size: clamp(26px, 3.6vw, 32px); line-height: 1.05; margin-bottom: 6px; }
+  .grad label { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; font-size: clamp(15px, 1.9vw, 18px); line-height: 1.3; cursor: pointer; }
+  .grad input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .grad .bx { display: block; flex: none; width: 20px; height: 20px; margin-top: 1px; }
+  .grad .on { color: var(--ink-faint); text-decoration: line-through; text-decoration-color: rgba(54, 51, 45, 0.3); }
+  .grad .sign { margin-top: 8px; font-size: clamp(13px, 1.6vw, 15px); color: var(--ink-soft); }
+  .foot { margin-top: 14px; text-align: center; font-size: clamp(12px, 1.4vw, 13.5px); color: var(--ink-faint); line-height: 1.4; }
+
+  /* ---------- 교과서 도식 — 위 규칙을 덮는다 ---------- */
+  html[data-style="textbook"] { --paper: #ffffff; --ink: #1f2937; --ink-soft: #4b5563; --ink-faint: #a3aab5; --find: #1f5fae; --talk: #b8432f; --db: #2f7d4f; --marker: rgba(31, 95, 174, 0.14); }
+  html[data-style="textbook"] body { font-family: 'Noto Sans KR', system-ui, sans-serif; background: #fff; background-image: none; letter-spacing: -0.01em; }
+  html[data-style="textbook"] .brush { font-family: 'Noto Sans KR', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; }
+  html[data-style="textbook"] .hero h1 { font-size: clamp(25px, 3.8vw, 34px); }
+  html[data-style="textbook"] .hero p, html[data-style="textbook"] .hero .kick { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="textbook"] .walk button, html[data-style="textbook"] .panel .nav button { font-size: 14px; border-radius: 999px; border: 1px solid var(--ink-faint); padding: 5px 11px; }
+  html[data-style="textbook"] .bs button { transform: none; }
+  html[data-style="textbook"] .walk button.on { border-color: var(--find); }
+  html[data-style="textbook"] .grp em { font-size: 12.5px; }
+  html[data-style="textbook"] .who .name { font-size: clamp(16px, 2.5vw, 22px); font-weight: 800; }
+  html[data-style="textbook"] .who small { font-size: clamp(11px, 1.4vw, 13px); }
+  html[data-style="textbook"] .lane b { font-size: clamp(13px, 1.9vw, 16px); font-weight: 700; }
+  html[data-style="textbook"] .lane span { font-size: clamp(11px, 1.4vw, 13px); }
+  html[data-style="textbook"] .gut b { font-size: clamp(12px, 1.6vw, 15px); }
+  html[data-style="textbook"] .gut span, html[data-style="textbook"] .dbx small { font-size: 11.5px; }
+  html[data-style="textbook"] .panel h3 { font-size: clamp(20px, 2.8vw, 25px); }
+  html[data-style="textbook"] .one { font-size: clamp(14px, 1.6vw, 16px); }
+  html[data-style="textbook"] .facts, html[data-style="textbook"] .steps button, html[data-style="textbook"] .card .rep { font-size: clamp(13px, 1.5vw, 14.5px); }
+  html[data-style="textbook"] .card .ln { font-size: clamp(12.5px, 1.4vw, 14px); }
+  html[data-style="textbook"] .card .cap, html[data-style="textbook"] .card .ct { font-size: 13px; }
+  html[data-style="textbook"] .try { font-family: inherit; font-size: clamp(13px, 1.5vw, 14.5px); font-weight: 700; }
+  html[data-style="textbook"] .legend { font-size: clamp(12px, 1.5vw, 13.5px); }
+  html[data-style="textbook"] .grad h3 { font-size: clamp(18px, 2.5vw, 22px); }
+  html[data-style="textbook"] .grad label { font-size: clamp(13px, 1.6vw, 15px); }
+
+  /* ---------- 설계 도면 — 위 규칙을 덮는다 ---------- */
+  html[data-style="blueprint"] { --paper: #f6f8fb; --ink: #16365c; --ink-soft: #3d5878; --ink-faint: #9db0c6; --find: #1d6fb8; --talk: #c23b2e; --db: #2b7a5a; --marker: rgba(29, 111, 184, 0.13); --mono: 'IBM Plex Mono', 'IBM Plex Sans KR', ui-monospace, Consolas, monospace; }
+  html[data-style="blueprint"] body {
+    font-family: 'IBM Plex Sans KR', system-ui, sans-serif; background-color: var(--paper);
+    background-image:
+      linear-gradient(rgba(29, 111, 184, 0.10) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(29, 111, 184, 0.10) 1px, transparent 1px),
+      linear-gradient(rgba(29, 111, 184, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(29, 111, 184, 0.045) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+  }
+  html[data-style="blueprint"] .page { border: 1.5px solid var(--ink); outline: 1px solid var(--ink); outline-offset: 5px; padding: 16px; background: rgba(246, 248, 251, 0.6); }
+  html[data-style="blueprint"] .brush { font-family: 'IBM Plex Sans KR', sans-serif; font-weight: 700; letter-spacing: 0.01em; }
+  html[data-style="blueprint"] .hero h1 { font-size: clamp(23px, 3.5vw, 32px); }
+  /* FIG. 처럼 라틴 글자만 있는 자리에만 Mono — 한글에 Mono 를 주면 띄어쓰기가 벌어진다 */
+  html[data-style="blueprint"] .hero .kick::before { content: 'FIG. 7  '; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.2em; color: var(--ink-soft); }
+  html[data-style="blueprint"] .hero p, html[data-style="blueprint"] .hero .kick { font-size: clamp(13px, 1.45vw, 14.5px); }
+  html[data-style="blueprint"] .walk button, html[data-style="blueprint"] .panel .nav button { font-size: 13.5px; border-radius: 0; border: 1px solid var(--ink-faint); padding: 5px 10px; letter-spacing: 0.02em; }
+  html[data-style="blueprint"] .bs button { transform: none; }
+  html[data-style="blueprint"] .walk button.on { background: none; border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  html[data-style="blueprint"] .grp em { font-size: 12px; letter-spacing: 0.06em; }
+  html[data-style="blueprint"] .who .name { font-size: clamp(15px, 2.3vw, 20px); font-weight: 700; }
+  html[data-style="blueprint"] .who small { font-size: clamp(10.5px, 1.3vw, 12.5px); }
+  html[data-style="blueprint"] .who.lit .name, html[data-style="blueprint"] .lane.now b, html[data-style="blueprint"] .gut.on b { background: none; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  html[data-style="blueprint"] .lane b { font-size: clamp(12.5px, 1.8vw, 15.5px); font-weight: 700; }
+  html[data-style="blueprint"] .lane span { font-size: clamp(10.5px, 1.3vw, 12.5px); }
+  html[data-style="blueprint"] .gut b { font-size: clamp(12px, 1.5vw, 14px); letter-spacing: 0.06em; }
+  html[data-style="blueprint"] .gut span, html[data-style="blueprint"] .dbx small { font-size: 11px; }
+  html[data-style="blueprint"] .panel h3 { font-size: clamp(18px, 2.6vw, 23px); }
+  html[data-style="blueprint"] .one { font-size: clamp(13.5px, 1.55vw, 15.5px); }
+  html[data-style="blueprint"] .facts, html[data-style="blueprint"] .steps button, html[data-style="blueprint"] .card .rep { font-size: clamp(12.5px, 1.45vw, 14px); }
+  html[data-style="blueprint"] .card .ln { font-size: clamp(12px, 1.35vw, 13.5px); }
+  html[data-style="blueprint"] .card .cap, html[data-style="blueprint"] .card .ct { font-size: 12.5px; }
+  html[data-style="blueprint"] .try { font-family: inherit; font-size: clamp(12.5px, 1.45vw, 14px); font-weight: 600; }
+  html[data-style="blueprint"] .legend { font-size: clamp(11.5px, 1.4vw, 13px); }
+  html[data-style="blueprint"] .grad h3 { font-size: clamp(17px, 2.3vw, 20px); }
+  html[data-style="blueprint"] .grad label { font-size: clamp(12.5px, 1.5vw, 14.5px); }
+
+  @media print { .pick, .panel .nav { display: none !important; } body { padding: 0; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="pick" id="pick">
+    <button type="button" data-s="pencil">연필 손그림</button>
+    <button type="button" data-s="textbook">교과서 도식</button>
+    <button type="button" data-s="blueprint">설계 도면</button>
+    <a href="textbook.html" id="back" style="font-size:13px;color:var(--ink-soft);align-self:center;margin-left:10px;text-decoration:none" onclick="this.href='textbook.html#'+(document.documentElement.dataset.style||'pencil')">← 교재 목차</a>
+  </div>
+
+  <header class="hero">
+    <div class="kick">신입 교재 · 7장 · 주문 하나의 일생 · 곁가지</div>
+    <h1 class="brush"><span>사 오기</span></h1>
+    <p>값을 묻는 데서 물건이 창고에 들어와 완성품이 되기까지 여섯 걸음 — 그림은 위에서 아래로 시간이 흐른다.</p>
+  </header>
+
+  <nav class="walk" id="walk" aria-label="여섯 걸음 고르기">
+    <svg class="over" id="walkLines" aria-hidden="true"></svg>
+    <span class="grp" data-g="none"><em>·</em><span class="bs"><button type="button" data-k="all">전체</button></span></span>
+    <span class="grp" data-g="q"><em>주문 · 공급처로</em><span class="bs">
+      <button type="button" data-k="1"><span class="n t">①</span><span class="nm"> 값 묻기</span></button>
+      <button type="button" data-k="2"><span class="n t">②</span><span class="nm"> 발주서</span></button>
+    </span></span>
+    <span class="grp" data-g="o"><em>들어옴 · 창고로</em><span class="bs">
+      <button type="button" data-k="3"><span class="n t">③</span><span class="nm"> 들어온다</span></button>
+      <button type="button" data-k="4"><span class="n d">④</span><span class="nm"> 검수 · 입고</span></button>
+      <button type="button" data-k="5"><span class="n f">⑤</span><span class="nm"> 발주와 맞추기</span></button>
+      <button type="button" data-k="6"><span class="n d">⑥</span><span class="nm"> 만들기 · 외주</span></button>
+    </span></span>
+  </nav>
+
+  <section class="map" id="map">
+    <svg class="over" id="lines" aria-hidden="true"></svg>
+    <div class="seq" id="seq">
+      <div class="who" id="w-sp"><span class="name brush">공급처</span><small>물건을 사 오는 곳 · 매입처</small></div>
+      <div class="who" id="w-bu"><span class="name brush">구매</span><small>나 · 발주를 내는 사람</small></div>
+      <div class="who" id="w-wh"><span class="name brush">창고</span><small>받아서 세는 곳 · 재고</small></div>
+
+      <div class="gut" id="g-q"><b>주문</b><span>우리가 보낸다</span></div>
+      <div class="gut" id="g-o"><b>들어옴</b><span>창고가 받아 센다</span></div>
+
+      <div class="lane spot" id="l1" data-k="1" tabindex="0" role="button"><b><i class="n t">①</i> 값 묻기</b><span>단가 요청 · 상품마다 · 업체별</span></div>
+      <div class="lane spot" id="l2" data-k="2" tabindex="0" role="button"><i class="env" aria-hidden="true"></i><b><i class="n t">②</i> 발주서</b><span>품목 · 수량 · 입고 예정일 · 업체 양식 PDF</span></div>
+      <div class="lane spot" id="l3" data-k="3" tabindex="0" role="button"><i class="env" aria-hidden="true"></i><b><i class="n t">③</i> 들어온다</b><span>공급처에서 창고로 · 물건과 거래명세서</span></div>
+      <div class="lane spot self" id="l4" data-k="4" tabindex="0" role="button" style="justify-content:flex-end;text-align:right;padding-right:42px"><b><i class="n d">④</i> 검수 · 입고</b><span>정상 · 불량 가르고 · 창고 · 소유 업체 꼬리표</span></div>
+      <div class="dbx spot" id="db" data-k="4" tabindex="0" role="button"><b>입고 기록</b><small>창고 · 소유 · 사유 · 담당</small></div>
+      <div class="lane spot" id="l5" data-k="5" tabindex="0" role="button"><b><i class="n f">⑤</i> 발주와 맞추기</b><span>발주한 것 vs 들어온 것 · 차이는 기록</span></div>
+      <div class="lane spot self" id="l6" data-k="6" tabindex="0" role="button" style="justify-content:flex-end;text-align:right;padding-right:42px"><b><i class="n d">⑥</i> 만들기 · 외주</b><span>구성품 → 완성품 · 맡긴 것 · 받은 것</span></div>
+      <div class="pad"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel" aria-live="polite">
+    <svg class="over" id="panelLines" aria-hidden="true"></svg>
+    <div id="panelBody"></div>
+  </section>
+
+  <footer class="legend">
+    <div><span class="t">① ② ③ 공급처와 주고받기</span> · <span class="f">⑤ 맞추기 · 확인하기</span> · <span class="d">④ ⑥ 저장 · 재고에 넣기</span></div>
+    <div><b>①② 주문</b>은 우리가 공급처에 보내는 것 — 발주서가 나중에 맞추는 기준 · <b>③~⑥ 들어옴</b>은 창고가 받아 세고 맞추는 것 — 재고가 늘어난다</div>
+  </footer>
+
+  <section class="grad" id="grad">
+    <svg class="over" id="gradLines" aria-hidden="true"></svg>
+    <h3 class="brush">해 보기 · 7장 졸업</h3>
+    <label><input type="checkbox" data-k="g1"><i class="bx"></i><span>연습 거래처로 발주서 1장을 만들어 PDF 로 뽑았다</span></label>
+    <label><input type="checkbox" data-k="g2"><i class="bx"></i><span>그 발주서를 불러와 구매입력 1건을 넣었다 — 사는 업체의 계정에서</span></label>
+    <label><input type="checkbox" data-k="g3"><i class="bx"></i><span>발주 vs 입고를 1건 맞춰 보고, 차이를 어디에 적는지 말했다</span></label>
+    <label><input type="checkbox" data-k="g4"><i class="bx"></i><span>작업지시 → 완성품 흐름을 말할 수 있다 — 자재가 빠지는 때는 회사가 채움</span></label>
+    <p class="sign">옆에서 본 선배 ____________ · 날짜 ____________</p>
+  </section>
+
+  <p class="foot">주소는 회사 안에서만 나눈다 · 실제 공급처 이름 · 금액 · 계정 정보는 적지 않는다 · (추정) 은 실무자 확인 전 · 기능 번호(BUY-01 …)는 새 프로그램의 같은 기능을 가리키는 열쇠</p>
+</div>
+
+<script src="sketch-kit.js"></script>
+<script>
+(function () {
+  'use strict';
+  var STEPS = ['1', '2', '3', '4', '5', '6'];
+  var NUM = { 1: '①', 2: '②', 3: '③', 4: '④', 5: '⑤', 6: '⑥' };
+  var NAME = { 1: '값 묻기', 2: '발주서', 3: '들어온다', 4: '검수 · 입고', 5: '발주와 맞추기', 6: '만들기 · 외주' };
+  var KIND = { 1: 'talk', 2: 'talk', 3: 'talk', 4: 'db', 5: 'find', 6: 'db' };   // 색은 뜻으로만
+  var PHASE = { 1: 'q', 2: 'q', 3: 'o', 4: 'o', 5: 'o', 6: 'o' };               // 주문 · 들어옴
+  // 걸음을 고르면 함께 밝아지는 상자
+  var LIT = { 1: ['bu', 'sp'], 2: ['bu', 'sp'], 3: ['sp', 'wh'], 4: ['wh', 'db'], 5: ['wh', 'bu', 'db'], 6: ['wh', 'db'] };
+
+  // 설명 — one 은 한 줄, facts 는 [이름표, 내용], card 는 오른쪽 쪽지(지금 · 이카운트). letter 면 편지 모양
+  var INFO = {
+    all: { title: '사 오기',
+      one: '값을 묻고 발주해 물건이 창고에 들어오기까지 여섯 걸음. 번호를 누르면 그 걸음만 밝아진다.',
+      list: { 1: '공급처에 값을 묻는다', 2: '발주서를 보낸다 — 품목 · 수량 · 날짜', 3: '물건이 창고에 도착한다', 4: '상태를 보고 입고 기록을 남긴다', 5: '발주한 것과 들어온 것을 맞춘다', 6: '구성품으로 완성품을 만든다 · 외주' },
+      card: { t: '한 줄로', html: '<p class="rep"><b>주문은 우리가 보낸다</b> — 발주서가 나중에 맞추는 기준.<br><b>들어옴은 창고가 받는다</b> — 세고, 꼬리표 달고, 발주와 맞춘다.</p>' } },
+    1: { title: '① 값 묻기',
+      one: '공급처에 단가를 묻는다. 매입 단가는 상품마다 · 사는 업체마다 다르다 — 어느 업체 명의로 사는지부터.',
+      facts: [['단가 요청', '상품 · 수량을 적어 묻는다. 답은 단가 기록으로 남긴다 (BUY-03)'], ['어느 업체', '5개 중 어느 명의로 사나 — 단가 · 장부가 그 업체 것 (회사법 가-2, 추정)'], ['규칙', '어느 업체 명의로 사는지 정하는 기준 — 회사가 채움']],
+      card: { t: '지금 · 이카운트', lines: ['사는 업체의 계정으로 로그인 — 5계정 중 하나', '재고 I › 구매관리 › 단가요청입력 (추정)'], cap: '조심: 전화로 들은 단가를 안 적어 두면 ⑤ 에서 맞출 것이 없다 (추정)' } },
+    2: { title: '② 발주서',
+      one: '공급처 · 품목 · 수량 · 입고 예정일을 적어 업체 양식 발주서를 보낸다. 이 한 장이 나중에 들어온 것과 맞추는 기준이다.',
+      facts: [['발주서', '공급처 · 품목 · 수량 · 입고 예정일. 업체 양식 PDF (BUY-01 · PLT-03)'], ['안 들어온 것', '발주했는데 아직 안 온 것이 보인다 (BUY-02)']],
+      card: { letter: true, t: '지금 · 이카운트', lines: ['재고 I › 구매관리 › 발주서입력 › 저장 › 인쇄 → PDF', '카톡 · 메일로 보냄 (추정)', '아직 안 들어온 것: 미구매현황'], cap: '조심: 발주 없이 ④ 구매입력만 치면 ⑤ 대조가 안 된다' },
+      tryit: '연습 거래처로 발주서 1장' },
+    3: { title: '③ 들어온다',
+      one: '공급처가 보낸 물건이 창고에 도착한다. 발주서를 보낸 구매가 아니라 창고가 받는다 — 여기부터 창고의 일이다.',
+      facts: [['어느 창고', '발주서에 적은 창고로. 사업장과 창고는 다르다 (회사법 가-1)'], ['같이 오는 것', '거래명세서 · 송장. 발주서와 나란히 둔다 (추정)']],
+      card: { t: '지금 · 이카운트', lines: ['아직 입력 없음 — 물건과 종이를 받는다', '발주서 · 거래명세서를 ④ 로'], cap: '조심: 다른 업체 명의로 산 물건이 같은 창고에 온다 — 종이에 업체를 적어 둔다 (추정)' } },
+    4: { title: '④ 검수 · 입고',
+      one: '들어올 때 상태를 본다 — 정상 · 불량. 창고와 소유 업체 꼬리표를 달아 입고 기록을 남기면 재고가 늘어난다.',
+      facts: [['검수', '정상 · 불량을 가른다. 불량은 상태 「불량」으로 따로 (STK-08)'], ['입고 기록', '창고 · 소유 업체 · 사유 · 담당. 재고 = 어디 × 누구 것 × 상태 (STK-03 · 회사법 나-1)'], ['재고', '그 창고 · 그 업체의 정상 재고가 는다. 전환기엔 이카운트 숫자가 기준 (회사법 나-2)']],
+      card: { t: '지금 · 이카운트', lines: ['재고 I › 구매관리 › 구매입력 — 발주서 불러오기 (추정)', '창고 칸 · 거래처 칸 확인', '불량은 재고 I › 기타이동 › 불량처리 (추정)'], cap: '조심: 다른 업체 계정에 입고 — 그 업체 재고가 되고 장부도 그쪽에 적힌다' },
+      tryit: '구매입력 1건 — 발주서를 불러와서' },
+    5: { title: '⑤ 발주와 맞추기',
+      one: '발주한 것과 들어온 것을 나란히 본다. 수량 · 단가가 다르면 그 차이를 입고 기록에 적는다 — 덜 온 것은 다시 받는다.',
+      facts: [['대조', '발주 수량 vs 입고 수량 vs 거래명세서. 차이는 입고에 기록 (BUY-02)'], ['덜 왔으면', '남은 수량이 발주에 남는다 — 다음 입고 때 다시 맞춘다 (BUY-02, 추정)'], ['줄 돈', '입고가 맞아야 공급처에 줄 돈이 맞는다 — 거래처별채무 (추정)']],
+      card: { t: '지금 · 이카운트', lines: ['미구매현황 — 발주했는데 안 들어온 것', '거래처별채무 — 공급처에 줄 돈 (과장님 「중요!!」)', '대조는 종이로 — 발주서와 거래명세서 (추정)'], cap: '나중 · UBO ONE: 발주서와 입고가 한 화면에, 차이가 저절로 보인다 (BUY-02)' },
+      tryit: '발주 vs 입고 대조 1건 — 차이를 어디 적나' },
+    6: { title: '⑥ 만들기 · 외주',
+      one: '구성품을 모아 완성품을 만든다. 완료하면 자재가 빠지고 완성품이 들어온다 — 어느 때 빠지는지는 회사가 아직 안 정했다.',
+      facts: [['작업지시', '구성품 → 완성품. 완료할 때 자재 빼고 완성품 넣음 (STK-04)'], ['차감 시점', '세트 · 구성품 재고를 언제 빼나 — 회사가 채움 (미결정 4)'], ['외주', '맡긴 것 · 받은 것 · 비용을 적는다. 받은 것은 입고로 (BUY-04, 추정)']],
+      card: { t: '지금 · 이카운트', lines: ['재고 I › 생산/외주 › BOM · 작업지시서 → 생산불출 → 생산입고 (추정)', '외주 맡긴 것 · 받은 것 — 메뉴 미확인, 회사가 채움'], cap: '나중 · UBO ONE: 작업지시 한 장으로 자재 빼기 + 완성품 넣기 — 시점은 회사가 정한 대로 (STK-04)' },
+      tryit: '작업지시 → 완성품 흐름을 말로 설명하기' }
+  };
+
+  var K;
+  var map = document.getElementById('map');
+  var walk = document.getElementById('walk');
+  var panel = document.getElementById('panel');
+  var panelBody = document.getElementById('panelBody');
+  var grad = document.getElementById('grad');
+  var lanes = Array.prototype.slice.call(map.querySelectorAll('.lane'));
+  var picked = 'all';
+  var esc = function (s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var label = function (k) { return k === 'all' ? '전체' : NUM[k] + ' ' + NAME[k]; };
+  var color = function (k) { return k === 'all' ? K.C.ink : K.C[KIND[k]]; };
+
+  function select(k) {
+    picked = k;
+    var i = STEPS.indexOf(k);
+    lanes.forEach(function (el) {
+      var n = STEPS.indexOf(el.dataset.k);
+      el.classList.toggle('now', i >= 0 && n === i);
+      el.classList.toggle('done', i >= 0 && n < i);
+      el.classList.toggle('later', i >= 0 && n > i);
+      el.setAttribute('aria-pressed', String(n === i));
+    });
+    var lit = LIT[k] || [];
+    [['w-sp', 'sp'], ['w-bu', 'bu'], ['w-wh', 'wh'], ['db', 'db']].forEach(function (p) {
+      document.getElementById(p[0]).classList.toggle('lit', lit.indexOf(p[1]) >= 0);
+    });
+    document.getElementById('g-q').classList.toggle('on', PHASE[k] === 'q');
+    document.getElementById('g-o').classList.toggle('on', PHASE[k] === 'o');
+    Array.prototype.forEach.call(walk.querySelectorAll('button'), function (b) {
+      b.classList.toggle('on', b.dataset.k === k);
+      b.setAttribute('aria-pressed', String(b.dataset.k === k));
+    });
+
+    var info = INFO[k], col = color(k);
+    var h = '<h3 class="brush" style="color:' + col + '">' + info.title + '</h3>';
+    h += '<div class="cols' + (info.card ? ' two' : '') + '"><div>';
+    h += '<p class="one">' + info.one + '</p>';
+    if (info.facts) h += '<div class="facts">' + info.facts.map(function (f) { return '<span><i>' + f[0] + '</i>' + f[1] + '</span>'; }).join('') + '</div>';
+    if (info.list) {
+      h += '<ul class="steps">' + STEPS.map(function (s) {
+        return '<li><button type="button" data-go="' + s + '"><b style="color:' + color(s) + '">' + NUM[s] + ' ' + NAME[s] + '</b>' + info.list[s] + '</button></li>';
+      }).join('') + '</ul>';
+    }
+    if (info.tryit) h += '<p class="try">해 보기: ' + info.tryit + '</p>';
+    h += '</div>';
+    var prev = i < 0 ? null : (i === 0 ? 'all' : STEPS[i - 1]);
+    var next = i < 0 ? '1' : (i === STEPS.length - 1 ? 'all' : STEPS[i + 1]);
+    var nav = '<div class="nav"><button type="button" data-go="' + (prev || '') + '"' + (prev ? '' : ' disabled') + '>← ' + (prev ? label(prev) : '') + '</button>' +
+      '<button type="button" data-go="' + next + '">' + (i < 0 ? '① 값 묻기 부터' : label(next)) + ' →</button></div>';
+    if (info.card) {
+      var body = info.card.html || '';
+      if (info.card.lines) body += info.card.lines.map(function (l) { return '<div class="ln">' + esc(l) + '</div>'; }).join('');
+      if (info.card.cap) body += '<p class="cap">' + info.card.cap + '</p>';
+      h += '<div><div class="card' + (info.card.letter ? ' letter' : '') + '" id="card"><span class="ct">' + info.card.t + '</span>' + body + '</div>' + nav + '</div>';
+      h += '</div>';
+    } else {
+      h += '</div>' + nav;
+    }
+    panelBody.innerHTML = h;
+    schedule();
+  }
+
+  // 지금 이야기하는 선은 굵게, 지나간 선은 옅게, 아직 안 온 선은 흐린 색
+  function inState(g, st, col, fn) {
+    var gg = st === 'done' ? K.el(g, 'g', { opacity: 0.5 }) : g;
+    fn(gg, st === 'later' ? K.C.faint : col, st === 'now' ? 2.6 : 1.8);
+  }
+  // 머리 상자 그림 — 44 × 40 칸, (x, y) 는 위 가운데
+  function icon(g, kind, x, y, r, c) {
+    if (kind === 'factory') {
+      // 공급처 — 톱니 지붕 공장과 굴뚝
+      K.rect(g, x - 20, y + 18, 40, 19, r, c, 1.5);
+      K.curve(g, 'M' + (x - 20) + ' ' + (y + 18) + ' L' + (x - 20) + ' ' + (y + 9) + ' L' + (x - 10) + ' ' + (y + 18) + ' L' + (x - 10) + ' ' + (y + 9) + ' L' + x + ' ' + (y + 18) + ' L' + x + ' ' + (y + 9) + ' L' + (x + 10) + ' ' + (y + 18), r, c, 1.5);
+      K.rect(g, x + 12, y + 3, 6, 15, r, c, 1.3);
+      K.rect(g, x - 3, y + 27, 6, 10, r, c, 1.2);
+      K.hatch(g, x - 20, y + 18, 40, 6, r, 5, c, 0.12);
+    } else if (kind === 'clip') {
+      K.rect(g, x - 13, y + 5, 26, 32, r, c, 1.5);
+      K.rect(g, x - 6, y + 1, 12, 7, r, c, 1.3);
+      K.line(g, x - 7, y + 17, x + 7, y + 17, r, c, 1.2);
+      K.line(g, x - 7, y + 24, x + 7, y + 24, r, c, 1.2);
+      K.line(g, x - 7, y + 31, x + 2, y + 31, r, c, 1.2);
+    } else {
+      K.curve(g, 'M' + (x - 21) + ' ' + (y + 17) + ' L' + x + ' ' + (y + 3) + ' L' + (x + 21) + ' ' + (y + 17), r, c, 1.5);
+      K.rect(g, x - 17, y + 17, 34, 20, r, c, 1.5);
+      K.rect(g, x - 5, y + 25, 10, 12, r, c, 1.2);
+      K.hatch(g, x - 17, y + 17, 34, 8, r, 5, c, 0.12);
+    }
+  }
+  function cylinder(gg, b, r, c, w) {
+    var x0 = b.x, x1 = b.rt, rx = b.w / 2, ry = 4.5, t = b.y + 5, bt = b.b - 3;
+    K.curve(gg, 'M' + x0 + ' ' + t + ' A' + rx + ' ' + ry + ' 0 1 0 ' + x1 + ' ' + t + ' A' + rx + ' ' + ry + ' 0 1 0 ' + x0 + ' ' + t, r, c, w);
+    K.line(gg, x0, t, x0, bt, r, c, w);
+    K.line(gg, x1, t, x1, bt, r, c, w);
+    K.curve(gg, 'M' + x0 + ' ' + bt + ' A' + rx + ' ' + ry + ' 0 0 0 ' + x1 + ' ' + bt, r, c, w);
+  }
+  function envGlyph(gg, b, r, c, w) {
+    K.rect(gg, b.x, b.y, b.w, b.h, r, c, w);
+    K.line(gg, b.x, b.y, b.cx, b.cy + 1, r, c, w);
+    K.line(gg, b.rt, b.y, b.cx, b.cy + 1, r, c, w);
+  }
+  // 상자 — 뚜껑 줄과 테이프 한 줄
+  function boxGlyph(gg, b, r, c, w) {
+    K.rect(gg, b.x, b.y, b.w, b.h, r, c, w);
+    K.line(gg, b.x, b.y + 5, b.rt, b.y + 5, r, c, w);
+    K.line(gg, b.cx, b.y + 5, b.cx, b.b, r, c, w);
+  }
+  // 혼자 하는 걸음의 고리 — dir 1 은 생명선 오른쪽으로, -1 은 왼쪽으로 나갔다 돌아온다
+  function loop(gg, x0, dir, y1, y2, r, c, w) {
+    var x = x0 + dir * 4, x2 = x0 + dir * 28, k = dir * 7;
+    var d = 'M' + x + ' ' + y1 + ' L' + (x2 - k) + ' ' + y1 + ' Q' + x2 + ' ' + y1 + ' ' + x2 + ' ' + (y1 + 7) + ' L' + x2 + ' ' + (y2 - 7) + ' Q' + x2 + ' ' + y2 + ' ' + (x2 - k) + ' ' + y2 + ' L' + (x + dir * 3) + ' ' + y2;
+    K.curve(gg, d, r, c, w);
+    K.head(gg, x + dir, y2, -dir, r, c, Math.max(1.4, w * 0.8));
+  }
+
+  function draw() {
+    var g = K.fresh(document.getElementById('lines'));
+    var box = K.rel(map);
+    var at = function (id) { return box(document.getElementById(id)); };
+    var i = STEPS.indexOf(picked);
+    var lit = LIT[picked] || [];
+    var state = function (k) { var n = STEPS.indexOf(k); return i < 0 ? 'all' : n === i ? 'now' : n < i ? 'done' : 'later'; };
+
+    // 머리 상자 셋
+    var sp = at('w-sp'), bu = at('w-bu'), wh = at('w-wh');
+    var side = parseFloat(getComputedStyle(document.getElementById('w-sp')).paddingLeft) > 40;   // 넓은 화면: 그림이 이름 왼쪽
+    [[sp, 'factory', 'sp', 31], [bu, 'clip', 'bu', 41], [wh, 'house', 'wh', 51]].forEach(function (q) {
+      var b = q[0], r = K.rng(q[3]), hot = lit.indexOf(q[2]) >= 0;
+      K.rect(g, b.x, b.y, b.w, b.h, r, K.C.ink, hot ? 2.4 : 1.5);
+      if (hot) K.rect(g, b.x + 2, b.y + 2, b.w - 4, b.h - 4, r, K.C.ink, 1);
+      if (side) icon(g, q[1], b.x + 42, b.cy - 20, r, K.C.ink);
+      else icon(g, q[1], b.cx, b.y + 4, r, K.C.ink);
+    });
+
+    var L = {};
+    lanes.forEach(function (n) { L[n.id] = box(n); });
+    var xs = sp.cx, xb = bu.cx, xw = wh.cx;
+    var end = L.l6.b + 6;
+    // 생명선 셋
+    K.line(g, xs, sp.b + 4, xs, end, K.rng(61), K.C.faint, 1.2, '5 6');
+    K.line(g, xb, bu.b + 4, xb, end, K.rng(62), K.C.faint, 1.2, '5 6');
+    K.line(g, xw, wh.b + 4, xw, end, K.rng(63), K.C.faint, 1.2, '5 6');
+
+    // 일하는 동안의 막대 — 창고는 ④ 세고 ⑤ 맞추는 사이
+    var ra = K.rng(65);
+    var ya = L.l4.y + 6, yb = L.l5.b - 4, whHot = picked === '4' || picked === '5';
+    K.rect(g, xw - 4, ya, 8, yb - ya, ra, K.C.find, whHot ? 1.8 : 1.2);
+    K.hatch(g, xw - 4, ya, 8, yb - ya, ra, 4, K.C.find, whHot ? 0.4 : 0.2);
+
+    // ① 구매 → 공급처
+    inState(g, state('1'), K.C.talk, function (gg, c, w) { K.hArrow(gg, xb - 5, xs + 6, L.l1.b - 8, K.rng(71), c, w); });
+    // ② 구매 → 공급처 (발주서 — 편지)
+    inState(g, state('2'), K.C.talk, function (gg, c, w) {
+      var r = K.rng(72);
+      K.hArrow(gg, xb - 5, xs + 6, L.l2.b - 8, r, c, w);
+      envGlyph(gg, box(document.querySelector('#l2 .env')), r, c, Math.min(1.6, w * 0.7));
+    });
+    // ③ 공급처 → 창고 — 구매 생명선을 지나 바로 창고로 (상자)
+    inState(g, state('3'), K.C.talk, function (gg, c, w) {
+      var r = K.rng(73);
+      K.hArrow(gg, xs + 5, xw - 6, L.l3.b - 8, r, c, w);
+      boxGlyph(gg, box(document.querySelector('#l3 .env')), r, c, Math.min(1.6, w * 0.7));
+    });
+    // ④ 창고 혼자 — 생명선에서 왼쪽으로 나갔다 돌아오는 고리
+    inState(g, state('4'), K.C.db, function (gg, c, w) { loop(gg, xw, -1, L.l4.y + 9, L.l4.b - 9, K.rng(74), c, w); });
+    // ⑤ 창고 → 구매 (발주와 맞추기)
+    inState(g, state('5'), K.C.find, function (gg, c, w) { K.hArrow(gg, xw - 5, xb + 6, L.l5.b - 8, K.rng(75), c, w); });
+    // ⑥ 창고 혼자 — 만들기 · 외주 고리
+    inState(g, state('6'), K.C.db, function (gg, c, w) { loop(gg, xw, -1, L.l6.y + 9, L.l6.b - 9, K.rng(76), c, w); });
+
+    // 창고 뒤 저장 — 입고 기록. ④ 전에는 흐리게
+    var dbb = box(document.querySelector('#db b')), rd = K.rng(91), dbHot = lit.indexOf('db') >= 0;
+    var before = i >= 0 && i < 3;
+    var dcol = before ? K.C.faint : K.C.db, dw = dbHot ? 2 : 1.3;
+    var gdb = K.el(g, 'g', before ? { opacity: 0.6 } : {});
+    cylinder(gdb, dbb, rd, dcol, dw);
+    var dx1 = xw + 6, dx2 = dbb.x - 4, dy = dbb.cy;
+    if (dx2 - dx1 > 4) K.line(gdb, dx1, dy, dx2, dy, rd, dcol, dw, '4 4');
+    if (dx2 - dx1 > 26) K.head(gdb, dx2, dy, 1, rd, dcol, 1.3);
+
+    // 왼쪽 괄호 — 주문 · 들어옴
+    [['g-q', 'q', 96], ['g-o', 'o', 97]].forEach(function (q) {
+      var b = at(q[0]), r = K.rng(q[2]), w = PHASE[picked] === q[1] ? 2.2 : 1.3, x = b.rt - 10;
+      K.line(g, x, b.y + 8, x, b.b - 8, r, K.C.ink, w);
+      K.line(g, x, b.y + 8, x + 5, b.y + 8, r, K.C.ink, w);
+      K.line(g, x, b.b - 8, x + 5, b.b - 8, r, K.C.ink, w);
+    });
+
+    // 걸음 단추 위 묶음 줄
+    var wg = K.fresh(document.getElementById('walkLines')), wbox = K.rel(walk);
+    Array.prototype.forEach.call(walk.querySelectorAll('.grp'), function (gr, n) {
+      if (gr.dataset.g === 'none') return;
+      var em = wbox(gr.querySelector('em')), bs = wbox(gr.querySelector('.bs')), r = K.rng(120 + n);
+      var y = (em.b + bs.y) / 2, x1 = bs.x + 2, x2 = bs.rt - 2, w = PHASE[picked] === gr.dataset.g ? 2 : 1.3;
+      K.line(wg, x1, y + 4, x1, y, r, K.C.ink, w);
+      K.line(wg, x1, y, x2, y, r, K.C.ink, w);
+      K.line(wg, x2, y, x2, y + 4, r, K.C.ink, w);
+    });
+
+    // 설명 공책 — 테두리 + 왼쪽에 고른 걸음의 색 줄 + 쪽지(편지면 봉투 덮개와 우표)
+    var pg = K.fresh(document.getElementById('panelLines'));
+    var pw = panel.offsetWidth, ph = panel.offsetHeight, r9 = K.rng(9);
+    K.rect(pg, 2, 2, pw - 4, ph - 4, r9, K.C.ink, 1.4);
+    K.line(pg, 13, 7, 13, ph - 7, r9, color(picked), 2.2);
+    var card = document.getElementById('card');
+    if (card) {
+      var cb = K.rel(panel)(card), rc = K.rng(19), ccol = color(picked);
+      K.rect(pg, cb.x, cb.y, cb.w, cb.h, rc, ccol, 1.4);
+      if (card.classList.contains('letter')) {
+        K.line(pg, cb.x + 2, cb.y + 2, cb.cx, cb.y + 15, rc, ccol, 1.1);
+        K.line(pg, cb.rt - 2, cb.y + 2, cb.cx, cb.y + 15, rc, ccol, 1.1);
+        K.rect(pg, cb.rt - 30, cb.y + 8, 19, 15, rc, ccol, 1.1);
+        K.hatch(pg, cb.rt - 29, cb.y + 9, 17, 13, rc, 4, ccol, 0.3);
+      } else {
+        K.hatch(pg, cb.x + 1, cb.y + 1, cb.w - 2, 6, rc, 6, ccol, 0.2);
+      }
+    }
+
+    // 해 보기 — 테두리와 손으로 그린 네모, 체크
+    var gg2 = K.fresh(document.getElementById('gradLines')), gb = K.rel(grad), r8 = K.rng(8);
+    K.rect(gg2, 2, 2, grad.offsetWidth - 4, grad.offsetHeight - 4, r8, K.C.ink, 1.4);
+    Array.prototype.forEach.call(grad.querySelectorAll('label'), function (lb, n) {
+      var b = gb(lb.querySelector('.bx')), r = K.rng(130 + n), on = lb.querySelector('input').checked;
+      K.rect(gg2, b.x, b.y, b.w, b.h, r, K.C.ink, 1.3);
+      if (on) K.curve(gg2, 'M' + (b.x + 4) + ' ' + (b.cy + 1) + ' L' + (b.x + 8) + ' ' + (b.b - 4) + ' L' + (b.rt - 2) + ' ' + (b.y + 2), r, K.C.find, 2.2);
+    });
+  }
+
+  var queued = false;
+  function schedule() {
+    if (queued) return;
+    queued = true;
+    setTimeout(function () { queued = false; draw(); }, 40);
+  }
+  function use(style) {
+    K = SketchKit(style);
+    document.documentElement.dataset.style = K.style;
+    Array.prototype.forEach.call(document.querySelectorAll('#pick button'), function (b) { b.classList.toggle('on', b.dataset.s === K.style); });
+    select(picked);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+  }
+
+  // 체 고르기
+  document.getElementById('pick').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-s]');
+    if (b) { use(b.dataset.s); if (history.replaceState) history.replaceState(null, '', '#' + b.dataset.s); }
+  });
+  // 걸음 고르기 — 단추 · 그림 안 이름표 · 설명 공책의 이전/다음
+  walk.addEventListener('click', function (e) { var b = e.target.closest('button[data-k]'); if (b) select(b.dataset.k); });
+  map.addEventListener('click', function (e) { var s = e.target.closest('.spot'); if (s) select(s.dataset.k); });
+  map.addEventListener('keydown', function (e) {
+    var s = e.target.closest('.spot');
+    if (s && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(s.dataset.k); }
+  });
+  panel.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-go]');
+    if (b && b.dataset.go) { select(b.dataset.go); walk.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
+
+  // 해 보기 체크는 이 브라우저에만 남는다
+  var GK = 'ubo-ojt-map-7';
+  var boxes = grad.querySelectorAll('input');
+  try { var saved = JSON.parse(localStorage.getItem(GK) || '{}'); Array.prototype.forEach.call(boxes, function (b) { b.checked = !!saved[b.dataset.k]; }); } catch (e) {}
+  function paintGrad() {
+    Array.prototype.forEach.call(boxes, function (b) { b.parentNode.querySelector('span').classList.toggle('on', b.checked); });
+  }
+  grad.addEventListener('change', function () {
+    paintGrad();
+    try { var o = {}; Array.prototype.forEach.call(boxes, function (b) { o[b.dataset.k] = b.checked; }); localStorage.setItem(GK, JSON.stringify(o)); } catch (e) {}
+    schedule();
+  });
+  paintGrad();
+
+  function fromHash() {
+    var h = (location.hash || '').slice(1);
+    use(['pencil', 'textbook', 'blueprint'].indexOf(h) >= 0 ? h : 'pencil');
+  }
+  fromHash();
+  window.addEventListener('hashchange', fromHash);
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', schedule);
+  window.addEventListener('load', schedule);
+  window.addEventListener('resize', schedule);
+  if (window.ResizeObserver) { var ro = new ResizeObserver(schedule); ro.observe(map); ro.observe(panel); ro.observe(grad); }
+})();
+</script>
+</body>
+</html>

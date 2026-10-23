@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko" data-style="pencil">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>신입 교재 — 목차</title>
+<!-- 전체 목차 — 두 층. 윗층 「교재」(textbook.html: 0~9장 + 부록) · 아랫층 「이카운트 길잡이」(ecount.html: E0 + 길 일곱). 상자를 누르면 그 목차로. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Brush+Script&family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f8f4ea; --ink: #36332d; --ink-soft: #5d584e; --ink-faint: #8b8476;
+    --marker: rgba(255, 214, 64, 0.55); --find: #2f5d87; --talk: #b5523b; --db: #4f7d4a;
+    --mono: ui-monospace, 'Cascadia Mono', Consolas, 'D2Coding', monospace;
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.3  0 0 0 0 0.22  0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--paper); }
+  body { min-height: 100vh; color: var(--ink); font-family: 'Gaegu', cursive; background-color: var(--paper); background-image: var(--grain); padding: 18px 16px 28px; word-break: keep-all; overflow-wrap: anywhere; }
+  .page { max-width: 860px; margin: 0 auto; }
+  .brush { font-family: 'Nanum Brush Script', 'Gaegu', cursive; font-weight: 400; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+  svg.over { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+
+  .pick { display: flex; justify-content: center; gap: 6px; margin-bottom: 14px; font-family: system-ui, sans-serif; }
+  .pick button { font-size: 13px; border: 1px solid #c9ced6; background: #fff; border-radius: 999px; padding: 5px 12px; }
+  .pick button.on { background: #1f2937; border-color: #1f2937; color: #fff; }
+
+  .hero { text-align: center; }
+  .hero .kick { font-size: clamp(14px, 1.7vw, 17px); color: var(--ink-soft); letter-spacing: 0.04em; }
+  .hero h1 { font-size: clamp(40px, 7vw, 62px); line-height: 1.05; margin-top: 2px; }
+  .hero p { margin-top: 4px; font-size: clamp(15px, 1.9vw, 18px); color: var(--ink-soft); }
+
+  /* 두 층 — 위가 이치, 아래가 도구 */
+  .map { position: relative; margin-top: 30px; }
+  .grid { position: relative; z-index: 1; display: grid; grid-template-columns: 76px minmax(0, 1fr); grid-template-rows: auto 44px auto; column-gap: 22px; }
+  .tag { align-self: center; text-align: right; font-size: clamp(13px, 1.6vw, 15px); color: var(--ink-soft); line-height: 1.2; }
+  .tag b { display: block; font-size: clamp(16px, 2vw, 19px); color: var(--ink); }
+  .box { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; padding: 18px 22px 16px; min-height: 96px; }
+  .box .t { font-size: clamp(28px, 4vw, 40px); line-height: 1.05; padding: 0 4px; }
+  .box .w { flex-basis: 100%; font-size: clamp(14px, 1.8vw, 16.5px); color: var(--ink-soft); line-height: 1.3; }
+  .box .w b { color: var(--ink); }
+  .box .pills { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 2px; }
+  .box .pill { position: relative; font-size: clamp(12.5px, 1.5vw, 14px); color: var(--ink-soft); line-height: 1; padding: 6px 9px 5px; }
+  .box:hover .t, .box:focus-visible .t { background: linear-gradient(transparent 55%, var(--marker) 55%, var(--marker) 94%, transparent 94%); }
+  .box:focus-visible { outline: 2px dashed var(--find); outline-offset: 2px; }
+  #t1 { grid-area: 1 / 1 / 2 / 2; } #b1 { grid-area: 1 / 2 / 2 / 3; }
+  #mid { grid-area: 2 / 2 / 3 / 3; align-self: center; text-align: center; font-size: clamp(13px, 1.6vw, 15px); color: var(--ink-faint); }
+  #t2 { grid-area: 3 / 1 / 4 / 2; } #b2 { grid-area: 3 / 2 / 4 / 3; }
+  @media (max-width: 560px) { .grid { grid-template-columns: minmax(0, 1fr); } .tag { text-align: left; } #t1 { grid-area: 1 / 1; } #b1 { grid-area: 2 / 1; } #mid { grid-area: 3 / 1; } #t2 { grid-area: 4 / 1; } #b2 { grid-area: 5 / 1; } }
+
+  .how { position: relative; margin: 26px auto 0; max-width: 760px; padding: 14px 18px 12px 26px; }
+  .how > * { position: relative; z-index: 1; }
+  .how h3 { font-size: clamp(24px, 3.4vw, 30px); line-height: 1.05; margin-bottom: 4px; }
+  .how p { font-size: clamp(15px, 1.8vw, 17px); line-height: 1.4; color: var(--ink-soft); }
+  .how p b { color: var(--ink); }
+  .foot { margin-top: 14px; text-align: center; font-size: clamp(12px, 1.4vw, 13.5px); color: var(--ink-faint); line-height: 1.4; }
+
+  html[data-style="textbook"] { --paper: #ffffff; --ink: #1f2937; --ink-soft: #4b5563; --ink-faint: #a3aab5; --find: #1f5fae; --talk: #b8432f; --db: #2f7d4f; --marker: rgba(31, 95, 174, 0.14); }
+  html[data-style="textbook"] body { font-family: 'Noto Sans KR', system-ui, sans-serif; background: #fff; background-image: none; letter-spacing: -0.01em; }
+  html[data-style="textbook"] .brush { font-family: 'Noto Sans KR', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; }
+  html[data-style="textbook"] .hero h1 { font-size: clamp(28px, 4.4vw, 40px); }
+  html[data-style="textbook"] .hero p, html[data-style="textbook"] .hero .kick { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="textbook"] .box .t { font-size: clamp(20px, 2.8vw, 27px); font-weight: 800; }
+  html[data-style="textbook"] .box .w, html[data-style="textbook"] .tag { font-size: clamp(12.5px, 1.5vw, 14px); }
+  html[data-style="textbook"] .tag b { font-size: clamp(14px, 1.7vw, 16px); }
+  html[data-style="textbook"] .box .pill { font-size: 12px; }
+  html[data-style="textbook"] .how h3 { font-size: clamp(18px, 2.4vw, 22px); }
+  html[data-style="textbook"] .how p { font-size: clamp(13px, 1.5vw, 14.5px); }
+
+  html[data-style="blueprint"] { --paper: #f6f8fb; --ink: #16365c; --ink-soft: #3d5878; --ink-faint: #9db0c6; --find: #1d6fb8; --talk: #c23b2e; --db: #2b7a5a; --marker: rgba(29, 111, 184, 0.13); --mono: 'IBM Plex Mono', 'IBM Plex Sans KR', ui-monospace, Consolas, monospace; }
+  html[data-style="blueprint"] body { font-family: 'IBM Plex Sans KR', system-ui, sans-serif; background-color: var(--paper);
+    background-image: linear-gradient(rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(rgba(29, 111, 184, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.045) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px; }
+  html[data-style="blueprint"] .page { border: 1.5px solid var(--ink); outline: 1px solid var(--ink); outline-offset: 5px; padding: 16px; background: rgba(246, 248, 251, 0.6); }
+  html[data-style="blueprint"] .brush { font-family: 'IBM Plex Sans KR', sans-serif; font-weight: 700; letter-spacing: 0.01em; }
+  html[data-style="blueprint"] .hero .kick::before { content: 'FIG. 0  '; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.2em; color: var(--ink-soft); }
+  html[data-style="blueprint"] .hero h1 { font-size: clamp(26px, 4vw, 36px); }
+  html[data-style="blueprint"] .hero p, html[data-style="blueprint"] .hero .kick { font-size: clamp(13px, 1.45vw, 14.5px); }
+  html[data-style="blueprint"] .box .t { font-size: clamp(18px, 2.6vw, 25px); font-weight: 700; }
+  html[data-style="blueprint"] .box:hover .t { background: none; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  html[data-style="blueprint"] .box .w, html[data-style="blueprint"] .tag { font-size: clamp(12px, 1.4vw, 13.5px); }
+  html[data-style="blueprint"] .tag b { font-size: clamp(13px, 1.6vw, 15px); }
+  html[data-style="blueprint"] .box .pill { font-size: 11.5px; }
+  html[data-style="blueprint"] .how h3 { font-size: clamp(17px, 2.2vw, 20px); }
+  html[data-style="blueprint"] .how p { font-size: clamp(12.5px, 1.45vw, 14px); }
+
+  @media print { .pick { display: none !important; } body { padding: 0; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="pick" id="pick">
+    <button type="button" data-s="pencil">연필 손그림</button>
+    <button type="button" data-s="textbook">교과서 도식</button>
+    <button type="button" data-s="blueprint">설계 도면</button>
+  </div>
+
+  <header class="hero">
+    <div class="kick">우보브랜드샵 · 목차</div>
+    <h1 class="brush">신입 교재</h1>
+    <p>두 층으로 되어 있다. 윗층은 일의 이치, 아랫층은 지금 쓰는 도구. 상자를 누르면 그 목차로 간다.</p>
+  </header>
+
+  <section class="map" id="map">
+    <svg class="over" id="lines" aria-hidden="true"></svg>
+    <div class="grid" id="grid">
+      <div class="tag" id="t1"><b>윗층</b>일의 이치<br>바뀌지 않는다</div>
+      <a class="box" id="b1" href="textbook.html"><span class="t brush">교재 — 주문 하나의 일생</span>
+        <span class="w">손님의 한 마디가 돈이 되어 장부에 적힐 때까지. <b>0장 우리 회사 한 장</b> → 1~6장 큰 길 → 7 · 8 · 9장 곁가지 + 부록 「우리가 파는 것 한 장」</span>
+        <span class="pills"><span class="pill">0 회사</span><span class="pill">1 견적 · 주문</span><span class="pill">2 출고</span><span class="pill">3 배송</span><span class="pill">4 입금</span><span class="pill">5 세금계산서</span><span class="pill">6 장부</span><span class="pill">7 사 오기</span><span class="pill">8 접수함</span><span class="pill">9 근태 · 급여</span><span class="pill">부록 파는 것</span></span></a>
+      <div id="mid">같은 걸음을, 아래에서는 지금 도구로</div>
+      <div class="tag" id="t2"><b>아랫층</b>지금 쓰는 도구<br>갈아끼운다</div>
+      <a class="box" id="b2" href="ecount.html"><span class="t brush">이카운트 길잡이</span>
+        <span class="w">어디서 무엇을 어떤 순서로 누르나. <b>E0 이카운트 한 장</b> + 길 일곱. 새 프로그램(UBO ONE)이 오면 이 층만 바뀐다</span>
+        <span class="pills"><span class="pill">E0 한 장</span><span class="pill">E1 영업</span><span class="pill">E2 창고</span><span class="pill">E3 돈</span><span class="pill">E4 세금 · 장부</span><span class="pill">E5 구매</span><span class="pill">E6 근태 · 급여</span><span class="pill">E7 기초등록</span></span></a>
+    </div>
+  </section>
+
+  <section class="how" id="how">
+    <svg class="over" id="howLines" aria-hidden="true"></svg>
+    <h3 class="brush">읽는 법</h3>
+    <p><b>순서</b> 윗층 0장 → 1장 → … 을 먼저. 장마다 아래에 「지금 · 이카운트」 카드가 있고, 그 화면을 실제로 누르는 법은 아랫층의 같은 길에 있다.</p>
+    <p><b>졸업</b> 장마다 · 길마다 「해 보기」 네 칸을 선배가 옆에서 보고 체크한다. (추정) 은 실무자 확인 전, 「회사가 채움」 은 회사가 정할 자리.</p>
+  </section>
+  <p class="foot">주소는 회사 안에서만 나눈다 · 실제 거래처 이름 · 금액 · 계정 정보는 적지 않는다 · 연습은 회사가 정한 연습 거래처 · 품목으로만</p>
+</div>
+
+<script src="sketch-kit.js"></script>
+<script>
+(function () {
+  'use strict';
+  var K;
+  var map = document.getElementById('map');
+  var how = document.getElementById('how');
+
+  function draw() {
+    var g = K.fresh(document.getElementById('lines'));
+    var at = (function (box) { return function (id) { return box(document.getElementById(id)); }; })(K.rel(map));
+    var b1 = at('b1'), b2 = at('b2');
+    // 윗층 — 굵은 두 겹. 아랫층 — 점선 한 겹 (갈아끼우는 층)
+    K.rect(g, b1.x, b1.y, b1.w, b1.h, K.rng(11), K.C.ink, 2.2);
+    K.rect(g, b1.x + 3, b1.y + 3, b1.w - 6, b1.h - 6, K.rng(12), K.C.ink, 0.9);
+    K.rect(g, b2.x, b2.y, b2.w, b2.h, K.rng(21), K.C.find, 1.6, '7 5');
+    K.hatch(g, b2.x, b2.y, b2.w, b2.h, K.rng(22), 10, K.C.find, 0.05);
+    // 알약들
+    ['b1', 'b2'].forEach(function (id, n) {
+      Array.prototype.forEach.call(document.getElementById(id).querySelectorAll('.pill'), function (p, m) {
+        var pb = at(id); var b = K.rel(map)(p);
+        K.rect(g, b.x, b.y, b.w, b.h, K.rng(100 + n * 30 + m), n ? K.C.find : K.C.ink, 1);
+      });
+    });
+    // 사이 — 위에서 아래로 내려가는 점선 화살표 둘
+    [0.3, 0.7].forEach(function (f, n) {
+      var x = b1.x + b1.w * f, r = K.rng(31 + n);
+      K.line(g, x, b1.b + 4, x, b2.y - 4, r, K.C.faint, 1.3, '4 5');
+      K.line(g, x, b2.y - 4, x - 6, b2.y - 13, r, K.C.faint, 1.2);
+      K.line(g, x, b2.y - 4, x + 6, b2.y - 13, r, K.C.faint, 1.2);
+    });
+    var hg = K.fresh(document.getElementById('howLines'));
+    K.rect(hg, 2, 2, how.offsetWidth - 4, how.offsetHeight - 4, K.rng(9), K.C.ink, 1.4);
+    K.line(hg, 12, 7, 12, how.offsetHeight - 7, K.rng(9), K.C.find, 2.2);
+  }
+
+  var queued = false;
+  function schedule() { if (queued) return; queued = true; setTimeout(function () { queued = false; draw(); }, 40); }
+  function use(style) {
+    K = SketchKit(style);
+    document.documentElement.dataset.style = K.style;
+    Array.prototype.forEach.call(document.querySelectorAll('#pick button'), function (b) { b.classList.toggle('on', b.dataset.s === K.style); });
+    Array.prototype.forEach.call(document.querySelectorAll('a.box'), function (a) { a.href = a.getAttribute('href').split('#')[0] + '#' + K.style; });
+    draw();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+  }
+  document.getElementById('pick').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-s]');
+    if (b) { use(b.dataset.s); if (history.replaceState) history.replaceState(null, '', '#' + b.dataset.s); }
+  });
+  function fromHash() { var h = (location.hash || '').slice(1); use(['pencil', 'textbook', 'blueprint'].indexOf(h) >= 0 ? h : 'pencil'); }
+  fromHash();
+  window.addEventListener('hashchange', fromHash);
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', schedule);
+  window.addEventListener('load', schedule);
+  window.addEventListener('resize', schedule);
+  if (window.ResizeObserver) { var ro = new ResizeObserver(schedule); ro.observe(map); ro.observe(how); }
+})();
+</script>
+</body>
+</html>

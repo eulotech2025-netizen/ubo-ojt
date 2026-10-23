@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="ko" data-style="pencil">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>우리 회사 한 장</title>
+<!--
+  우보브랜드샵 신입 교재 · 0장 「우리 회사 한 장」 — 슈니버시티 그림체(한 장 지도). 본보기 ch1-order.html 의 뼈대 그대로.
+  다만 시퀀스(.seq 생명선)가 아니라 구조 격자(.org) 다 — 위에서 아래로 업체 → 사업장 · 창고 → 재고 → 고객 · 직원.
+  글자는 HTML, 선은 그 위에 덮은 svg.over 에 sketch-kit.js 가 글자 자리를 재서 긋는다 (draw()).
+  그림체는 <html data-style> 과 SketchKit(…) 둘 다 바꾼다. 주소 #pencil · #textbook · #blueprint.
+  「회사가 채움」 · ____ 은 회사가 정해 줄 칸, (추정) 은 실무자 확인 전.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Brush+Script&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  /* ---------- 연필 손그림(원본) ---------- */
+  :root {
+    --paper: #f8f4ea; --ink: #36332d; --ink-soft: #5d584e; --ink-faint: #8b8476;
+    --marker: rgba(255, 214, 64, 0.55); --find: #2f5d87; --talk: #b5523b; --db: #4f7d4a;
+    --mono: ui-monospace, 'Cascadia Mono', Consolas, 'D2Coding', monospace;
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.3  0 0 0 0 0.22  0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--paper); }
+  body {
+    min-height: 100vh; color: var(--ink);
+    font-family: 'Gaegu', cursive; background-color: var(--paper); background-image: var(--grain);
+    padding: 18px 16px 28px; word-break: keep-all; overflow-wrap: anywhere;
+  }
+  .page { max-width: 860px; margin: 0 auto; }
+  .brush { font-family: 'Nanum Brush Script', 'Gaegu', cursive; font-weight: 400; }
+  button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+  svg.over { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+  .spot { cursor: pointer; }
+  .spot:focus-visible, button:focus-visible { outline: 2px dashed var(--find); outline-offset: 2px; }
+
+  .pick { display: flex; justify-content: center; gap: 6px; margin-bottom: 14px; font-family: system-ui, sans-serif; }
+  .pick button { font-size: 13px; border: 1px solid #c9ced6; background: #fff; border-radius: 999px; padding: 5px 12px; }
+  .pick button.on { background: #1f2937; border-color: #1f2937; color: #fff; }
+
+  .hero { text-align: center; }
+  .hero .kick { font-size: clamp(14px, 1.7vw, 17px); color: var(--ink-soft); letter-spacing: 0.04em; }
+  .hero h1 { font-size: clamp(36px, 6.4vw, 56px); line-height: 1.05; margin-top: 2px; }
+  .hero h1 span { display: inline-block; }
+  .hero p { margin-top: 4px; font-size: clamp(15px, 1.9vw, 18px); color: var(--ink-soft); }
+
+  /* 걸음 단추 — 뼈대(①~③) · 꼬리표(④~⑥) 두 묶음 */
+  .walk { position: relative; display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 8px 16px; margin-top: 14px; }
+  .grp { position: relative; z-index: 1; display: inline-flex; flex-direction: column; align-items: center; gap: 8px; }
+  .grp em { font-style: normal; font-size: 15px; font-weight: 700; line-height: 1; padding: 0 4px; }
+  .grp[data-g="none"] em { visibility: hidden; }
+  .bs { display: flex; gap: 6px; }
+  .walk button, .panel .nav button { font-size: 18px; line-height: 1; padding: 6px 9px 4px; border-radius: 6px; }
+  .bs button:nth-child(odd) { transform: rotate(-2deg); }
+  .bs button:nth-child(even) { transform: rotate(1.5deg); }
+  .walk button.on { background: var(--marker); }
+  .walk .nm { display: none; }
+  @media (min-width: 760px) { .walk .nm { display: inline; } }
+  @media (max-width: 400px) { .walk { gap: 8px 9px; } .bs { gap: 5px; } .walk button { font-size: 16px; padding: 6px 7px 4px; } }
+  .n { font-style: normal; }
+  .n.t { color: var(--talk); } .n.f { color: var(--find); } .n.d { color: var(--db); }
+
+  /* 구조 격자 — 네 열: 괄호 | 왼 절반 | ≠ 틈 | 오른 절반. 위에서 아래로 업체 → 사업장 · 창고 → 재고 → 고객 · 직원 */
+  .map { position: relative; margin-top: 10px; }
+  .org { position: relative; z-index: 1; display: grid; grid-template-columns: 58px minmax(0, 1fr) 30px minmax(0, 1fr); margin-top: 8px; }
+  .cell { position: relative; display: flex; flex-direction: column; align-items: center; padding: 12px 8px 14px; }
+  .rt { position: relative; text-align: center; padding: 0 34px; }
+  .rt b { display: inline-block; font-size: clamp(16px, 2.3vw, 22px); line-height: 1.15; padding: 0 3px; }
+  .rt span { display: block; font-size: clamp(12px, 1.65vw, 15px); color: var(--ink-soft); line-height: 1.2; margin-top: 2px; }
+  .cell:hover .rt b, .cell:focus-visible .rt b { text-decoration: underline wavy rgba(54, 51, 45, 0.35); text-underline-offset: 5px; }
+  .cell.lit .rt b { background: linear-gradient(transparent 52%, var(--marker) 52%, var(--marker) 94%, transparent 94%); }
+  .cell.tie .rt b { text-decoration: underline dashed rgba(54, 51, 45, 0.45); text-underline-offset: 5px; }
+  #c1 { grid-area: 1 / 2 / 2 / 5; }
+  #q1 { grid-area: 2 / 2 / 3 / 3; }
+  #q2 { grid-area: 2 / 4 / 3 / 5; }
+  #c2 { grid-area: 3 / 2 / 4 / 3; }
+  #q3 { grid-area: 3 / 3 / 4 / 4; }
+  #c3 { grid-area: 3 / 4 / 4 / 5; }
+  #c4 { grid-area: 4 / 2 / 5 / 5; }
+  #c5 { grid-area: 5 / 2 / 6 / 3; }
+  #c6 { grid-area: 5 / 4 / 6 / 5; }
+  #g-a { grid-area: 1 / 1 / 4 / 2; }
+  #g-b { grid-area: 4 / 1 / 6 / 2; }
+  .pad { grid-area: 6 / 1 / 7 / 5; height: 10px; }
+
+  /* 상자 — 글은 .in 안에, 선은 draw() 가 .in 둘레에 긋는다. 밑줄(____)은 상자 밑 — 회사가 채움 */
+  .boxes { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 6px 12px; margin-top: 10px; }
+  .bx { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+  .in { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 88px; min-height: 44px; padding: 7px 10px 5px; text-align: center; }
+  .boxes.three .in { min-width: 72px; min-height: 40px; }
+  .bx.more .in { min-width: 40px; color: var(--ink-faint); }
+  .in b { font-size: clamp(14px, 1.9vw, 18px); line-height: 1.1; }
+  .in small, .bx > small { display: block; font-size: clamp(11px, 1.4vw, 13px); color: var(--ink-soft); line-height: 1.15; }
+  .in small { margin-top: 2px; }
+  .blank { color: var(--ink-faint); letter-spacing: 1px; line-height: 1; }
+
+  /* ≠ — 업체 ≠ 사업장 ≠ 창고. 선은 draw() 가 점선으로 잇는다 */
+  .neq { display: flex; align-items: center; justify-content: center; min-height: 34px; padding: 2px 0; font-size: clamp(18px, 2.5vw, 24px); line-height: 1; color: var(--ink-soft); font-family: 'Noto Sans KR', system-ui, sans-serif; }
+  .neq i { font-style: normal; display: inline-block; padding: 0 2px; }
+  .neq.on { color: var(--find); font-weight: 700; }
+  .neq.s { min-height: 0; padding: 0; font-size: 15px; }
+
+  /* 재고 한 칸 — 숫자 하나 + 꼬리표 셋 + 셈 */
+  .stock { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px 22px; margin-top: 10px; }
+  .kan { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 10px; padding: 10px 14px; }
+  .kan > b { font-size: clamp(14px, 1.9vw, 18px); line-height: 1.1; padding-right: 4px; }
+  .tag { display: flex; flex-direction: column; justify-content: center; min-height: 40px; padding: 5px 10px 4px 18px; text-align: left; }
+  .tag b { font-size: clamp(13px, 1.75vw, 16px); line-height: 1.1; }
+  .tag small { font-size: clamp(11px, 1.35vw, 12.5px); color: var(--ink-soft); line-height: 1.15; margin-top: 2px; }
+  .formula { text-align: center; line-height: 1.2; margin-top: 6px; }
+  .formula b { display: block; font-size: clamp(15px, 2vw, 19px); }
+  .formula small { display: block; font-size: clamp(11px, 1.4vw, 13px); color: var(--ink-soft); margin-top: 2px; }
+
+  /* 하나 ↔ 여럿 — 고객 · 직원. 화살표는 .arr 자리에 draw() 가 긋는다 */
+  .pair { display: flex; align-items: stretch; justify-content: center; margin-top: 10px; }
+  .pair .bx { justify-content: center; }
+  .pair .in { flex: 1; min-width: 92px; }
+  .arr { width: 44px; flex: none; }
+  .many { display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 5px; }
+  .mini { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: flex-start; gap: 0 6px; padding: 4px 10px 3px; min-width: 150px; }
+  .mini b { font-size: clamp(13px, 1.7vw, 15.5px); line-height: 1.1; }
+  .mini small { font-size: clamp(11px, 1.35vw, 12.5px); color: var(--ink-soft); line-height: 1.15; }
+  .mini.more { color: var(--ink-faint); justify-content: center; }
+
+  /* 왼쪽 여백 — 두 갈래 괄호 */
+  .gut { display: flex; flex-direction: column; justify-content: center; align-items: flex-end; text-align: right; gap: 2px; padding: 6px 18px 6px 0; }
+  .gut b { font-size: clamp(14px, 1.9vw, 18px); line-height: 1.1; }
+  .gut span { font-size: clamp(12px, 1.55vw, 15px); color: var(--ink-soft); line-height: 1.15; }
+  .gut.on b { background: linear-gradient(transparent 55%, var(--marker) 55%, var(--marker) 94%, transparent 94%); }
+  @media (max-width: 559px) {
+    .gut { align-items: center; padding-right: 10px; }
+    .gut b { writing-mode: vertical-rl; text-orientation: upright; letter-spacing: 3px; }
+    .gut span { display: none; }
+    /* 폰 — 두 열(괄호 | 내용)로 세로로 쌓는다 */
+    .org { grid-template-columns: 40px minmax(0, 1fr); }
+    #c1 { grid-area: 1 / 2 / 2 / 3; }
+    #q1 { grid-area: 2 / 2 / 3 / 3; }
+    #q2 { display: none; }
+    #c2 { grid-area: 3 / 2 / 4 / 3; }
+    #q3 { grid-area: 4 / 2 / 5 / 3; }
+    #c3 { grid-area: 5 / 2 / 6 / 3; }
+    #c4 { grid-area: 6 / 2 / 7 / 3; }
+    #c5 { grid-area: 7 / 2 / 8 / 3; }
+    #c6 { grid-area: 8 / 2 / 9 / 3; }
+    #g-a { grid-area: 1 / 1 / 6 / 2; }
+    #g-b { grid-area: 6 / 1 / 9 / 2; }
+    .pad { grid-area: 9 / 1 / 10 / 3; }
+    .mini { min-width: 120px; }
+  }
+
+  /* 설명 공책 */
+  .panel { position: relative; margin-top: 18px; padding: 14px 18px 14px 28px; }
+  .panel > div { position: relative; z-index: 1; }
+  .panel h3 { font-size: clamp(30px, 4.2vw, 38px); line-height: 1.05; }
+  .cols { display: grid; gap: 14px 26px; margin-top: 6px; }
+  @media (min-width: 760px) { .cols.two { grid-template-columns: minmax(0, 1fr) minmax(240px, 330px); align-items: start; } }
+  .one { font-size: clamp(17px, 2vw, 19px); line-height: 1.38; }
+  .facts { display: grid; gap: 5px; margin-top: 9px; font-size: clamp(15px, 1.8vw, 17px); line-height: 1.35; color: var(--ink-soft); }
+  .facts > span > i { font-style: normal; font-weight: 700; color: var(--ink); margin-right: 6px; }
+  .steps { list-style: none; display: grid; gap: 4px; margin-top: 8px; }
+  .steps button { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; text-align: left; font-size: clamp(15px, 1.8vw, 17px); line-height: 1.3; padding: 2px 4px; border-radius: 4px; }
+  .steps button:hover { background: var(--marker); }
+  .steps b { white-space: nowrap; }
+  .card { position: relative; padding: 12px 14px 11px; }
+  .card.letter { padding-top: 24px; }
+  .card .ct { display: block; font-size: 16px; font-weight: 700; color: var(--ink-soft); line-height: 1.1; margin-bottom: 7px; }
+  .card .ln { font-size: clamp(14px, 1.6vw, 16px); line-height: 1.4; color: var(--ink); padding-left: 14px; text-indent: -14px; }
+  .card .ln::before { content: '› '; color: var(--ink-faint); }
+  .card .cap { font-size: 15px; color: var(--ink-soft); line-height: 1.3; margin-top: 6px; }
+  .card .rep { font-size: clamp(15px, 1.8vw, 17px); line-height: 1.45; }
+  .try { font-family: 'Nanum Pen Script', cursive; font-size: 23px; line-height: 1.15; color: var(--find); margin-top: 10px; }
+  .panel .nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; }
+  .panel .nav button { font-size: 17px; }
+  .panel .nav button[disabled] { visibility: hidden; }
+
+  .legend { margin: 16px auto 0; max-width: 780px; display: grid; gap: 5px; font-size: clamp(15px, 1.9vw, 17px); color: var(--ink-soft); text-align: center; line-height: 1.3; }
+  .legend .f { color: var(--find); font-weight: 700; }
+  .legend .t { color: var(--talk); font-weight: 700; }
+  .legend .d { color: var(--db); font-weight: 700; }
+
+  /* 해 보기 — 졸업 체크. 상자는 손으로 그린다 */
+  .grad { position: relative; margin-top: 22px; padding: 14px 18px 12px; }
+  .grad > * { position: relative; z-index: 1; }
+  .grad h3 { font-size: clamp(26px, 3.6vw, 32px); line-height: 1.05; margin-bottom: 6px; }
+  .grad label { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; font-size: clamp(15px, 1.9vw, 18px); line-height: 1.3; cursor: pointer; }
+  .grad input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .grad .bx { display: block; flex: none; width: 20px; height: 20px; margin-top: 1px; }
+  .grad .on { color: var(--ink-faint); text-decoration: line-through; text-decoration-color: rgba(54, 51, 45, 0.3); }
+  .grad .sign { margin-top: 8px; font-size: clamp(13px, 1.6vw, 15px); color: var(--ink-soft); }
+  .foot { margin-top: 14px; text-align: center; font-size: clamp(12px, 1.4vw, 13.5px); color: var(--ink-faint); line-height: 1.4; }
+
+  /* ---------- 교과서 도식 — 위 규칙을 덮는다 ---------- */
+  html[data-style="textbook"] { --paper: #ffffff; --ink: #1f2937; --ink-soft: #4b5563; --ink-faint: #a3aab5; --find: #1f5fae; --talk: #b8432f; --db: #2f7d4f; --marker: rgba(31, 95, 174, 0.14); }
+  html[data-style="textbook"] body { font-family: 'Noto Sans KR', system-ui, sans-serif; background: #fff; background-image: none; letter-spacing: -0.01em; }
+  html[data-style="textbook"] .brush { font-family: 'Noto Sans KR', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; }
+  html[data-style="textbook"] .hero h1 { font-size: clamp(25px, 3.8vw, 34px); }
+  html[data-style="textbook"] .hero p, html[data-style="textbook"] .hero .kick { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="textbook"] .walk button, html[data-style="textbook"] .panel .nav button { font-size: 14px; border-radius: 999px; border: 1px solid var(--ink-faint); padding: 5px 11px; }
+  html[data-style="textbook"] .bs button { transform: none; }
+  html[data-style="textbook"] .walk button.on { border-color: var(--find); }
+  html[data-style="textbook"] .grp em { font-size: 12.5px; }
+  html[data-style="textbook"] .rt b { font-size: clamp(14px, 1.9vw, 17px); font-weight: 700; }
+  html[data-style="textbook"] .rt span { font-size: clamp(11px, 1.4vw, 13px); }
+  html[data-style="textbook"] .in b, html[data-style="textbook"] .kan > b { font-size: clamp(12.5px, 1.6vw, 15px); font-weight: 700; }
+  html[data-style="textbook"] .in small, html[data-style="textbook"] .bx > small, html[data-style="textbook"] .tag small, html[data-style="textbook"] .mini small, html[data-style="textbook"] .formula small { font-size: 11.5px; }
+  html[data-style="textbook"] .tag b, html[data-style="textbook"] .mini b { font-size: clamp(12px, 1.5vw, 14px); font-weight: 700; }
+  html[data-style="textbook"] .formula b { font-size: clamp(13px, 1.7vw, 16px); font-weight: 800; }
+  html[data-style="textbook"] .neq { font-size: clamp(16px, 2.2vw, 21px); }
+  html[data-style="textbook"] .gut b { font-size: clamp(12px, 1.6vw, 15px); }
+  html[data-style="textbook"] .gut span { font-size: 11.5px; }
+  html[data-style="textbook"] .panel h3 { font-size: clamp(20px, 2.8vw, 25px); }
+  html[data-style="textbook"] .one { font-size: clamp(14px, 1.6vw, 16px); }
+  html[data-style="textbook"] .facts, html[data-style="textbook"] .steps button, html[data-style="textbook"] .card .rep { font-size: clamp(13px, 1.5vw, 14.5px); }
+  html[data-style="textbook"] .card .ln { font-size: clamp(12.5px, 1.4vw, 14px); }
+  html[data-style="textbook"] .card .cap, html[data-style="textbook"] .card .ct { font-size: 13px; }
+  html[data-style="textbook"] .try { font-family: inherit; font-size: clamp(13px, 1.5vw, 14.5px); font-weight: 700; }
+  html[data-style="textbook"] .legend { font-size: clamp(12px, 1.5vw, 13.5px); }
+  html[data-style="textbook"] .grad h3 { font-size: clamp(18px, 2.5vw, 22px); }
+  html[data-style="textbook"] .grad label { font-size: clamp(13px, 1.6vw, 15px); }
+
+  /* ---------- 설계 도면 — 위 규칙을 덮는다 ---------- */
+  html[data-style="blueprint"] { --paper: #f6f8fb; --ink: #16365c; --ink-soft: #3d5878; --ink-faint: #9db0c6; --find: #1d6fb8; --talk: #c23b2e; --db: #2b7a5a; --marker: rgba(29, 111, 184, 0.13); --mono: 'IBM Plex Mono', 'IBM Plex Sans KR', ui-monospace, Consolas, monospace; }
+  html[data-style="blueprint"] body {
+    font-family: 'IBM Plex Sans KR', system-ui, sans-serif; background-color: var(--paper);
+    background-image:
+      linear-gradient(rgba(29, 111, 184, 0.10) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(29, 111, 184, 0.10) 1px, transparent 1px),
+      linear-gradient(rgba(29, 111, 184, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(29, 111, 184, 0.045) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+  }
+  html[data-style="blueprint"] .page { border: 1.5px solid var(--ink); outline: 1px solid var(--ink); outline-offset: 5px; padding: 16px; background: rgba(246, 248, 251, 0.6); }
+  html[data-style="blueprint"] .brush { font-family: 'IBM Plex Sans KR', sans-serif; font-weight: 700; letter-spacing: 0.01em; }
+  html[data-style="blueprint"] .hero h1 { font-size: clamp(23px, 3.5vw, 32px); }
+  /* FIG. 처럼 라틴 글자만 있는 자리에만 Mono — 한글에 Mono 를 주면 띄어쓰기가 벌어진다 */
+  html[data-style="blueprint"] .hero .kick::before { content: 'FIG. 0  '; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.2em; color: var(--ink-soft); }
+  html[data-style="blueprint"] .hero p, html[data-style="blueprint"] .hero .kick { font-size: clamp(13px, 1.45vw, 14.5px); }
+  html[data-style="blueprint"] .walk button, html[data-style="blueprint"] .panel .nav button { font-size: 13.5px; border-radius: 0; border: 1px solid var(--ink-faint); padding: 5px 10px; letter-spacing: 0.02em; }
+  html[data-style="blueprint"] .bs button { transform: none; }
+  html[data-style="blueprint"] .walk button.on { background: none; border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  html[data-style="blueprint"] .grp em { font-size: 12px; letter-spacing: 0.06em; }
+  html[data-style="blueprint"] .cell.lit .rt b, html[data-style="blueprint"] .gut.on b { background: none; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  html[data-style="blueprint"] .rt b { font-size: clamp(13.5px, 1.8vw, 16px); font-weight: 700; }
+  html[data-style="blueprint"] .rt span { font-size: clamp(10.5px, 1.3vw, 12.5px); }
+  html[data-style="blueprint"] .in b, html[data-style="blueprint"] .kan > b { font-size: clamp(12px, 1.55vw, 14.5px); font-weight: 700; }
+  html[data-style="blueprint"] .in small, html[data-style="blueprint"] .bx > small, html[data-style="blueprint"] .tag small, html[data-style="blueprint"] .mini small, html[data-style="blueprint"] .formula small { font-size: 11px; }
+  html[data-style="blueprint"] .tag b, html[data-style="blueprint"] .mini b { font-size: clamp(11.5px, 1.45vw, 13.5px); font-weight: 700; }
+  html[data-style="blueprint"] .formula b { font-size: clamp(12.5px, 1.6vw, 15.5px); font-weight: 700; letter-spacing: 0.02em; }
+  html[data-style="blueprint"] .neq { font-size: clamp(15px, 2.1vw, 20px); }
+  html[data-style="blueprint"] .gut b { font-size: clamp(12px, 1.5vw, 14px); letter-spacing: 0.06em; }
+  html[data-style="blueprint"] .gut span { font-size: 11px; }
+  html[data-style="blueprint"] .panel h3 { font-size: clamp(18px, 2.6vw, 23px); }
+  html[data-style="blueprint"] .one { font-size: clamp(13.5px, 1.55vw, 15.5px); }
+  html[data-style="blueprint"] .facts, html[data-style="blueprint"] .steps button, html[data-style="blueprint"] .card .rep { font-size: clamp(12.5px, 1.45vw, 14px); }
+  html[data-style="blueprint"] .card .ln { font-size: clamp(12px, 1.35vw, 13.5px); }
+  html[data-style="blueprint"] .card .cap, html[data-style="blueprint"] .card .ct { font-size: 12.5px; }
+  html[data-style="blueprint"] .try { font-family: inherit; font-size: clamp(12.5px, 1.45vw, 14px); font-weight: 600; }
+  html[data-style="blueprint"] .legend { font-size: clamp(11.5px, 1.4vw, 13px); }
+  html[data-style="blueprint"] .grad h3 { font-size: clamp(17px, 2.3vw, 20px); }
+  html[data-style="blueprint"] .grad label { font-size: clamp(12.5px, 1.5vw, 14.5px); }
+
+  @media print { .pick, .panel .nav { display: none !important; } body { padding: 0; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="pick" id="pick">
+    <button type="button" data-s="pencil">연필 손그림</button>
+    <button type="button" data-s="textbook">교과서 도식</button>
+    <button type="button" data-s="blueprint">설계 도면</button>
+    <a href="textbook.html" id="back" style="font-size:13px;color:var(--ink-soft);align-self:center;margin-left:10px;text-decoration:none" onclick="this.href='textbook.html#'+(document.documentElement.dataset.style||'pencil')">← 교재 목차</a>
+  </div>
+
+  <header class="hero">
+    <div class="kick">신입 교재 · 0장 · 주문 하나의 일생</div>
+    <h1 class="brush"><span>우리 회사</span> <span>한 장</span></h1>
+    <p>주문을 따라가기 전에 회사의 생김새를 한 장으로 — 서로 다른 셋과, 그 셋을 가리키는 꼬리표.</p>
+  </header>
+
+  <nav class="walk" id="walk" aria-label="여섯 걸음 고르기">
+    <svg class="over" id="walkLines" aria-hidden="true"></svg>
+    <span class="grp" data-g="none"><em>·</em><span class="bs"><button type="button" data-k="all">전체</button></span></span>
+    <span class="grp" data-g="a"><em>뼈대 · 서로 다른 셋</em><span class="bs">
+      <button type="button" data-k="1"><span class="n f">①</span><span class="nm"> 업체 다섯</span></button>
+      <button type="button" data-k="2"><span class="n f">②</span><span class="nm"> 사업장</span></button>
+      <button type="button" data-k="3"><span class="n f">③</span><span class="nm"> 창고</span></button>
+    </span></span>
+    <span class="grp" data-g="b"><em>꼬리표 · 뼈대를 가리킨다</em><span class="bs">
+      <button type="button" data-k="4"><span class="n d">④</span><span class="nm"> 재고</span></button>
+      <button type="button" data-k="5"><span class="n t">⑤</span><span class="nm"> 고객</span></button>
+      <button type="button" data-k="6"><span class="n f">⑥</span><span class="nm"> 직원 · 권한</span></button>
+    </span></span>
+  </nav>
+
+  <section class="map" id="map">
+    <svg class="over" id="lines" aria-hidden="true"></svg>
+    <div class="org" id="org">
+      <div class="gut" id="g-a"><b>뼈대</b><span>서로 다른 셋</span></div>
+      <div class="gut" id="g-b"><b>꼬리표</b><span>뼈대를 가리킨다</span></div>
+
+      <!-- 1줄 업체 다섯 -->
+      <div class="cell spot" id="c1" data-k="1" data-b="co" tabindex="0" role="button">
+        <div class="rt"><b><i class="n f">①</i> 업체 다섯</b><span>판매 명의 — 양식 · 계좌 · 사업자번호가 업체마다 따로</span></div>
+        <div class="boxes five" id="b-co">
+          <div class="bx"><span class="in"><b>업체 1</b></span><small class="blank">______</small></div>
+          <div class="bx"><span class="in"><b>업체 2</b></span><small class="blank">______</small></div>
+          <div class="bx"><span class="in"><b>업체 3</b></span><small class="blank">______</small></div>
+          <div class="bx"><span class="in"><b>업체 4</b></span><small class="blank">______</small></div>
+          <div class="bx"><span class="in"><b>업체 5</b></span><small class="blank">______</small></div>
+        </div>
+      </div>
+
+      <!-- 1줄 → 2줄 : 업체 ≠ 사업장 ≠ 창고 -->
+      <div class="neq" id="q1" aria-hidden="true"><i>≠</i></div>
+      <div class="neq" id="q2" aria-hidden="true"><i>≠</i></div>
+
+      <!-- 2줄 사업장 · 창고 -->
+      <div class="cell spot" id="c2" data-k="2" data-b="si" tabindex="0" role="button">
+        <div class="rt"><b><i class="n f">②</i> 사업장</b><span>일하는 곳 — 매장 · 사무실</span></div>
+        <div class="boxes three" id="b-si">
+          <div class="bx"><span class="in"><b>사업장 1</b></span><small class="blank">______</small></div>
+          <div class="bx"><span class="in"><b>사업장 2</b></span><small class="blank">______</small></div>
+          <div class="bx"><span class="in"><b>사업장 3</b></span><small class="blank">______</small></div>
+          <div class="bx more"><span class="in"><b>…</b></span><small>몇 개?</small></div>
+        </div>
+      </div>
+      <div class="neq" id="q3" aria-hidden="true"><i>≠</i></div>
+      <div class="cell spot" id="c3" data-k="3" data-b="wh" tabindex="0" role="button">
+        <div class="rt"><b><i class="n f">③</i> 창고</b><span>물건 있는 곳 — 창고 · 진열</span></div>
+        <div class="boxes three" id="b-wh">
+          <div class="bx"><span class="in"><b>창고 1</b></span><small class="blank">______</small></div>
+          <div class="bx"><span class="in"><b>창고 2</b></span><small class="blank">______</small></div>
+          <div class="bx"><span class="in"><b>창고 3</b></span><small class="blank">______</small></div>
+          <div class="bx more"><span class="in"><b>…</b></span><small>몇 개?</small></div>
+        </div>
+      </div>
+
+      <!-- 3줄 재고 한 칸 -->
+      <div class="cell spot" id="c4" data-k="4" data-b="st" tabindex="0" role="button">
+        <div class="rt"><b><i class="n d">④</i> 재고 한 칸</b><span>숫자 하나에 꼬리표 셋 — 합계로 보여 주지 않는다</span></div>
+        <div class="stock">
+          <div class="kan" id="b-st"><b>숫자 하나</b>
+            <span class="tag"><b>어디 있나</b><small>창고 하나 (③)</small></span>
+            <span class="tag"><b>누구 것</b><small>업체 하나 (①)</small></span>
+            <span class="tag"><b>상태</b><small>정상 · 불량 · 전시 · 예약</small></span>
+          </div>
+          <div class="formula"><b>팔 수 있는 수량 = 정상 − 예약</b><small>전시 · 불량은 아니다</small></div>
+        </div>
+      </div>
+
+      <!-- 4줄 고객 · 직원 -->
+      <div class="cell spot" id="c5" data-k="5" data-b="cu" tabindex="0" role="button">
+        <div class="rt"><b><i class="n t">⑤</i> 고객 하나, 업체 여럿</b><span>명부는 하나 · 조건은 업체별</span></div>
+        <div class="pair">
+          <div class="bx" id="b-cu"><span class="in"><b>고객 하나</b><small>이름 · 전화 한 번</small></span></div>
+          <div class="arr" aria-hidden="true"></div>
+          <div class="many" id="m-cu">
+            <span class="mini"><b>업체 1</b><small>단가 · 결제 · 미수</small></span>
+            <span class="mini"><b>업체 2</b><small>단가 · 결제 · 미수</small></span>
+            <span class="mini more"><b>…</b></span>
+          </div>
+        </div>
+      </div>
+      <div class="cell spot" id="c6" data-k="6" data-b="em" tabindex="0" role="button">
+        <div class="rt"><b><i class="n f">⑥</i> 직원과 권한</b><span>소속 ≠ 근무지 · 권한 = 업체 × 역할</span></div>
+        <div class="pair">
+          <div class="bx" id="b-em"><span class="in"><b>직원</b><small>나</small></span></div>
+          <div class="arr" aria-hidden="true"></div>
+          <div class="many" id="m-em">
+            <span class="mini"><b>소속</b><small>업체 하나 (①)</small></span>
+            <span class="neq s" aria-hidden="true">≠</span>
+            <span class="mini"><b>근무지</b><small>사업장 하나 (②)</small></span>
+          </div>
+        </div>
+        <div class="formula"><b>권한 = 업체 × 역할</b><small>역할은 크게 실무 · 관리</small></div>
+      </div>
+      <div class="pad"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel" aria-live="polite">
+    <svg class="over" id="panelLines" aria-hidden="true"></svg>
+    <div id="panelBody"></div>
+  </section>
+
+  <footer class="legend">
+    <div><span class="f">① ② ③ ⑥ 정하기 · 알아보기</span> · <span class="t">⑤ 손님과 주고받기</span> · <span class="d">④ 저장 · 기록</span></div>
+    <div><b>①②③ 뼈대</b>는 서로 다른 셋 — 업체 ≠ 사업장 ≠ 창고 · <b>④⑤⑥ 꼬리표</b>는 뼈대를 가리킨다 — 재고 · 고객 · 직원에 업체 · 창고 · 사업장이 붙는다</div>
+  </footer>
+
+  <section class="grad" id="grad">
+    <svg class="over" id="gradLines" aria-hidden="true"></svg>
+    <h3 class="brush">해 보기 · 0장 졸업</h3>
+    <label><input type="checkbox" data-k="g1"><i class="bx"></i><span>업체 5개 이름 · 사업장 · 창고를 빈 종이에 그렸다 (이름 · 수는 회사가 채움)</span></label>
+    <label><input type="checkbox" data-k="g2"><i class="bx"></i><span>재고 숫자 하나를 꼬리표 셋 — 어디 · 누구 것 · 상태 — 로 읽었다</span></label>
+    <label><input type="checkbox" data-k="g3"><i class="bx"></i><span>한 고객이 두 업체와 거래하는 예를 하나 말했다</span></label>
+    <label><input type="checkbox" data-k="g4"><i class="bx"></i><span>내 소속 업체 · 근무지 · 권한을 한 줄로 말했다</span></label>
+    <p class="sign">옆에서 본 선배 ____________ · 날짜 ____________</p>
+  </section>
+
+  <p class="foot">주소는 회사 안에서만 나눈다 · 실제 업체 · 거래처 이름 · 금액 · 계정 정보는 적지 않는다 · (추정) 은 실무자 확인 전 · 「회사가 채움」 과 ____ 은 회사가 정해 줄 칸 · 기능 번호(CORE-01 …)는 새 프로그램의 같은 기능을 가리키는 열쇠</p>
+</div>
+
+<script src="sketch-kit.js"></script>
+<script>
+(function () {
+  'use strict';
+  var STEPS = ['1', '2', '3', '4', '5', '6'];
+  var NUM = { 1: '①', 2: '②', 3: '③', 4: '④', 5: '⑤', 6: '⑥' };
+  var NAME = { 1: '업체 다섯', 2: '사업장', 3: '창고', 4: '재고의 꼬리표 셋', 5: '고객 하나, 업체 여럿', 6: '직원과 권한' };
+  var KIND = { 1: 'find', 2: 'find', 3: 'find', 4: 'db', 5: 'talk', 6: 'find' };   // 색은 뜻으로만
+  var PHASE = { 1: 'a', 2: 'a', 3: 'a', 4: 'b', 5: 'b', 6: 'b' };                 // 뼈대 · 꼬리표
+  // 걸음을 고르면 밝아지는 상자(두 겹 테두리 + 형광펜) — 상자 이름은 .cell 의 data-b
+  var LIT = { 1: ['co'], 2: ['si'], 3: ['wh'], 4: ['st'], 5: ['cu'], 6: ['em'] };
+  // 그 꼬리표가 가리키는 뼈대 — 제목에 점선 밑줄
+  var TIE = { 1: [], 2: [], 3: [], 4: ['wh', 'co'], 5: ['co'], 6: ['co', 'si'] };
+
+  // 설명 — one 은 한두 문장, facts 는 [이름표, 내용], card 는 오른쪽 쪽지(지금 · 이카운트)
+  var INFO = {
+    all: { title: '우리 회사 한 장',
+      one: '업체 · 사업장 · 창고는 서로 다른 셋이다. 재고 · 고객 · 직원에는 그 셋을 가리키는 꼬리표가 붙는다. 번호를 누르면 그 상자만 밝아진다.',
+      list: { 1: '판매 명의 5개 — 양식 · 계좌 · 사업자번호가 따로', 2: '일하는 곳 — 업체와 다르다', 3: '물건 있는 곳 — 사업장과도 다르다', 4: '어디 있나 · 누구 것 · 상태 — 합계로 보지 않는다', 5: '명부는 하나, 거래 조건은 업체별', 6: '소속 ≠ 근무지, 권한 = 업체 × 역할' },
+      card: { t: '한 줄로', html: '<p class="rep"><b>뼈대는 셋</b> — 업체 ≠ 사업장 ≠ 창고.<br><b>꼬리표가 가리킨다</b> — 재고는 창고 · 업체를, 고객은 업체를, 직원은 업체 · 사업장을.</p>' } },
+    1: { title: '① 업체 다섯',
+      one: '우리는 업체 5개 명의로 판다. 모든 거래에 「어느 업체 명의인지」가 적히고, 양식 · 계좌 · 사업자번호 · 단가 · 장부 · 부가세가 업체마다 따로다.',
+      facts: [['명의', '견적서 · 거래명세서 · 세금계산서에 그 업체의 로고 · 사업자번호 · 계좌가 저절로 (회사법 가-2 · CORE-01)'], ['이름 다섯', '____ · ____ · ____ · ____ · ____ — 회사가 채움'], ['한 회사?', '5개가 따로 법인인지, 한 법인의 사업자 여럿인지 — 회사가 채움 (미결정 2)']],
+      card: { t: '지금 · 이카운트', lines: ['업체 하나 = 이카운트 계정 하나. 5계정에 따로 로그인 (09-24 확인)', '회사 정보 · 양식 · 계좌는 계정마다 따로 (추정)'], cap: '조심: 지금 어느 계정에 들어와 있는지 먼저 본다 — 계정이 곧 명의다' },
+      tryit: '업체 5개 이름과 짝이 되는 계정을 빈 종이에 적어 본다' },
+    2: { title: '② 사업장',
+      one: '사업장은 「일하는 곳」 — 매장 · 사무실. 업체(명의)와는 다른 것이라 따로 적는다. 몇 개인지, 어디인지는 회사가 채움.',
+      facts: [['뜻', '사람이 출근해 일하는 곳. 직원의 근무지가 이것 (회사법 가-1 · CORE-02)'], ['≠ 업체', '업체는 명의, 사업장은 장소. 업체 이름에 지역이 있어도 그 장소와 같다고 보지 않는다 (CORE-02)'], ['몇 개', '상자 셋은 자리만 — 수와 이름은 회사가 채움']],
+      card: { t: '지금 · 이카운트', lines: ['「일하는 곳」 칸은 따로 없다 — 담당자 · 창고로 나눠 쓴다 (추정)', '사업자 정보는 계정마다 따로 (추정)'], cap: '조심: 「○○점」 같은 이름이 업체 · 사업장 · 창고 중 무엇인지 선배에게 묻는다' } },
+    3: { title: '③ 창고',
+      one: '창고는 「물건이 있는 곳」이다. 사업장과 다르고 업체와도 다르다 — 재고의 「어디 있나」 꼬리표가 이것을 가리킨다.',
+      facts: [['뜻', '물건이 놓인 곳. 매장 진열도 창고 하나로 셀 수 있다 (추정) (CORE-02)'], ['≠ 사업장', '일하는 곳과 물건 있는 곳은 따로 적는다 (회사법 가-1)'], ['몇 개', '수와 이름은 회사가 채움']],
+      card: { t: '지금 · 이카운트', lines: ['재고 I › 기초등록 › 창고등록(E040102) — 계정마다 (추정)', '창고별재고현황으로 창고마다 본다 (추정)'], cap: '조심: 다른 업체 계정의 창고에서 빼면 두 계정 재고가 다 틀어진다 (추정)' } },
+    4: { title: '④ 재고의 꼬리표 셋',
+      one: '재고 숫자 하나에는 꼬리표가 셋 붙는다 — 어디 있나(창고) · 누구 것(업체) · 상태. 전부 더한 합계를 「팔 수 있는 수량」이라 부르지 않는다.',
+      facts: [['상태 넷', '정상 · 불량 · 전시 · 예약. 팔 수 있는 수량 = 정상 − 예약 (회사법 나-1 · STK-01)'], ['누구 것', '소유 업체. 다른 업체 것을 내보내면 「대리출고」 표시 (STK-05)'], ['전환기', '지금은 이카운트 재고가 기준. 숫자는 내부 → 이카운트 한 방향 (회사법 나-2)']],
+      card: { t: '지금 · 이카운트', lines: ['재고 I › 기초등록 › 품목등록(E040103) — 계정마다 (추정)', '재고현황은 창고별 숫자만 — 소유 · 상태 꼬리표는 없다 (추정)', '불량 · 전시는 창고를 따로 두거나 메모로 (추정)'], cap: '조심: 합계 숫자만 보고 「있어요」 — 그 안에 예약 · 전시 · 불량이 섞여 있다' },
+      tryit: '재고 숫자 하나를 골라 꼬리표 셋으로 읽어 본다' },
+    5: { title: '⑤ 고객 하나, 업체 여럿',
+      one: '고객 명부는 하나다. 같은 손님이 업체 둘과 거래해도 이름은 한 번 — 단가 · 결제 조건 · 미수는 업체마다 따로 적힌다.',
+      facts: [['명부 하나', '이름 · 전화번호로 한 번 찾는다 (회사법 가-3 · CORE-04)'], ['조건은 업체별', '단가 · 결제 조건 · 미수가 고객 × 업체 짝마다 (CORE-04 · ORD-01)'], ['어느 업체로', '어느 고객을 왜 어느 업체 명의로 하나 — 회사가 채움 (미결정 3)']],
+      card: { t: '지금 · 이카운트', lines: ['재고 I › 기초등록 › 거래처등록(E010101) — 거래하는 계정마다 (추정)', '같은 손님이 계정 둘에 두 번 등록돼 있을 수 있다 (추정)'], cap: '조심: 계정마다 이름 표기가 달라 같은 손님인지 못 알아본다 (추정)' },
+      tryit: '한 고객이 두 업체와 거래하는 예를 하나 말해 본다' },
+    6: { title: '⑥ 직원과 권한',
+      one: '직원의 소속 업체와 근무지는 다를 수 있다 — 따로 적는다. 권한은 「어느 업체의 어떤 역할」로 받고, 다른 업체 것은 안 보인다.',
+      facts: [['소속 ≠ 근무지', '소속은 업체, 근무지는 사업장 (회사법 가-4 · CORE-03)'], ['권한 = 업체 × 역할', '역할은 크게 실무 · 관리 둘 — 관리는 실무 화면을 다 쓰고 5개 업체를 합쳐 본다 (CORE-03)'], ['내 것', '내 소속 · 근무지 · 권한은 선배에게 확인 — 회사가 채움']],
+      card: { t: '지금 · 이카운트', lines: ['재고 I › 기초등록 › 사원(담당)등록(E010110) · 사용자등록 — 계정마다 (추정)', '권한 = 계정 로그인. 들어간 계정의 것은 다 보인다 (추정)', '알림 · 조직도는 카카오워크 (추정)'], cap: '나중 · UBO ONE: 한 번 등록, 권한은 업체 × 역할, 다른 업체 데이터는 안 보인다 (CORE-03)' },
+      tryit: '내 소속 · 근무지 · 권한을 한 줄로 말해 본다' }
+  };
+
+  var K;
+  var map = document.getElementById('map');
+  var org = document.getElementById('org');
+  var walk = document.getElementById('walk');
+  var panel = document.getElementById('panel');
+  var panelBody = document.getElementById('panelBody');
+  var grad = document.getElementById('grad');
+  var cells = Array.prototype.slice.call(org.querySelectorAll('.cell'));
+  var neqs = Array.prototype.slice.call(document.querySelectorAll('#org > .neq'));
+  var picked = 'all';
+  var esc = function (s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var label = function (k) { return k === 'all' ? '전체' : NUM[k] + ' ' + NAME[k]; };
+  var color = function (k) { return k === 'all' ? K.C.ink : K.C[KIND[k]]; };
+
+  function select(k) {
+    picked = k;
+    var i = STEPS.indexOf(k);
+    var lit = LIT[k] || [], tie = TIE[k] || [];
+    cells.forEach(function (el) {
+      el.classList.toggle('lit', lit.indexOf(el.dataset.b) >= 0);
+      el.classList.toggle('tie', tie.indexOf(el.dataset.b) >= 0);
+      el.setAttribute('aria-pressed', String(el.dataset.k === k));
+    });
+    neqs.forEach(function (q) { q.classList.toggle('on', PHASE[k] === 'a'); });
+    document.getElementById('g-a').classList.toggle('on', PHASE[k] === 'a');
+    document.getElementById('g-b').classList.toggle('on', PHASE[k] === 'b');
+    Array.prototype.forEach.call(walk.querySelectorAll('button'), function (b) {
+      b.classList.toggle('on', b.dataset.k === k);
+      b.setAttribute('aria-pressed', String(b.dataset.k === k));
+    });
+
+    var info = INFO[k], col = color(k);
+    var h = '<h3 class="brush" style="color:' + col + '">' + info.title + '</h3>';
+    h += '<div class="cols' + (info.card ? ' two' : '') + '"><div>';
+    h += '<p class="one">' + info.one + '</p>';
+    if (info.facts) h += '<div class="facts">' + info.facts.map(function (f) { return '<span><i>' + f[0] + '</i>' + f[1] + '</span>'; }).join('') + '</div>';
+    if (info.list) {
+      h += '<ul class="steps">' + STEPS.map(function (s) {
+        return '<li><button type="button" data-go="' + s + '"><b style="color:' + color(s) + '">' + NUM[s] + ' ' + NAME[s] + '</b>' + info.list[s] + '</button></li>';
+      }).join('') + '</ul>';
+    }
+    if (info.tryit) h += '<p class="try">해 보기: ' + info.tryit + '</p>';
+    h += '</div>';
+    var prev = i < 0 ? null : (i === 0 ? 'all' : STEPS[i - 1]);
+    var next = i < 0 ? '1' : (i === STEPS.length - 1 ? 'all' : STEPS[i + 1]);
+    var nav = '<div class="nav"><button type="button" data-go="' + (prev || '') + '"' + (prev ? '' : ' disabled') + '>← ' + (prev ? label(prev) : '') + '</button>' +
+      '<button type="button" data-go="' + next + '">' + (i < 0 ? '① 업체 다섯 부터' : label(next)) + ' →</button></div>';
+    if (info.card) {
+      var body = info.card.html || '';
+      if (info.card.lines) body += info.card.lines.map(function (l) { return '<div class="ln">' + esc(l) + '</div>'; }).join('');
+      if (info.card.cap) body += '<p class="cap">' + info.card.cap + '</p>';
+      h += '<div><div class="card' + (info.card.letter ? ' letter' : '') + '" id="card"><span class="ct">' + info.card.t + '</span>' + body + '</div>' + nav + '</div>';
+      h += '</div>';
+    } else {
+      h += '</div>' + nav;
+    }
+    panelBody.innerHTML = h;
+    schedule();
+  }
+
+  // 작은 그림 — 24 × 24 칸, (x, y) 는 왼쪽 위. 제목 왼쪽에 붙는다
+  function circle(g, cx, cy, rad, r, c, w) {
+    K.curve(g, 'M' + (cx - rad) + ' ' + cy + ' a' + rad + ' ' + rad + ' 0 1 0 ' + (rad * 2) + ' 0 a' + rad + ' ' + rad + ' 0 1 0 ' + (-rad * 2) + ' 0', r, c, w);
+  }
+  function glyph(g, kind, x, y, r, c, w) {
+    if (kind === 'seal') {                       // 도장 — 명의
+      circle(g, x + 12, y + 12, 10, r, c, w);
+      circle(g, x + 12, y + 12, 4, r, c, w * 0.8);
+    } else if (kind === 'house') {               // 집 — 일하는 곳
+      K.curve(g, 'M' + (x + 1) + ' ' + (y + 12) + ' L' + (x + 12) + ' ' + (y + 2) + ' L' + (x + 23) + ' ' + (y + 12), r, c, w);
+      K.rect(g, x + 4, y + 12, 16, 11, r, c, w);
+      K.rect(g, x + 10, y + 16, 5, 7, r, c, w * 0.8);
+    } else if (kind === 'crate') {               // 상자 — 물건 있는 곳
+      K.rect(g, x + 2, y + 5, 20, 17, r, c, w);
+      K.line(g, x + 2, y + 11, x + 22, y + 11, r, c, w * 0.8);
+      K.hatch(g, x + 2, y + 5, 20, 6, r, 4, c, 0.14);
+    } else if (kind === 'tag') {                 // 꼬리표 — 재고
+      K.curve(g, 'M' + (x + 9) + ' ' + (y + 4) + ' L' + (x + 22) + ' ' + (y + 4) + ' L' + (x + 22) + ' ' + (y + 20) + ' L' + (x + 9) + ' ' + (y + 20) + ' L' + (x + 2) + ' ' + (y + 12) + ' Z', r, c, w);
+      K.dot(g, x + 9, y + 12, 1.6, c);
+    } else {                                     // 사람 — 고객 · 직원(명찰)
+      circle(g, x + 12, y + 6, 4.5, r, c, w);
+      K.curve(g, 'M' + (x + 2) + ' ' + (y + 23) + ' Q' + (x + 12) + ' ' + (y + 9) + ' ' + (x + 22) + ' ' + (y + 23), r, c, w);
+      K.line(g, x + 2, y + 23, x + 22, y + 23, r, c, w * 0.8);
+      if (kind === 'badge') K.rect(g, x + 9, y + 15, 6, 5, r, c, w * 0.8);
+    }
+  }
+
+  function draw() {
+    var g = K.fresh(document.getElementById('lines'));
+    var box = K.rel(map);
+    var $ = function (sel) { return document.querySelector(sel); };
+    var all = function (sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); };
+    var lit = LIT[picked] || [];
+    var hot = function (id) { return lit.indexOf(id) >= 0; };
+
+    // 상자 둘레 — 밝은 것은 두 겹(굵은 바깥 + 가는 안)
+    function frame(el, on, r, dash) {
+      var b = box(el);
+      K.rect(g, b.x, b.y, b.w, b.h, r, K.C.ink, on ? 2.3 : 1.4, dash);
+      if (on && !dash) K.rect(g, b.x + 3, b.y + 3, b.w - 6, b.h - 6, r, K.C.ink, 1);
+      return b;
+    }
+
+    // ① ② ③ 업체 · 사업장 · 창고 상자들 — 「…」 은 점선
+    [['b-co', 'co', 30], ['b-si', 'si', 40], ['b-wh', 'wh', 50]].forEach(function (q) {
+      var on = hot(q[1]);
+      all('#' + q[0] + ' .bx').forEach(function (bxEl, n) {
+        var more = bxEl.classList.contains('more');
+        frame(bxEl.querySelector('.in'), on, K.rng(q[2] + n), more ? '3 4' : undefined);
+      });
+    });
+
+    // ④ 재고 한 칸 — 칸 둘레 + 꼬리표 셋(④ 를 고르면 저장 색)
+    frame($('#b-st'), hot('st'), K.rng(60));
+    var stHot = hot('st'), tcol = stHot ? K.C.db : K.C.ink;
+    all('#b-st .tag').forEach(function (t, n) {
+      var b = box(t), r = K.rng(66 + n), nx = b.x + 9;
+      K.curve(g, 'M' + nx + ' ' + b.y + ' L' + b.rt + ' ' + b.y + ' L' + b.rt + ' ' + b.b + ' L' + nx + ' ' + b.b + ' L' + b.x + ' ' + b.cy + ' Z', r, tcol, stHot ? 1.8 : 1.3);
+      K.dot(g, nx + 1, b.cy, 1.7, tcol);
+    });
+
+    // ⑤ 고객 하나 ↔ 업체 여럿 — 양쪽 촉(주고받기 색)
+    var cuIn = frame($('#b-cu .in'), hot('cu'), K.rng(70)), cuHot = hot('cu');
+    all('#m-cu .mini').forEach(function (m, n) {
+      var mb = box(m), r = K.rng(72 + n), more = m.classList.contains('more');
+      K.rect(g, mb.x, mb.y, mb.w, mb.h, r, K.C.ink, 1.2, more ? '3 4' : undefined);
+      K.hArrow(g, cuIn.rt + 5, mb.x - 5, mb.cy, r, more ? K.C.faint : K.C.talk, cuHot ? 2.4 : 1.5, true);
+    });
+
+    // ⑥ 직원 → 소속(업체) · 근무지(사업장) — 정하기 색
+    var emIn = frame($('#b-em .in'), hot('em'), K.rng(80)), emHot = hot('em');
+    all('#m-em .mini').forEach(function (m, n) {
+      var mb = box(m), r = K.rng(82 + n);
+      K.rect(g, mb.x, mb.y, mb.w, mb.h, r, K.C.ink, 1.2);
+      K.hArrow(g, emIn.rt + 5, mb.x - 5, mb.cy, r, K.C.find, emHot ? 2.4 : 1.5);
+    });
+
+    // 업체 ≠ 사업장 ≠ 창고 — 점선. 뼈대 걸음이면 정하기 색
+    var neqHot = PHASE[picked] === 'a', ncol = neqHot ? K.C.find : K.C.soft, nw = neqHot ? 1.9 : 1.3;
+    function neq(from, labEl, toH, toV, seed) {
+      labEl.style.transform = '';
+      var cell = box(labEl), lab = box(labEl.firstElementChild);   // 격자 칸 · 글자(≠) 자리
+      if (!cell.w) return;                                   // 폰에서 숨긴 것
+      var r = K.rng(seed);
+      if (cell.y >= from.b - 2) {                            // 세로 — 위 상자들에서 아래 제목으로
+        var x = lab.cx;
+        K.line(g, x, from.b + 4, x, lab.y - 2, r, ncol, nw, '4 5');
+        K.line(g, x, lab.b + 2, x, toV.y - 4, r, ncol, nw, '4 5');
+      } else {                                               // 가로 — 글자를 상자 높이에 맞춘다
+        var y = from.cy;
+        labEl.style.transform = 'translateY(' + (y - lab.cy) + 'px)';
+        K.line(g, from.rt + 4, y, lab.x - 6, y, r, ncol, nw, '4 5');
+        K.line(g, lab.rt + 6, y, toH.x - 4, y, r, ncol, nw, '4 5');
+      }
+    }
+    var bco = box($('#b-co')), bsi = box($('#b-si')), bwh = box($('#b-wh'));
+    neq(bco, $('#q1'), null, box($('#c2 .rt')), 91);
+    neq(bco, $('#q2'), null, box($('#c3 .rt')), 92);
+    neq(bsi, $('#q3'), bwh, box($('#c3 .rt')), 93);
+
+    // 제목 왼쪽 작은 그림
+    [['c1', 'seal', 'co', 101], ['c2', 'house', 'si', 102], ['c3', 'crate', 'wh', 103], ['c4', 'tag', 'st', 104], ['c5', 'person', 'cu', 105], ['c6', 'badge', 'em', 106]].forEach(function (q) {
+      var tb = box($('#' + q[0] + ' .rt b'));
+      glyph(g, q[1], tb.x - 30, tb.cy - 12, K.rng(q[3]), K.C.ink, hot(q[2]) ? 1.8 : 1.4);
+    });
+
+    // 왼쪽 괄호 — 뼈대 · 꼬리표
+    [['g-a', 'a', 96], ['g-b', 'b', 97]].forEach(function (q) {
+      var b = box(document.getElementById(q[0])), r = K.rng(q[2]), w = PHASE[picked] === q[1] ? 2.2 : 1.3, x = b.rt - 10;
+      K.line(g, x, b.y + 8, x, b.b - 8, r, K.C.ink, w);
+      K.line(g, x, b.y + 8, x + 5, b.y + 8, r, K.C.ink, w);
+      K.line(g, x, b.b - 8, x + 5, b.b - 8, r, K.C.ink, w);
+    });
+
+    // 걸음 단추 위 묶음 줄
+    var wg = K.fresh(document.getElementById('walkLines')), wbox = K.rel(walk);
+    Array.prototype.forEach.call(walk.querySelectorAll('.grp'), function (gr, n) {
+      if (gr.dataset.g === 'none') return;
+      var em = wbox(gr.querySelector('em')), bs = wbox(gr.querySelector('.bs')), r = K.rng(120 + n);
+      var y = (em.b + bs.y) / 2, x1 = bs.x + 2, x2 = bs.rt - 2, w = PHASE[picked] === gr.dataset.g ? 2 : 1.3;
+      K.line(wg, x1, y + 4, x1, y, r, K.C.ink, w);
+      K.line(wg, x1, y, x2, y, r, K.C.ink, w);
+      K.line(wg, x2, y, x2, y + 4, r, K.C.ink, w);
+    });
+
+    // 설명 공책 — 테두리 + 왼쪽에 고른 걸음의 색 줄 + 쪽지
+    var pg = K.fresh(document.getElementById('panelLines'));
+    var pw = panel.offsetWidth, ph = panel.offsetHeight, r9 = K.rng(9);
+    K.rect(pg, 2, 2, pw - 4, ph - 4, r9, K.C.ink, 1.4);
+    K.line(pg, 13, 7, 13, ph - 7, r9, color(picked), 2.2);
+    var card = document.getElementById('card');
+    if (card) {
+      var cb = K.rel(panel)(card), rc = K.rng(19), ccol = color(picked);
+      K.rect(pg, cb.x, cb.y, cb.w, cb.h, rc, ccol, 1.4);
+      if (card.classList.contains('letter')) {
+        K.line(pg, cb.x + 2, cb.y + 2, cb.cx, cb.y + 15, rc, ccol, 1.1);
+        K.line(pg, cb.rt - 2, cb.y + 2, cb.cx, cb.y + 15, rc, ccol, 1.1);
+        K.rect(pg, cb.rt - 30, cb.y + 8, 19, 15, rc, ccol, 1.1);
+        K.hatch(pg, cb.rt - 29, cb.y + 9, 17, 13, rc, 4, ccol, 0.3);
+      } else {
+        K.hatch(pg, cb.x + 1, cb.y + 1, cb.w - 2, 6, rc, 6, ccol, 0.2);
+      }
+    }
+
+    // 해 보기 — 테두리와 손으로 그린 네모, 체크
+    var gg2 = K.fresh(document.getElementById('gradLines')), gb = K.rel(grad), r8 = K.rng(8);
+    K.rect(gg2, 2, 2, grad.offsetWidth - 4, grad.offsetHeight - 4, r8, K.C.ink, 1.4);
+    Array.prototype.forEach.call(grad.querySelectorAll('label'), function (lb, n) {
+      var b = gb(lb.querySelector('.bx')), r = K.rng(130 + n), on = lb.querySelector('input').checked;
+      K.rect(gg2, b.x, b.y, b.w, b.h, r, K.C.ink, 1.3);
+      if (on) K.curve(gg2, 'M' + (b.x + 4) + ' ' + (b.cy + 1) + ' L' + (b.x + 8) + ' ' + (b.b - 4) + ' L' + (b.rt - 2) + ' ' + (b.y + 2), r, K.C.find, 2.2);
+    });
+  }
+
+  var queued = false;
+  function schedule() {
+    if (queued) return;
+    queued = true;
+    setTimeout(function () { queued = false; draw(); }, 40);
+  }
+  function use(style) {
+    K = SketchKit(style);
+    document.documentElement.dataset.style = K.style;
+    Array.prototype.forEach.call(document.querySelectorAll('#pick button'), function (b) { b.classList.toggle('on', b.dataset.s === K.style); });
+    select(picked);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+  }
+
+  // 체 고르기
+  document.getElementById('pick').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-s]');
+    if (b) { use(b.dataset.s); if (history.replaceState) history.replaceState(null, '', '#' + b.dataset.s); }
+  });
+  // 걸음 고르기 — 단추 · 그림 안 상자 · 설명 공책의 이전/다음
+  walk.addEventListener('click', function (e) { var b = e.target.closest('button[data-k]'); if (b) select(b.dataset.k); });
+  map.addEventListener('click', function (e) { var s = e.target.closest('.spot'); if (s) select(s.dataset.k); });
+  map.addEventListener('keydown', function (e) {
+    var s = e.target.closest('.spot');
+    if (s && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(s.dataset.k); }
+  });
+  panel.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-go]');
+    if (b && b.dataset.go) { select(b.dataset.go); walk.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
+
+  // 해 보기 체크는 이 브라우저에만 남는다
+  var GK = 'ubo-ojt-map-0';
+  var boxes = grad.querySelectorAll('input');
+  try { var saved = JSON.parse(localStorage.getItem(GK) || '{}'); Array.prototype.forEach.call(boxes, function (b) { b.checked = !!saved[b.dataset.k]; }); } catch (e) {}
+  function paintGrad() {
+    Array.prototype.forEach.call(boxes, function (b) { b.parentNode.querySelector('span').classList.toggle('on', b.checked); });
+  }
+  grad.addEventListener('change', function () {
+    paintGrad();
+    try { var o = {}; Array.prototype.forEach.call(boxes, function (b) { o[b.dataset.k] = b.checked; }); localStorage.setItem(GK, JSON.stringify(o)); } catch (e) {}
+    schedule();
+  });
+  paintGrad();
+
+  function fromHash() {
+    var h = (location.hash || '').slice(1);
+    use(['pencil', 'textbook', 'blueprint'].indexOf(h) >= 0 ? h : 'pencil');
+  }
+  fromHash();
+  window.addEventListener('hashchange', fromHash);
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', schedule);
+  window.addEventListener('load', schedule);
+  window.addEventListener('resize', schedule);
+  if (window.ResizeObserver) { var ro = new ResizeObserver(schedule); ro.observe(map); ro.observe(panel); ro.observe(grad); }
+})();
+</script>
+</body>
+</html>
