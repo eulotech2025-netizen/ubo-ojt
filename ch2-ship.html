@@ -221,6 +221,12 @@
   html[data-style="blueprint"] .grad label { font-size: clamp(12.5px, 1.5vw, 14.5px); }
 
   @media print { .pick, .panel .nav { display: none !important; } body { padding: 0; } }
+  /* 폰 — 위 단추 줄을 한 줄에 (모든 쪽 공통) */
+  @media (max-width: 480px) {
+    .pick { flex-wrap: wrap; gap: 4px; }
+    .pick button { font-size: 12px !important; padding: 4px 9px !important; white-space: nowrap; }
+    .pick a { font-size: 12px !important; margin-left: 4px !important; white-space: nowrap; }
+  }
 </style>
 </head>
 <body>

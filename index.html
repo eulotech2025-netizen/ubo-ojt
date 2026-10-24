@@ -50,7 +50,7 @@
   #t1 { grid-area: 1 / 1 / 2 / 2; } #b1 { grid-area: 1 / 2 / 2 / 3; }
   #mid { grid-area: 2 / 2 / 3 / 3; align-self: center; text-align: center; font-size: clamp(13px, 1.6vw, 15px); color: var(--ink-faint); }
   #t2 { grid-area: 3 / 1 / 4 / 2; } #b2 { grid-area: 3 / 2 / 4 / 3; }
-  @media (max-width: 560px) { .grid { grid-template-columns: minmax(0, 1fr); } .tag { text-align: left; } #t1 { grid-area: 1 / 1; } #b1 { grid-area: 2 / 1; } #mid { grid-area: 3 / 1; } #t2 { grid-area: 4 / 1; } #b2 { grid-area: 5 / 1; } }
+  @media (max-width: 560px) { .grid { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; row-gap: 10px; } #mid { padding: 10px 0; } .box { padding: 16px 16px 14px; } .tag { text-align: left; } #t1 { grid-area: 1 / 1; } #b1 { grid-area: 2 / 1; } #mid { grid-area: 3 / 1; } #t2 { grid-area: 4 / 1; } #b2 { grid-area: 5 / 1; } }
 
   .how { position: relative; margin: 26px auto 0; max-width: 760px; padding: 14px 18px 12px 26px; }
   .how > * { position: relative; z-index: 1; }
@@ -89,6 +89,12 @@
   html[data-style="blueprint"] .how p { font-size: clamp(12.5px, 1.45vw, 14px); }
 
   @media print { .pick { display: none !important; } body { padding: 0; } }
+  /* 폰 — 위 단추 줄을 한 줄에 (모든 쪽 공통) */
+  @media (max-width: 480px) {
+    .pick { flex-wrap: wrap; gap: 4px; }
+    .pick button { font-size: 12px !important; padding: 4px 9px !important; white-space: nowrap; }
+    .pick a { font-size: 12px !important; margin-left: 4px !important; white-space: nowrap; }
+  }
 </style>
 </head>
 <body>

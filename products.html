@@ -128,6 +128,27 @@
   html[data-style="blueprint"] .scene .lb { font-size: 11.5px; }
 
   @media print { .pick { display: none !important; } body { padding: 0; } tbody.g.dim { opacity: 1; } }
+  /* 폰 — 그림은 원래 크기로 두고 옆으로 밀어 본다. 표는 한 줄을 세로로 쌓는다 */
+  .swipe { display: none; }
+  @media (max-width: 600px) {
+    .scene { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-left: -4px; margin-right: -4px; }
+    .scene svg { width: 760px; max-width: none; }
+    .swipe { display: block; text-align: center; font-size: 13px; color: var(--ink-faint); margin-top: 4px; }
+    thead { display: none; }
+    table, tbody, tr, td { display: block; width: auto !important; }
+    tbody.g th { display: block; padding-top: 18px; }
+    tbody tr { padding: 7px 2px; border-bottom: 1px dashed rgba(139, 132, 118, 0.45); }
+    tbody td { border-bottom: 0; padding: 1px 0; }
+    td.nm { font-size: 15.5px; }
+    .tbl td.in::before { content: '안에 든 것 — '; color: var(--ink-faint); }
+    .blum td.in::before { content: '우리 쇼핑몰 — '; color: var(--ink-faint); }
+  }
+  /* 폰 — 위 단추 줄을 한 줄에 (모든 쪽 공통) */
+  @media (max-width: 480px) {
+    .pick { flex-wrap: wrap; gap: 4px; }
+    .pick button { font-size: 12px !important; padding: 4px 9px !important; white-space: nowrap; }
+    .pick a { font-size: 12px !important; margin-left: 4px !important; white-space: nowrap; }
+  }
 </style>
 </head>
 <body>
@@ -148,6 +169,7 @@
   <section class="scene" id="scene">
     <svg id="draw" viewBox="0 0 860 440" aria-label="부엌 한 칸 그림"></svg>
   </section>
+  <p class="swipe">← 그림은 옆으로 밀어 본다 →</p>
 
   <nav class="walk" id="walk" aria-label="묶음 고르기">
     <button type="button" data-g="all">전체</button>
