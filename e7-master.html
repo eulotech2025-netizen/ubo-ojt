@@ -336,7 +336,7 @@
   var panelBody = document.getElementById('panelBody');
   var grad = document.getElementById('grad');
   var scrs = Array.prototype.slice.call(map.querySelectorAll('.scr'));
-  var picked = 'all';
+  var picked = (function () { var k = new URLSearchParams(location.search).get('k'); return /^[1-6]$/.test(k || '') ? k : 'all'; })();
   var esc = function (s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
   var label = function (k) { return k === 'all' ? '전체' : NUM[k] + ' ' + NAME[k]; };
   var color = function (k) { var c = k === 'all' ? 'ink' : KIND[k]; return c === 'ink' ? K.C.ink : K.C[c]; };
@@ -497,6 +497,10 @@
   window.addEventListener('resize', schedule);
   if (window.ResizeObserver) { var ro = new ResizeObserver(schedule); ro.observe(map); ro.observe(panel); ro.observe(grad); }
 })();
+</script>
+<script>
+// 카드(job.html)에서 왔으면 「← 카드로」
+(function () { var j = new URLSearchParams(location.search).get('from'), b = document.getElementById('back'); if (!b || !/^j[0-9][0-9]$/.test(j || '')) return; var go = function () { return 'job.html?c=' + j + '#' + (document.documentElement.dataset.style || 'pencil'); }; b.textContent = '← 카드로'; b.setAttribute('href', go()); b.onclick = function () { this.href = go(); }; })();
 </script>
 </body>
 </html>

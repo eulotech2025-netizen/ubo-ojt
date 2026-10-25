@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>신입 교재 — 목차</title>
-<!-- 전체 목차 — 두 층. 윗층 「교재」(textbook.html: 0~9장 + 부록) · 아랫층 「이카운트 길잡이」(ecount.html: E0 + 길 일곱). 상자를 누르면 그 목차로. -->
+<!-- 전체 목차 — 세 칸. 위 「교재」(textbook.html: 0~9장 + 부록) · 가운데 「일 받았을 때」(jobs.html: 카드 열넷) · 아래 「이카운트 길잡이」(ecount.html: E0 + 길 일곱). 상자를 누르면 그 목차로. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Brush+Script&family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -36,7 +36,7 @@
 
   /* 두 층 — 위가 이치, 아래가 도구 */
   .map { position: relative; margin-top: 30px; }
-  .grid { position: relative; z-index: 1; display: grid; grid-template-columns: 76px minmax(0, 1fr); grid-template-rows: auto 44px auto; column-gap: 22px; }
+  .grid { position: relative; z-index: 1; display: grid; grid-template-columns: 76px minmax(0, 1fr); grid-template-rows: auto 44px auto 44px auto; column-gap: 22px; }
   .tag { align-self: center; text-align: right; font-size: clamp(13px, 1.6vw, 15px); color: var(--ink-soft); line-height: 1.2; }
   .tag b { display: block; font-size: clamp(16px, 2vw, 19px); color: var(--ink); }
   .box { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; padding: 18px 22px 16px; min-height: 96px; }
@@ -48,9 +48,12 @@
   .box:hover .t, .box:focus-visible .t { background: linear-gradient(transparent 55%, var(--marker) 55%, var(--marker) 94%, transparent 94%); }
   .box:focus-visible { outline: 2px dashed var(--find); outline-offset: 2px; }
   #t1 { grid-area: 1 / 1 / 2 / 2; } #b1 { grid-area: 1 / 2 / 2 / 3; }
-  #mid { grid-area: 2 / 2 / 3 / 3; align-self: center; text-align: center; font-size: clamp(13px, 1.6vw, 15px); color: var(--ink-faint); }
-  #t2 { grid-area: 3 / 1 / 4 / 2; } #b2 { grid-area: 3 / 2 / 4 / 3; }
-  @media (max-width: 560px) { .grid { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; row-gap: 10px; } #mid { padding: 10px 0; } .box { padding: 16px 16px 14px; } .tag { text-align: left; } #t1 { grid-area: 1 / 1; } #b1 { grid-area: 2 / 1; } #mid { grid-area: 3 / 1; } #t2 { grid-area: 4 / 1; } #b2 { grid-area: 5 / 1; } }
+  .mid { align-self: center; text-align: center; font-size: clamp(13px, 1.6vw, 15px); color: var(--ink-faint); }
+  #mid1 { grid-area: 2 / 2 / 3 / 3; }
+  #t3 { grid-area: 3 / 1 / 4 / 2; } #b3 { grid-area: 3 / 2 / 4 / 3; }
+  #mid2 { grid-area: 4 / 2 / 5 / 3; }
+  #t2 { grid-area: 5 / 1 / 6 / 2; } #b2 { grid-area: 5 / 2 / 6 / 3; }
+  @media (max-width: 560px) { .grid { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; row-gap: 10px; } .mid { padding: 10px 0; } .box { padding: 16px 16px 14px; } .tag { text-align: left; } #t1 { grid-area: 1 / 1; } #b1 { grid-area: 2 / 1; } #mid1 { grid-area: 3 / 1; } #t3 { grid-area: 4 / 1; } #b3 { grid-area: 5 / 1; } #mid2 { grid-area: 6 / 1; } #t2 { grid-area: 7 / 1; } #b2 { grid-area: 8 / 1; } }
 
   .how { position: relative; margin: 26px auto 0; max-width: 760px; padding: 14px 18px 12px 26px; }
   .how > * { position: relative; z-index: 1; }
@@ -108,7 +111,7 @@
   <header class="hero">
     <div class="kick">우보브랜드샵 · 목차</div>
     <h1 class="brush">신입 교재</h1>
-    <p>두 층으로 되어 있다. 윗층은 일의 이치, 아랫층은 지금 쓰는 도구. 상자를 누르면 그 목차로 간다.</p>
+    <p>세 칸으로 되어 있다. 위는 일의 이치, 가운데는 일을 받았을 때 꺼내 보는 카드, 아래는 지금 쓰는 도구. 상자를 누르면 그 목차로 간다.</p>
   </header>
 
   <section class="map" id="map">
@@ -118,7 +121,12 @@
       <a class="box" id="b1" href="textbook.html"><span class="t brush">교재 — 주문 하나의 일생</span>
         <span class="w">손님의 한 마디가 돈이 되어 장부에 적힐 때까지. <b>0장 우리 회사 한 장</b> → 1~6장 큰 길 → 7 · 8 · 9장 곁가지 + 부록 「우리가 파는 것 한 장」</span>
         <span class="pills"><span class="pill">0 회사</span><span class="pill">1 견적 · 주문</span><span class="pill">2 출고</span><span class="pill">3 배송</span><span class="pill">4 입금</span><span class="pill">5 세금계산서</span><span class="pill">6 장부</span><span class="pill">7 사 오기</span><span class="pill">8 접수함</span><span class="pill">9 근태 · 급여</span><span class="pill">부록 파는 것</span></span></a>
-      <div id="mid">같은 걸음을, 아래에서는 지금 도구로</div>
+      <div class="mid" id="mid1">이치를 일 하나씩 엮으면</div>
+      <div class="tag" id="t3"><b>가운데</b>일 받았을 때<br>들은 말로 찾는다</div>
+      <a class="box" id="b3" href="jobs.html"><span class="t brush">일 받았을 때 — 카드 열넷</span>
+        <span class="w">「반품할게요」 같은 말 한마디가 들어오면. <b>받아 둘 것 → 누가 무엇을 → 끝난 모양</b>. 현장 여덟(주문 · 견적 · 재고 · 출고 · 반품 · AS · 발주 · 입고) · 경리 여섯(입금 · 계산서 · 독촉 · 등록 · 마감 · 휴가). 걸음마다 위 교재(왜) · 아래 길잡이(어떻게)로 바로 이어진다</span>
+        <span class="pills"><span class="pill">늘 하는 셋</span><span class="pill">현장 J1~J8</span><span class="pill">경리 J9~J14</span></span></a>
+      <div class="mid" id="mid2">걸음마다, 누르는 법은 아래에서</div>
       <div class="tag" id="t2"><b>아랫층</b>지금 쓰는 도구<br>갈아끼운다</div>
       <a class="box" id="b2" href="ecount.html"><span class="t brush">이카운트 길잡이</span>
         <span class="w">어디서 무엇을 어떤 순서로 누르나. <b>E0 이카운트 한 장</b> + 길 일곱. 새 프로그램(UBO ONE)이 오면 이 층만 바뀐다</span>
@@ -130,6 +138,7 @@
     <svg class="over" id="howLines" aria-hidden="true"></svg>
     <h3 class="brush">읽는 법</h3>
     <p><b>순서</b> 윗층 0장 → 1장 → … 을 먼저. 장마다 아래에 「지금 · 이카운트」 카드가 있고, 그 화면을 실제로 누르는 법은 아랫층의 같은 길에 있다.</p>
+    <p><b>일을 받으면</b> 가운데 카드에서 들은 말로 찾는다. 걸음 상자의 꼬리표(E1 ⑤ · 8장 ④)를 누르면 교재 · 길잡이의 그 걸음이 열리고, 「← 카드로」 로 돌아온다.</p>
     <p><b>졸업</b> 장마다 · 길마다 「해 보기」 네 칸을 선배가 옆에서 보고 체크한다. (추정) 은 실무자 확인 전, 「회사가 채움」 은 회사가 정할 자리.</p>
   </section>
   <p class="foot">주소는 회사 안에서만 나눈다 · 실제 거래처 이름 · 금액 · 계정 정보는 적지 않는다 · 연습은 회사가 정한 연습 거래처 · 품목으로만</p>
@@ -146,25 +155,29 @@
   function draw() {
     var g = K.fresh(document.getElementById('lines'));
     var at = (function (box) { return function (id) { return box(document.getElementById(id)); }; })(K.rel(map));
-    var b1 = at('b1'), b2 = at('b2');
-    // 윗층 — 굵은 두 겹. 아랫층 — 점선 한 겹 (갈아끼우는 층)
+    var b1 = at('b1'), b2 = at('b2'), b3 = at('b3');
+    // 윗층 — 굵은 두 겹. 가운데 — 초록 카드 (오른쪽 위 접힌 귀). 아랫층 — 점선 한 겹 (갈아끼우는 층)
     K.rect(g, b1.x, b1.y, b1.w, b1.h, K.rng(11), K.C.ink, 2.2);
     K.rect(g, b1.x + 3, b1.y + 3, b1.w - 6, b1.h - 6, K.rng(12), K.C.ink, 0.9);
+    K.rect(g, b3.x, b3.y, b3.w, b3.h, K.rng(41), K.C.db, 1.8);
+    K.line(g, b3.rt - 18, b3.y, b3.rt, b3.y + 18, K.rng(42), K.C.db, 1.2);
     K.rect(g, b2.x, b2.y, b2.w, b2.h, K.rng(21), K.C.find, 1.6, '7 5');
     K.hatch(g, b2.x, b2.y, b2.w, b2.h, K.rng(22), 10, K.C.find, 0.05);
     // 알약들
-    ['b1', 'b2'].forEach(function (id, n) {
-      Array.prototype.forEach.call(document.getElementById(id).querySelectorAll('.pill'), function (p, m) {
-        var pb = at(id); var b = K.rel(map)(p);
-        K.rect(g, b.x, b.y, b.w, b.h, K.rng(100 + n * 30 + m), n ? K.C.find : K.C.ink, 1);
+    [['b1', K.C.ink], ['b3', K.C.db], ['b2', K.C.find]].forEach(function (B, n) {
+      Array.prototype.forEach.call(document.getElementById(B[0]).querySelectorAll('.pill'), function (p, m) {
+        var b = K.rel(map)(p);
+        K.rect(g, b.x, b.y, b.w, b.h, K.rng(100 + n * 30 + m), B[1], 1);
       });
     });
-    // 사이 — 위에서 아래로 내려가는 점선 화살표 둘
-    [0.3, 0.7].forEach(function (f, n) {
-      var x = b1.x + b1.w * f, r = K.rng(31 + n);
-      K.line(g, x, b1.b + 4, x, b2.y - 4, r, K.C.faint, 1.3, '4 5');
-      K.line(g, x, b2.y - 4, x - 6, b2.y - 13, r, K.C.faint, 1.2);
-      K.line(g, x, b2.y - 4, x + 6, b2.y - 13, r, K.C.faint, 1.2);
+    // 사이 — 위에서 아래로 내려가는 점선 화살표 둘씩 (교재 → 카드 → 길잡이)
+    [[b1, b3, 31], [b3, b2, 35]].forEach(function (P) {
+      [0.3, 0.7].forEach(function (f, n) {
+        var x = P[0].x + P[0].w * f, r = K.rng(P[2] + n), y2 = P[1].y - 4;
+        K.line(g, x, P[0].b + 4, x, y2, r, K.C.faint, 1.3, '4 5');
+        K.line(g, x, y2, x - 6, y2 - 9, r, K.C.faint, 1.2);
+        K.line(g, x, y2, x + 6, y2 - 9, r, K.C.faint, 1.2);
+      });
     });
     var hg = K.fresh(document.getElementById('howLines'));
     K.rect(hg, 2, 2, how.offsetWidth - 4, how.offsetHeight - 4, K.rng(9), K.C.ink, 1.4);

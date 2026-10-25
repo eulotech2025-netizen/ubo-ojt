@@ -248,9 +248,9 @@
       <div class="act" id="a5">끝내기 전에 <b>세 군데를 본다</b></div>
 
       <div class="path"><b>재고Ⅰ › 영업관리</b>› 현황 · 출력물</div>
-      <div class="scr spot" id="s6" data-k="6" tabindex="0" role="button"><span class="nm brush">확인 · 넘기기</span><span class="sub">남은 주문이 없나, 받을 돈이 맞나. 세금계산서는 경리에게(E5)</span>
+      <div class="scr spot" id="s6" data-k="6" tabindex="0" role="button"><span class="nm brush">확인 · 넘기기</span><span class="sub">남은 주문이 없나, 받을 돈이 맞나. 세금계산서는 경리에게(E4)</span>
         <div class="fields"><span class="fld">미주문현황</span><span class="fld">미판매현황</span><span class="fld">거래처별채권 → 거래처명 클릭 = 거래처원장</span><span class="fld">거래처관리대장1 (메일 발송)</span></div></div>
-      <div class="side" id="d6"><b>경리에게 넘어가는 것</b>판매전표의 회계반영 · 세금계산서 발행 → E5 세금 · 장부 길</div>
+      <div class="side" id="d6"><b>경리에게 넘어가는 것</b>판매전표의 회계반영 · 세금계산서 발행 → E4 세금 · 장부 길</div>
       <div class="pad"></div>
     </div>
   </section>
@@ -313,18 +313,18 @@
     4: { title: '④ 판매입력',
       one: '물건이 나갈 때. 저장하는 순간 재고가 줄고, 거래처별채권(받을 돈)이 는다. 세금계산서도 이 전표에서 시작한다.',
       rows: [['경로', '재고Ⅰ › 영업관리 › 판매입력 › [주문] 불러오기'], ['넣는 칸', '일자 · 거래처 · 창고 · 품목 · 출고수량(일부만이면 줄인다) · 단가 · 운송비 같은 품목'], ['저장 뒤', '재고 감소 · 채권 증가 · 거래명세서 인쇄 가능. 남은 수량은 미판매현황에'], ['수금', '판매입력 하단 [현금수금] · [어음수금], 또는 경리가 회계Ⅰ › FastEntry › 입금보고서(외상매출금)'], ['조심', '치는 시점이 회사마다 다르다 — 출고 때인지, 거래명세서 낼 때인지: 회사가 채움 (회사법 나-3). 단가를 주문서와 다르게 치면 채권이 어긋난다']],
-      card: { t: '틀렸을 때', lines: ['고치기 · 지우기: 판매조회에서 열어 [수정] · [삭제]', '회계반영(세금계산서)까지 된 전표는 매출전표를 먼저 떼야 지워진다 (E5)', '국세청에 신고된 전표는 수정 · 삭제 불가 — 수정세금계산서로'], cap: '지운 전표는 재고Ⅰ › 출력물 › 거래이력조회에서 복구할 수 있다' },
+      card: { t: '틀렸을 때', lines: ['고치기 · 지우기: 판매조회에서 열어 [수정] · [삭제]', '회계반영(세금계산서)까지 된 전표는 매출전표를 먼저 떼야 지워진다 (E4)', '국세청에 신고된 전표는 수정 · 삭제 불가 — 수정세금계산서로'], cap: '지운 전표는 재고Ⅰ › 출력물 › 거래이력조회에서 복구할 수 있다' },
       ref: '교재 초급 p.13~15 (판매 · 미판매 · 수금 · 반품)',
       tryit: '주문의 절반만 출고로 저장 → 미판매현황에서 잔량 확인' },
     5: { title: '⑤ 거래명세서 · 수금 · 반품',
       one: '손님에게 가는 종이, 받은 돈, 되돌아온 물건. 셋 다 판매전표에 붙는다.',
-      rows: [['거래명세서', '판매조회에서 인쇄 · 메일 · 팩스 · PDF. 양식은 계정(업체)마다 설정된 것 (추정)'], ['수금', '현금 · 어음은 판매입력 하단 단추. 통장 입금은 경리가 입금보고서로 (E4)'], ['반품', '판매입력에 수량을 마이너스로 — 단가는 판 날 금액 그대로. 또는 판매전표 하단 [반품처리]. 돌아온 물건은 불량창고 같은 창고로 (추정)'], ['조심', '반품 단가를 오늘 단가로 치면 채권이 안 맞는다 · 메일 보낸 뒤 전표를 고치면 손님 종이와 달라진다']],
+      rows: [['거래명세서', '판매조회에서 인쇄 · 메일 · 팩스 · PDF. 양식은 계정(업체)마다 설정된 것 (추정)'], ['수금', '현금 · 어음은 판매입력 하단 단추. 통장 입금은 경리가 입금보고서로 (E3)'], ['반품', '판매입력에 수량을 마이너스로 — 단가는 판 날 금액 그대로. 또는 판매전표 하단 [반품처리]. 돌아온 물건은 불량창고 같은 창고로 (추정)'], ['조심', '반품 단가를 오늘 단가로 치면 채권이 안 맞는다 · 메일 보낸 뒤 전표를 고치면 손님 종이와 달라진다']],
       card: { t: '틀렸을 때', lines: ['잘못 보낸 거래명세서: 전표를 고치고 다시 보낸다, 보낸 기록은 판매조회에 남는다', '반품을 잘못 넣었으면 그 마이너스 전표를 판매조회에서 지운다'], cap: '교환은 반품(−) 한 줄 + 판매(+) 한 줄' },
       ref: '교재 초급 p.15~16 (수금처리 · 반품처리 · 판매조회)',
       tryit: '연습 판매 1건을 반품(−)으로 되돌려 보고 반품현황에서 찾기' },
     6: { title: '⑥ 확인 · 넘기기',
       one: '퇴근 전 세 군데. 남은 주문이 없나(미주문 · 미판매), 받을 돈이 맞나(거래처별채권). 세금계산서는 경리 몫이다.',
-      rows: [['미주문 · 미판매', '견적만 있는 것 · 주문만 있는 것. 잔량이 0이면 종결처리'], ['거래처별채권', '재고Ⅰ › 영업관리(또는 출력물) › 거래처별채권 — 거래처명을 누르면 거래처원장. 과장님이 「중요!!」'], ['거래처관리대장1', '한 거래처와의 채권 · 수금을 한 장으로, 메일 발송'], ['경리에게', '판매전표의 회계반영 · 세금계산서 발행은 E5 세금 · 장부 길. 영업은 전표를 맞게 넣는 데까지'], ['조심', '거래처별채권은 계정마다 따로다 — 5계정을 돌며 본다 (추정)']],
+      rows: [['미주문 · 미판매', '견적만 있는 것 · 주문만 있는 것. 잔량이 0이면 종결처리'], ['거래처별채권', '재고Ⅰ › 영업관리(또는 출력물) › 거래처별채권 — 거래처명을 누르면 거래처원장. 과장님이 「중요!!」'], ['거래처관리대장1', '한 거래처와의 채권 · 수금을 한 장으로, 메일 발송'], ['경리에게', '판매전표의 회계반영 · 세금계산서 발행은 E4 세금 · 장부 길. 영업은 전표를 맞게 넣는 데까지'], ['조심', '거래처별채권은 계정마다 따로다 — 5계정을 돌며 본다 (추정)']],
       card: { t: '나중 · UBO ONE', lines: ['확인 단추 하나로 주문 1건 + 창고 요청, 미수는 고객 찾기에 바로 보인다 (ORD-01 · ORD-04)', '5계정을 돌지 않는다 — 업체는 칸 하나'], cap: '이 길 전체가 교재 1장 · 2장의 「지금 · 이카운트」 카드다' },
       ref: '교재 초급 p.24 · p.30 (출력물 · 사용순서와 메뉴정리)',
       tryit: '거래처별채권에서 연습 거래처 → 거래처원장 열어 보기' }
@@ -338,7 +338,7 @@
   var panelBody = document.getElementById('panelBody');
   var grad = document.getElementById('grad');
   var scrs = Array.prototype.slice.call(map.querySelectorAll('.scr'));
-  var picked = 'all';
+  var picked = (function () { var k = new URLSearchParams(location.search).get('k'); return /^[1-6]$/.test(k || '') ? k : 'all'; })();
   var esc = function (s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
   var label = function (k) { return k === 'all' ? '전체' : NUM[k] + ' ' + NAME[k]; };
   var color = function (k) { var c = k === 'all' ? 'ink' : KIND[k]; return c === 'ink' ? K.C.ink : K.C[c]; };
@@ -499,6 +499,10 @@
   window.addEventListener('resize', schedule);
   if (window.ResizeObserver) { var ro = new ResizeObserver(schedule); ro.observe(map); ro.observe(panel); ro.observe(grad); }
 })();
+</script>
+<script>
+// 카드(job.html)에서 왔으면 「← 카드로」
+(function () { var j = new URLSearchParams(location.search).get('from'), b = document.getElementById('back'); if (!b || !/^j[0-9][0-9]$/.test(j || '')) return; var go = function () { return 'job.html?c=' + j + '#' + (document.documentElement.dataset.style || 'pencil'); }; b.textContent = '← 카드로'; b.setAttribute('href', go()); b.onclick = function () { this.href = go(); }; })();
 </script>
 </body>
 </html>

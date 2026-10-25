@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ko" data-style="pencil">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>일 받았을 때 — 카드</title>
+<!-- 카드 한 장 — job.html?c=j05#pencil. 내용은 jobs-data.js.
+     위: 듣는 자리에서 받아 둘 것 · 가운데: 자리 줄(누가) × 걸음(차례) · 아래: 끝난 모양 · 알릴 사람 · 하면 안 됨 · 회사가 채움.
+     걸음의 꼬리표는 길잡이(E) · 교재(장) 쪽의 그 걸음으로 연다 (?k=걸음&from=카드). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Brush+Script&family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f8f4ea; --ink: #36332d; --ink-soft: #5d584e; --ink-faint: #8b8476;
+    --marker: rgba(255, 214, 64, 0.55); --find: #2f5d87; --talk: #b5523b; --db: #4f7d4a;
+    --mono: ui-monospace, 'Cascadia Mono', Consolas, 'D2Coding', monospace;
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.3  0 0 0 0 0.22  0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--paper); }
+  body { min-height: 100vh; color: var(--ink); font-family: 'Gaegu', cursive; background-color: var(--paper); background-image: var(--grain); padding: 18px 16px 28px; word-break: keep-all; overflow-wrap: anywhere; }
+  .page { max-width: 1100px; margin: 0 auto; }
+  .brush { font-family: 'Nanum Brush Script', 'Gaegu', cursive; font-weight: 400; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+  svg.over { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+
+  .pick { display: flex; justify-content: center; align-items: center; gap: 6px; margin-bottom: 14px; font-family: system-ui, sans-serif; }
+  .pick button { font-size: 13px; border: 1px solid #c9ced6; background: #fff; border-radius: 999px; padding: 5px 12px; }
+  .pick button.on { background: #1f2937; border-color: #1f2937; color: #fff; }
+  .pick a { font-size: 13px; color: var(--ink-soft); margin-left: 10px; }
+
+  .hero { text-align: center; }
+  .hero .kick { font-size: clamp(14px, 1.7vw, 17px); color: var(--ink-soft); letter-spacing: 0.04em; }
+  .hero h1 { font-size: clamp(34px, 5.6vw, 54px); line-height: 1.08; margin-top: 2px; }
+  .hero p { margin-top: 4px; font-size: clamp(15px, 1.9vw, 18px); color: var(--ink-soft); }
+  .hero p b { color: var(--ink); }
+
+  /* 듣는 자리에서 받아 둘 것 — 메모지 */
+  .memo { position: relative; margin: 20px auto 0; max-width: 860px; padding: 12px 18px 12px 28px; }
+  .memo > * { position: relative; z-index: 1; }
+  .memo h3 { font-size: clamp(22px, 3vw, 28px); line-height: 1.05; }
+  .memo ul { list-style: none; display: flex; flex-wrap: wrap; gap: 3px 22px; margin-top: 4px; font-size: clamp(15.5px, 1.9vw, 18px); line-height: 1.3; }
+  .memo li::before { content: '□ '; color: var(--find); }
+
+  /* 자리 줄 × 걸음 */
+  .cap { margin: 26px 0 8px; text-align: center; font-size: clamp(14px, 1.7vw, 16px); color: var(--ink-soft); }
+  .cap b { color: var(--ink); }
+  .map { position: relative; }
+  .sw { position: relative; z-index: 1; display: grid; grid-template-columns: 84px repeat(var(--n), minmax(0, 1fr)); column-gap: 26px; row-gap: 18px; }
+  .ln { grid-row: var(--r); grid-column: 1; align-self: stretch; display: flex; flex-direction: column; justify-content: center; text-align: right; line-height: 1.15; padding-right: 4px; }
+  .ln b { font-size: clamp(15px, 1.9vw, 18px); font-weight: 700; }
+  .ln.out b { color: var(--talk); }
+  .ln .me { margin-top: 3px; font-size: clamp(12px, 1.4vw, 14px); color: var(--find); font-weight: 700; }
+  .st { grid-row: var(--r); grid-column: var(--c); position: relative; display: flex; flex-direction: column; gap: 3px; padding: 9px 10px 9px; min-height: 96px; }
+  .st .top { display: flex; align-items: baseline; gap: 8px; }
+  .st .n { font-size: clamp(15px, 1.7vw, 18px); font-weight: 700; color: var(--ink-faint); line-height: 1; }
+  .st[data-k="d"] .n { color: var(--db); } .st[data-k="t"] .n { color: var(--talk); } .st[data-k="f"] .n { color: var(--find); }
+  .st .who { display: none; font-size: 13px; color: var(--ink-soft); }
+  .st .who.me { color: var(--find); font-weight: 700; }
+  .st .t { font-size: clamp(18px, 2.1vw, 22px); line-height: 1.05; }
+  .st .d { font-size: clamp(13.5px, 1.45vw, 15px); color: var(--ink-soft); line-height: 1.25; }
+  .refs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: auto; padding-top: 5px; }
+  .rf { font-family: system-ui, sans-serif; font-size: 11.5px; line-height: 1; padding: 4px 7px 3px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+  .rf.e { color: var(--find); } .rf.c { color: var(--ink-soft); } .rf.j { color: var(--db); }
+  .rf:hover, .rf:focus-visible { background: var(--marker); }
+  .fill { color: var(--ink); font-weight: 700; background: linear-gradient(transparent 58%, var(--marker) 58%, var(--marker) 94%, transparent 94%); }
+  .guess { color: var(--ink-faint); }
+  a.inl { color: var(--db); border-bottom: 1px dashed currentColor; }
+
+  .legend { margin: 14px auto 0; max-width: 900px; display: grid; gap: 3px; font-size: clamp(13.5px, 1.7vw, 15.5px); color: var(--ink-soft); text-align: center; line-height: 1.3; }
+  .legend .f { color: var(--find); font-weight: 700; } .legend .t { color: var(--talk); font-weight: 700; } .legend .d { color: var(--db); font-weight: 700; }
+
+  /* 끝난 모양 · 알릴 사람 · 하면 안 됨 · 회사가 채움 */
+  .notes { margin: 24px auto 0; max-width: 980px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 22px; }
+  .note { position: relative; padding: 12px 16px 12px; }
+  .note > * { position: relative; z-index: 1; }
+  .note h3 { font-size: clamp(21px, 2.8vw, 26px); line-height: 1.05; }
+  .note h4 { margin-top: 8px; font-size: clamp(15px, 1.8vw, 17px); color: var(--ink); }
+  .note ul { list-style: none; margin-top: 4px; font-size: clamp(15px, 1.8vw, 17px); line-height: 1.35; color: var(--ink-soft); }
+  .note li { position: relative; padding-left: 20px; }
+  .note li::before { position: absolute; left: 0; font-weight: 700; }
+  .note.done li::before { content: '✓'; color: var(--db); }
+  .note.tell li::before { content: '→'; color: var(--find); }
+  .note.dont h3 { color: var(--talk); } .note.dont li::before { content: '✕'; color: var(--talk); }
+  .note.blank li::before { content: '?'; color: var(--ink-faint); }
+
+  .nav { margin: 20px auto 0; max-width: 980px; display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 6px 18px; font-size: clamp(14.5px, 1.8vw, 17px); color: var(--ink-soft); }
+  .nav a { color: var(--ink); }
+  .nav a:hover, .nav a:focus-visible { background: linear-gradient(transparent 55%, var(--marker) 55%, var(--marker) 94%, transparent 94%); }
+  .nav .sep { color: var(--ink-faint); }
+  .foot { margin-top: 14px; text-align: center; font-size: clamp(12px, 1.4vw, 13.5px); color: var(--ink-faint); line-height: 1.4; }
+  .miss { margin: 40px auto; text-align: center; font-size: 18px; }
+
+  /* 좁은 화면 — 자리 줄을 접고 걸음을 세로로. 자리는 걸음마다 이름표로 */
+  @media (max-width: 960px) {
+    .sw { grid-template-columns: minmax(0, 1fr); row-gap: 26px; max-width: 640px; margin: 0 auto; }
+    .ln { display: none; }
+    .st { grid-row: auto; grid-column: 1; min-height: 0; padding: 9px 12px 10px 14px; }
+    .st .who { display: inline; }
+    .refs { margin-top: 2px; }
+  }
+  @media (max-width: 640px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+
+  html[data-style="textbook"] { --paper: #ffffff; --ink: #1f2937; --ink-soft: #4b5563; --ink-faint: #a3aab5; --find: #1f5fae; --talk: #b8432f; --db: #2f7d4f; --marker: rgba(31, 95, 174, 0.14); }
+  html[data-style="textbook"] body { font-family: 'Noto Sans KR', system-ui, sans-serif; background: #fff; background-image: none; letter-spacing: -0.01em; }
+  html[data-style="textbook"] .brush { font-family: 'Noto Sans KR', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; }
+  html[data-style="textbook"] .hero h1 { font-size: clamp(24px, 3.6vw, 34px); }
+  html[data-style="textbook"] .hero p, html[data-style="textbook"] .hero .kick, html[data-style="textbook"] .cap { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="textbook"] .memo h3, html[data-style="textbook"] .note h3 { font-size: clamp(17px, 2.2vw, 20px); }
+  html[data-style="textbook"] .memo ul, html[data-style="textbook"] .note ul, html[data-style="textbook"] .nav { font-size: clamp(13px, 1.5vw, 14.5px); }
+  html[data-style="textbook"] .note h4 { font-size: clamp(13px, 1.5vw, 14.5px); }
+  html[data-style="textbook"] .ln b { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="textbook"] .ln .me, html[data-style="textbook"] .st .who { font-size: 12px; }
+  html[data-style="textbook"] .st .n { font-size: 13px; }
+  html[data-style="textbook"] .st .t { font-size: clamp(14px, 1.6vw, 16px); }
+  html[data-style="textbook"] .st .d { font-size: clamp(12px, 1.25vw, 13px); }
+  html[data-style="textbook"] .legend { font-size: clamp(12px, 1.4vw, 13.5px); }
+
+  html[data-style="blueprint"] { --paper: #f6f8fb; --ink: #16365c; --ink-soft: #3d5878; --ink-faint: #9db0c6; --find: #1d6fb8; --talk: #c23b2e; --db: #2b7a5a; --marker: rgba(29, 111, 184, 0.13); --mono: 'IBM Plex Mono', 'IBM Plex Sans KR', ui-monospace, Consolas, monospace; }
+  html[data-style="blueprint"] body { font-family: 'IBM Plex Sans KR', system-ui, sans-serif; background-color: var(--paper);
+    background-image: linear-gradient(rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(rgba(29, 111, 184, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.045) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px; }
+  html[data-style="blueprint"] .page { border: 1.5px solid var(--ink); outline: 1px solid var(--ink); outline-offset: 5px; padding: 16px; background: rgba(246, 248, 251, 0.6); }
+  html[data-style="blueprint"] .brush { font-family: 'IBM Plex Sans KR', sans-serif; font-weight: 700; letter-spacing: 0.01em; }
+  html[data-style="blueprint"] .hero .kick::before { content: 'FIG. J  '; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.2em; color: var(--ink-soft); }
+  html[data-style="blueprint"] .hero h1 { font-size: clamp(22px, 3.3vw, 31px); }
+  html[data-style="blueprint"] .hero p, html[data-style="blueprint"] .hero .kick, html[data-style="blueprint"] .cap { font-size: clamp(13px, 1.45vw, 14.5px); }
+  html[data-style="blueprint"] .memo h3, html[data-style="blueprint"] .note h3 { font-size: clamp(16px, 2vw, 19px); }
+  html[data-style="blueprint"] .memo ul, html[data-style="blueprint"] .note ul, html[data-style="blueprint"] .nav { font-size: clamp(12.5px, 1.45vw, 14px); }
+  html[data-style="blueprint"] .note h4 { font-size: clamp(12.5px, 1.45vw, 14px); }
+  html[data-style="blueprint"] .ln b { font-size: clamp(12.5px, 1.45vw, 14.5px); }
+  html[data-style="blueprint"] .ln .me, html[data-style="blueprint"] .st .who { font-size: 11.5px; }
+  html[data-style="blueprint"] .st .n { font-family: var(--mono); font-size: 12px; }
+  html[data-style="blueprint"] .st .t { font-size: clamp(13.5px, 1.55vw, 15.5px); }
+  html[data-style="blueprint"] .st .d { font-size: clamp(11.5px, 1.2vw, 12.5px); }
+  html[data-style="blueprint"] .legend { font-size: clamp(11.5px, 1.35vw, 13px); }
+  html[data-style="blueprint"] .rf { border-radius: 0; font-family: var(--mono); }
+
+  @media print { .pick { display: none !important; } body { padding: 0; } }
+  /* 폰 — 위 단추 줄을 한 줄에 (모든 쪽 공통) */
+  @media (max-width: 480px) {
+    .pick { flex-wrap: wrap; gap: 4px; }
+    .pick button { font-size: 12px !important; padding: 4px 9px !important; white-space: nowrap; }
+    .pick a { font-size: 12px !important; margin-left: 4px !important; white-space: nowrap; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="pick" id="pick">
+    <button type="button" data-s="pencil">연필 손그림</button>
+    <button type="button" data-s="textbook">교과서 도식</button>
+    <button type="button" data-s="blueprint">설계 도면</button>
+    <a href="jobs.html" id="back">← 카드 목차</a>
+  </div>
+
+  <header class="hero">
+    <div class="kick" id="kick">일 받았을 때</div>
+    <h1 class="brush" id="quote"></h1>
+    <p id="sub"></p>
+  </header>
+
+  <section class="memo" id="memo">
+    <svg class="over" id="memoLines" aria-hidden="true"></svg>
+    <h3 class="brush">듣는 자리에서 받아 둘 것</h3>
+    <ul id="get"></ul>
+  </section>
+
+  <p class="cap"><b>위아래 = 누가</b> · <b>왼쪽에서 오른쪽 = 차례</b> · 꼬리표를 누르면 길잡이(E) · 교재(장)의 그 걸음이 열린다</p>
+  <section class="map" id="map">
+    <svg class="over" id="lines" aria-hidden="true"></svg>
+    <div class="sw" id="sw"></div>
+  </section>
+
+  <footer class="legend">
+    <div><span class="d">초록</span> = 저장하면 재고 · 돈이 바뀐다 · <span class="t">붉은 갈색</span> = 바깥(손님 · 공급처 · 국세청)과 주고받는다 · <span class="f">파랑</span> = 보고 맞춘다</div>
+    <div>실선 화살표 = 같은 사람이 잇는다 · 점선 화살표 = 다른 사람에게 넘긴다</div>
+  </footer>
+
+  <section class="notes" id="notes">
+    <div class="note done"><svg class="over" aria-hidden="true"></svg><h3 class="brush">끝난 모양</h3><ul id="done"></ul></div>
+    <div class="note tell"><svg class="over" aria-hidden="true"></svg><h3 class="brush">알릴 사람</h3><ul id="tell"></ul><h4>막히면</h4><ul id="stuck"></ul></div>
+    <div class="note dont"><svg class="over" aria-hidden="true"></svg><h3 class="brush">하면 안 됨</h3><ul id="dont"></ul></div>
+    <div class="note blank"><svg class="over" aria-hidden="true"></svg><h3 class="brush">회사가 채움</h3><ul id="fill"></ul></div>
+  </section>
+
+  <nav class="nav" id="nav"></nav>
+  <p class="foot">(추정) 은 실무자 확인 전 · 「회사가 채움」 은 회사가 정할 자리 · 주소는 회사 안에서만 나눈다 · 실제 거래처 이름 · 금액 · 계정 정보는 적지 않는다</p>
+</div>
+
+<script src="sketch-kit.js"></script>
+<script src="jobs-data.js"></script>
+<script>
+(function () {
+  'use strict';
+  var D = window.UBO_JOBS;
+  var K;
+  var id = new URLSearchParams(location.search).get('c') || 'j01';
+  var at = -1;
+  D.JOBS.forEach(function (j, n) { if (j.id === id) at = n; });
+  if (at < 0) {
+    document.querySelector('.page').innerHTML = '<p class="miss">없는 카드다. <a href="jobs.html" style="text-decoration:underline">카드 목차로</a></p>';
+    return;
+  }
+  var job = D.JOBS[at];
+  var jn = at + 1;
+  var LANE = {};
+  D.LANES.forEach(function (l, n) { LANE[l[0]] = { name: l[1], out: l[2] === 'out', order: n }; });
+
+  var esc = function (s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  // 글 안의 「회사가 채움」 · (추정) 을 칠하고, J3 · E2 ⑤ 같은 말은 그 쪽으로 잇는다
+  var CIRC = '①②③④⑤⑥';
+  function mark(s) {
+    return esc(s)
+      .replace(/회사가 채움/g, '<span class="fill">회사가 채움</span>')
+      .replace(/\(추정\)/g, '<span class="guess">(추정)</span>')
+      .replace(/(^|[\s(])J(\d{1,2})(?![\d.])/g, function (all, pre, n) {
+        var r = D.ref('J' + n);
+        return r ? pre + '<a class="inl" href="' + r.href + '">J' + n + '</a>' : all;
+      })
+      .replace(/E(\d) ([①②③④⑤⑥])/g, function (all, n, c) {
+        var r = D.ref('E' + n + '.' + (CIRC.indexOf(c) + 1), job.id);
+        return r ? '<a class="inl" href="' + r.href + '">' + all + '</a>' : all;
+      });
+  }
+  var li = function (list) { return list.map(function (x) { return '<li>' + mark(x) + '</li>'; }).join(''); };
+
+  // 글 채우기
+  document.title = 'J' + jn + ' ' + job.name + ' — 일 받았을 때';
+  document.getElementById('kick').textContent = '일 받았을 때 · ' + (job.g === 'field' ? '현장' : '경리') + ' · J' + jn;
+  document.getElementById('quote').textContent = '「' + job.quote + '」';
+  document.getElementById('sub').innerHTML = '<b>' + esc(job.name) + '</b> — 주로 ' + esc(job.who) + '. 들은 자리에서 아래 메모부터 받아 둔다.';
+  document.getElementById('get').innerHTML = job.get.map(function (x) { return '<li>' + mark(x) + '</li>'; }).join('');
+  ['done', 'tell', 'stuck', 'dont', 'fill'].forEach(function (k) { document.getElementById(k).innerHTML = li(job[k] || []); });
+
+  // 자리 줄 — 이 카드에 나오는 자리만, LANES 순서대로
+  var used = [];
+  job.s.forEach(function (s) { if (used.indexOf(s[0]) < 0) used.push(s[0]); });
+  used.sort(function (a, b) { return LANE[a].order - LANE[b].order; });
+  var sw = document.getElementById('sw');
+  sw.style.setProperty('--n', job.s.length);
+  var h = used.map(function (k, n) {
+    var L = LANE[k];
+    return '<div class="ln' + (L.out ? ' out' : '') + '" id="ln-' + k + '" style="--r:' + (n + 1) + '"><b>' + esc(L.name) + '</b>' + (k === job.me ? '<span class="me">나</span>' : '') + '</div>';
+  }).join('');
+  h += job.s.map(function (s, n) {
+    var lane = s[0], refs = (s[4] || []).map(function (c) { return D.ref(c, job.id); }).filter(Boolean);
+    return '<div class="st" id="st' + (n + 1) + '" data-lane="' + lane + '" data-k="' + s[1] + '" style="--r:' + (used.indexOf(lane) + 1) + ';--c:' + (n + 2) + '">' +
+      '<span class="top"><span class="n">' + D.NUM[n + 1] + '</span><span class="who' + (lane === job.me ? ' me' : '') + '">' + esc(LANE[lane].name) + (lane === job.me ? ' · 나' : '') + '</span></span>' +
+      '<span class="t brush">' + mark(s[2]) + '</span>' +
+      '<span class="d">' + mark(s[3]) + '</span>' +
+      (refs.length ? '<span class="refs">' + refs.map(function (r) { return '<a class="rf ' + r.kind + '" href="' + r.href + '">' + esc(r.label) + '</a>'; }).join('') + '</span>' : '') +
+      '</div>';
+  }).join('');
+  sw.innerHTML = h;
+
+  // 아래 길 — 이어지는 카드 · 앞뒤 카드 · 목차
+  var title = function (j, n) { return 'J' + (n + 1) + ' 「' + esc(j.quote) + '」'; };
+  var nav = [];
+  if (job.next && job.next.length) {
+    nav.push('<span>이어지는 카드</span>' + job.next.map(function (nid) {
+      var m = -1; D.JOBS.forEach(function (j, n) { if (j.id === nid) m = n; });
+      return m < 0 ? '' : '<a href="job.html?c=' + nid + '">' + title(D.JOBS[m], m) + '</a>';
+    }).join('<span class="sep">·</span>'));
+  }
+  var line2 = [];
+  if (at > 0) line2.push('<a href="job.html?c=' + D.JOBS[at - 1].id + '">← J' + at + '</a>');
+  line2.push('<a href="jobs.html">카드 목차</a>');
+  if (at < D.JOBS.length - 1) line2.push('<a href="job.html?c=' + D.JOBS[at + 1].id + '">J' + (at + 2) + ' →</a>');
+  document.getElementById('nav').innerHTML = nav.join('') + '<span style="flex-basis:100%;height:0"></span>' + line2.join('<span class="sep">|</span>');
+
+  var map = document.getElementById('map');
+  var KC = function (k) { return k === 'd' ? K.C.db : k === 't' ? K.C.talk : k === 'f' ? K.C.find : K.C.ink; };
+
+  function draw() {
+    var g = K.fresh(document.getElementById('lines'));
+    var rel = K.rel(map), W = map.offsetWidth;
+    var narrow = getComputedStyle(sw).gridTemplateColumns.split(' ').length < 2;
+    var boxes = job.s.map(function (s, n) { return rel(document.getElementById('st' + (n + 1))); });
+
+    if (!narrow) {
+      // 자리 줄 — 줄 사이 점선, 「나」의 줄은 옅게 칠하고, 이름 칸 오른쪽에 세로선
+      var lanes = used.map(function (k) { return { k: k, b: rel(document.getElementById('ln-' + k)) }; });
+      var gap = 18, top = lanes[0].b.y - gap / 2, bot = lanes[lanes.length - 1].b.b + gap / 2;
+      lanes.forEach(function (L, n) {
+        if (L.k === job.me) K.hatch(g, 0, L.b.y - gap / 2 + 2, W, L.b.h + gap - 4, K.rng(70 + n), 9, K.C.find, 0.06);
+        if (n) K.line(g, 0, L.b.y - gap / 2, W, L.b.y - gap / 2, K.rng(80 + n), K.C.faint, 1, '3 6');
+      });
+      var vx = lanes[0].b.rt + 13;
+      K.line(g, vx, top, vx, bot, K.rng(90), K.C.ink, 1.3);
+    }
+
+    // 걸음 상자 — 뜻 색, 「나」의 상자는 두 겹
+    boxes.forEach(function (b, n) {
+      var s = job.s[n], r = K.rng(100 + n);
+      K.rect(g, b.x, b.y, b.w, b.h, r, KC(s[1]), s[0] === job.me ? 1.8 : 1.4);
+      if (s[0] === job.me) K.rect(g, b.x + 3, b.y + 3, b.w - 6, b.h - 6, K.rng(120 + n), KC(s[1]), 0.7);
+      if (narrow && s[0] === job.me) K.hatch(g, b.x, b.y, b.w, b.h, K.rng(140 + n), 9, K.C.find, 0.05);
+    });
+
+    // 화살표 — 같은 자리면 실선, 다른 자리로 넘기면 점선
+    for (var n = 0; n < boxes.length - 1; n++) {
+      var a = boxes[n], b = boxes[n + 1], r = K.rng(200 + n);
+      var hand = job.s[n][0] !== job.s[n + 1][0], dash = hand ? '5 4' : null, col = K.C.soft;
+      if (narrow) {
+        var x = a.x + 24, y1 = a.b + 3, y2 = b.y - 4;
+        K.line(g, x, y1, x, y2, r, col, 1.3, dash);
+        K.line(g, x, y2, x - 5, y2 - 8, r, col, 1.2);
+        K.line(g, x, y2, x + 5, y2 - 8, r, col, 1.2);
+      } else if (!hand) {
+        K.line(g, a.rt + 3, a.cy, b.x - 4, b.cy, r, col, 1.3);
+        K.head(g, b.x - 4, b.cy, 1, r, col, 1.3);
+      } else {
+        var xm = (a.rt + b.x) / 2, ay = a.cy, by = b.cy;
+        K.line(g, a.rt + 3, ay, xm, ay, r, col, 1.3, dash);
+        K.line(g, xm, ay, xm, by, r, col, 1.3, dash);
+        K.line(g, xm, by, b.x - 4, by, r, col, 1.3, dash);
+        K.head(g, b.x - 4, by, 1, r, col, 1.3);
+      }
+    }
+
+    // 메모지 — 네모 + 왼쪽 파란 줄
+    var memo = document.getElementById('memo');
+    var mg = K.fresh(document.getElementById('memoLines'));
+    K.rect(mg, 2, 2, memo.offsetWidth - 4, memo.offsetHeight - 4, K.rng(9), K.C.ink, 1.4);
+    K.line(mg, 13, 7, 13, memo.offsetHeight - 7, K.rng(10), K.C.find, 2.2);
+
+    // 아래 네 칸
+    Array.prototype.forEach.call(document.querySelectorAll('.note'), function (el, n) {
+      var ng = K.fresh(el.querySelector('svg')), w = el.offsetWidth, hh = el.offsetHeight;
+      var dont = el.classList.contains('dont'), fill = el.classList.contains('blank');
+      K.rect(ng, 2, 2, w - 4, hh - 4, K.rng(300 + n), dont ? K.C.talk : K.C.ink, dont ? 1.8 : 1.3, fill ? '6 4' : null);
+      if (fill) K.hatch(ng, 2, 2, w - 4, 8, K.rng(310), 7, K.C.ink, 0.12);
+    });
+  }
+
+  var queued = false;
+  function schedule() { if (queued) return; queued = true; setTimeout(function () { queued = false; draw(); }, 40); }
+  function use(style) {
+    K = SketchKit(style);
+    document.documentElement.dataset.style = K.style;
+    Array.prototype.forEach.call(document.querySelectorAll('#pick button'), function (b) { b.classList.toggle('on', b.dataset.s === K.style); });
+    Array.prototype.forEach.call(document.querySelectorAll('a[href]'), function (a) { a.href = a.getAttribute('href').split('#')[0] + '#' + K.style; });
+    draw();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+  }
+  document.getElementById('pick').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-s]');
+    if (b) { use(b.dataset.s); if (history.replaceState) history.replaceState(null, '', location.search + '#' + b.dataset.s); }
+  });
+  function fromHash() { var hs = (location.hash || '').slice(1); use(['pencil', 'textbook', 'blueprint'].indexOf(hs) >= 0 ? hs : 'pencil'); }
+  fromHash();
+  window.addEventListener('hashchange', fromHash);
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', schedule);
+  window.addEventListener('load', schedule);
+  window.addEventListener('resize', schedule);
+  if (window.ResizeObserver) { var ro = new ResizeObserver(schedule); ro.observe(map); ro.observe(document.getElementById('notes')); ro.observe(document.getElementById('memo')); }
+})();
+</script>
+</body>
+</html>
