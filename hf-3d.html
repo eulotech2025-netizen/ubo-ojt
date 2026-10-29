@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ko" data-style="pencil">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>F자로 접힘(HF) 3D</title>
+<!--
+  신입 교재 · 부록 「우리가 파는 것」 의 블럼 리프트 F자로 접힘(HF) 을 돌려 보는 3D 쪽.
+  모형은 3d/hf.glb (Blender 로 3d/build_hf.py 를 돌려 만든다), 보기는 model-viewer.
+  단순하게 만든 모형 — 실제 제품의 치수 · 장치 모양과 다르다.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Brush+Script&family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.0.0/dist/model-viewer.min.js"></script>
+<style>
+  :root { --paper: #f8f4ea; --ink: #36332d; --ink-soft: #5d584e; --ink-faint: #8b8476; --marker: rgba(255, 214, 64, 0.55); --find: #2f5d87; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--paper); }
+  body { min-height: 100vh; color: var(--ink); font-family: 'Gaegu', cursive; background: var(--paper); padding: 18px 16px 28px; word-break: keep-all; overflow-wrap: anywhere; }
+  .page { max-width: 760px; margin: 0 auto; }
+  .brush { font-family: 'Nanum Brush Script', 'Gaegu', cursive; font-weight: 400; }
+  a { color: inherit; }
+  button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+
+  .pick { display: flex; justify-content: center; gap: 6px; margin-bottom: 14px; font-family: system-ui, sans-serif; }
+  .pick button { font-size: 13px; border: 1px solid #c9ced6; background: #fff; border-radius: 999px; padding: 5px 12px; }
+  .pick button.on { background: #1f2937; border-color: #1f2937; color: #fff; }
+  .pick a { font-size: 13px; color: var(--ink-soft); align-self: center; margin-left: 10px; text-decoration: none; }
+
+  .hero { text-align: center; }
+  .hero .kick { font-size: clamp(14px, 1.7vw, 17px); color: var(--ink-soft); letter-spacing: 0.04em; }
+  .hero h1 { font-size: clamp(36px, 6.4vw, 56px); line-height: 1.05; margin-top: 2px; }
+  .hero p { margin-top: 6px; font-size: clamp(15px, 1.9vw, 18px); color: var(--ink-soft); }
+
+  model-viewer { display: block; width: 100%; height: 440px; margin-top: 16px; background: #fff; border: 1.6px solid var(--ink); border-radius: 10px; --poster-color: #fff; }
+  .walk { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 8px; margin-top: 12px; }
+  .walk button { font-size: 16px; line-height: 1; padding: 6px 10px 4px; border-radius: 6px; }
+  .walk button:nth-child(odd) { transform: rotate(-1.5deg); }
+  .walk button:nth-child(even) { transform: rotate(1.2deg); }
+  .walk button.on { background: var(--marker); }
+
+  .foot { margin-top: 14px; text-align: center; font-size: clamp(12px, 1.4vw, 13.5px); color: var(--ink-faint); line-height: 1.4; }
+
+  html[data-style="textbook"] { --paper: #ffffff; --ink: #1f2937; --ink-soft: #4b5563; --ink-faint: #a3aab5; --find: #1f5fae; --marker: rgba(31, 95, 174, 0.14); }
+  html[data-style="textbook"] body { font-family: 'Noto Sans KR', system-ui, sans-serif; letter-spacing: -0.01em; }
+  html[data-style="textbook"] .brush { font-family: 'Noto Sans KR', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; }
+  html[data-style="textbook"] .hero h1 { font-size: clamp(26px, 4vw, 36px); }
+  html[data-style="textbook"] .hero p, html[data-style="textbook"] .hero .kick { font-size: clamp(13px, 1.5vw, 15px); }
+  html[data-style="textbook"] model-viewer { border: 1px solid #e5e7eb; }
+  html[data-style="textbook"] .walk button { font-size: 13.5px; border-radius: 999px; border: 1px solid var(--ink-faint); transform: none; padding: 5px 11px; }
+  html[data-style="textbook"] .walk button.on { border-color: var(--find); }
+
+  html[data-style="blueprint"] { --paper: #f6f8fb; --ink: #16365c; --ink-soft: #3d5878; --ink-faint: #9db0c6; --find: #1d6fb8; --marker: rgba(29, 111, 184, 0.13); }
+  html[data-style="blueprint"] body { font-family: 'IBM Plex Sans KR', system-ui, sans-serif;
+    background-image: linear-gradient(rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.10) 1px, transparent 1px), linear-gradient(rgba(29, 111, 184, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 111, 184, 0.045) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px; }
+  html[data-style="blueprint"] .page { border: 1.5px solid var(--ink); outline: 1px solid var(--ink); outline-offset: 5px; padding: 16px; background: rgba(246, 248, 251, 0.6); }
+  html[data-style="blueprint"] .brush { font-family: 'IBM Plex Sans KR', sans-serif; font-weight: 700; letter-spacing: 0.01em; }
+  html[data-style="blueprint"] .hero .kick::before { content: 'FIG. A-3D  '; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.2em; color: var(--ink-soft); }
+  html[data-style="blueprint"] .hero h1 { font-size: clamp(24px, 3.6vw, 33px); }
+  html[data-style="blueprint"] .hero p, html[data-style="blueprint"] .hero .kick { font-size: clamp(13px, 1.45vw, 14.5px); }
+  html[data-style="blueprint"] model-viewer { border-radius: 0; border: 1px solid var(--ink); }
+  html[data-style="blueprint"] .walk button { font-size: 13px; border-radius: 0; border: 1px solid var(--ink-faint); transform: none; padding: 5px 10px; }
+  html[data-style="blueprint"] .walk button.on { background: none; border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+
+  @media (max-width: 480px) {
+    model-viewer { height: 340px; }
+    .pick { flex-wrap: wrap; gap: 4px; }
+    .pick button { font-size: 12px !important; padding: 4px 9px !important; white-space: nowrap; }
+    .pick a { font-size: 12px !important; margin-left: 4px !important; white-space: nowrap; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="pick" id="pick">
+    <button type="button" data-s="pencil">연필 손그림</button>
+    <button type="button" data-s="textbook">교과서 도식</button>
+    <button type="button" data-s="blueprint">설계 도면</button>
+    <a href="products.html" id="back">← 우리가 파는 것</a>
+  </div>
+
+  <header class="hero">
+    <div class="kick">우보브랜드샵 신입 교재 · 부록 · ② 경첩 · 리프트</div>
+    <h1 class="brush">F자로 접힘(HF) — 돌려 보기</h1>
+    <p>블럼 리프트 시스템의 하나. 문 두 쪽이 가운데서 접히며 위로 올라간다. 손가락으로 돌려 보고, 「옆에서」 를 누르면 접히는 모양이 잘 보인다.</p>
+  </header>
+
+  <model-viewer id="mv" src="3d/hf.glb" alt="상부장 문 두 쪽이 F자로 접히며 올라가는 모형"
+    camera-controls autoplay touch-action="pan-y" interaction-prompt="none"
+    shadow-intensity="0.7" exposure="1.05" environment-image="neutral"
+    camera-orbit="35deg 72deg auto" camera-target="0m 0.45m 0m"></model-viewer>
+
+  <nav class="walk" id="walk" aria-label="보는 쪽 고르기">
+    <button type="button" data-orbit="35deg 72deg auto" class="on">비스듬히</button>
+    <button type="button" data-orbit="0deg 80deg auto">앞에서</button>
+    <button type="button" data-orbit="90deg 85deg auto">옆에서</button>
+    <button type="button" id="play">멈춤</button>
+  </nav>
+
+  <p class="foot">단순하게 만든 모형이라 실제 제품의 치수 · 장치 모양과 다르다 (장 너비 90cm · 높이 80cm 기준) · 주소는 회사 안에서만 나눈다</p>
+</div>
+<script>
+(function () {
+  'use strict';
+  var mv = document.getElementById('mv');
+  var walk = document.getElementById('walk');
+  var play = document.getElementById('play');
+
+  walk.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-orbit]');
+    if (!b) return;
+    mv.cameraOrbit = b.dataset.orbit;
+    Array.prototype.forEach.call(walk.querySelectorAll('[data-orbit]'), function (o) { o.classList.toggle('on', o === b); });
+  });
+  play.addEventListener('click', function () {
+    if (mv.paused) { mv.play(); play.textContent = '멈춤'; } else { mv.pause(); play.textContent = '다시 재생'; }
+  });
+
+  function use(style) {
+    document.documentElement.dataset.style = style;
+    Array.prototype.forEach.call(document.querySelectorAll('#pick button'), function (b) { b.classList.toggle('on', b.dataset.s === style); });
+    document.getElementById('back').href = 'products.html#' + style;
+  }
+  document.getElementById('pick').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-s]');
+    if (b) { use(b.dataset.s); if (history.replaceState) history.replaceState(null, '', '#' + b.dataset.s); }
+  });
+  function fromHash() { var h = (location.hash || '').slice(1); use(['pencil', 'textbook', 'blueprint'].indexOf(h) >= 0 ? h : 'pencil'); }
+  fromHash();
+  window.addEventListener('hashchange', fromHash);
+})();
+</script>
+</body>
+</html>

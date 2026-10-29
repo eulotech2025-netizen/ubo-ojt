@@ -80,6 +80,7 @@
   .tag { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--ink-faint); color: var(--ink-soft); margin-left: 4px; vertical-align: 1px; }
   .tag.b { border-color: var(--find); color: var(--find); }
   .tag.i { border-color: var(--talk); color: var(--talk); }
+  .go3d { display: inline-block; font-size: 12.5px; font-weight: 700; color: var(--find); white-space: nowrap; }
 
   /* 블럼 잇기 */
   .blum { position: relative; margin-top: 26px; padding: 14px 18px 12px 26px; }
@@ -204,7 +205,7 @@
         <tr><th colspan="3"><span class="gh"><span class="n">②</span><span class="t brush">경첩 · 리프트 · 미닫이 — 문을 여닫는 쇠붙이</span><span class="w">문짝을 몸통에 붙이고, 부드럽게 열리고 닫히게</span></span></th></tr>
         <tr><td class="nm">경첩</td><td class="ez">여닫이문의 관절. 댐퍼 = 소리 없이 살살 닫힘</td><td class="in">탈착용 댐퍼 · 사이드 댐퍼 · 인도어, 아웃도어 · 유리경첩 · 경첩 마운틴(받침판) · 기타</td></tr>
         <tr><td class="nm">블럼 › 경첩 <span class="tag b">블럼</span></td><td class="ez">블럼(오스트리아) 경첩. 살살 닫힘이 들어 있는 것이 블루모션(BLUMOTION)</td><td class="in">클립 탑 블루모션(CLIP top BLUMOTION) · 클립 탑(CLIP top) · 모듈(MODUL) · 105°</td></tr>
-        <tr><td class="nm">블럼 › 리프트 시스템 <span class="tag b">블럼</span></td><td class="ez">위로 여는 문(상부장 플랩) 장치 — 아벤토스(AVENTOS) 식구</td><td class="in">F자로 접힘(HF) ·위로 올림(HS) · 평행(HL) · 고정(HK) · 작은 고정(HK-S) · 더 작은 고정(HK-XS) · 일체형(HKi)</td></tr>
+        <tr><td class="nm">블럼 › 리프트 시스템 <span class="tag b">블럼</span></td><td class="ez">위로 여는 문(상부장 플랩) 장치 — 아벤토스(AVENTOS) 식구</td><td class="in">F자로 접힘(HF) <a class="go3d" href="hf-3d.html">3D로 보기</a> · 위로 올림(HS) · 평행(HL) · 고정(HK) · 작은 고정(HK-S) · 더 작은 고정(HK-XS) · 일체형(HKi)</td></tr>
         <tr><td class="nm">플랩스테이/쇼바</td><td class="ez">위로 여는 문을 받쳐 주는 가스 쇼바 · 플랩스테이 (블럼 리프트의 보통판)</td><td class="in">플랩스테이/쇼바</td></tr>
         <tr><td class="nm">슬라이딩&amp;미닫이</td><td class="ez">옆으로 미는 문 부속</td><td class="in">슬라이딩 도어 부속 · 헤티히 <span class="tag b">독일</span></td></tr>
       </tbody>
@@ -423,6 +424,7 @@
     document.documentElement.dataset.style = K.style;
     Array.prototype.forEach.call(document.querySelectorAll('#pick button'), function (b) { b.classList.toggle('on', b.dataset.s === K.style); });
     document.getElementById('back').href = 'textbook.html#' + K.style;
+    Array.prototype.forEach.call(document.querySelectorAll('.go3d'), function (a) { a.href = 'hf-3d.html#' + K.style; });
     draw();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
   }
