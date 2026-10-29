@@ -1,4 +1,4 @@
-# 블럼 리프트 HF(F자로 접힘) 단순 모형 — 상부장 하나 + 문 두 쪽이 접히며 올라가는 움직임
+# 블럼 리프트 HF(F자로 접힘) 단순 모형 — 상부장 하나 + 윗문이 들리고 아랫문이 세로로 매달려 따라 올라가는 움직임
 # 실행: blender -b --factory-startup --python 3d/build_hf.py -- 3d   (확인용 그림 preview_*.png 도 그 폴더에 생긴다 — 올리지 않는다)
 import bpy, math, sys, os
 
@@ -65,10 +65,10 @@ fx0, fx1 = x0 + GAP, x1 - GAP
 upper = box("윗문", fx0, fx1, -TF, 0, H - h + GAP / 2, H, M_FRONT, origin=(0, 0, H))
 lower = box("아랫문", fx0, fx1, -TF, 0, H - 2 * h + GAP, H - h - GAP / 2, M_FRONT, origin=(0, 0, H - h))
 
-# 움직임 — 윗문은 위 경첩으로 돌고, 아랫문 밑변은 장 앞면(y=0)을 타고 올라간다
+# 움직임 — 윗문은 위 경첩으로 돌고, 아랫문은 세로로 선 채 윗문 끝에 매달려 따라 올라간다 (회사 확인 10-29)
 scene = bpy.context.scene
 scene.render.fps = 24
-OPEN_DEG = 86          # 90° 를 넘기면 아랫문 밑변이 경첩보다 높아져 두 문이 엇갈린다
+OPEN_DEG = 95          # 윗문이 다 열린 각도 — 아랫문은 늘 세로라 엇갈리지 않는다
 frames = 96            # 4초: 열기 1초 · 멈춤 1초 · 닫기 1초 · 멈춤 1초
 scene.frame_start, scene.frame_end = 1, frames
 
@@ -88,9 +88,7 @@ for f in range(1, frames + 1):
     th = math.radians(angle_at(f))
     upper.rotation_euler = (-th, 0, 0)
     lower.location = (0, -h * math.sin(th), H - h * math.cos(th))
-    lower.rotation_euler = (th, 0, 0)
     upper.keyframe_insert("rotation_euler", frame=f)
-    lower.keyframe_insert("rotation_euler", frame=f)
     lower.keyframe_insert("location", frame=f)
 
 # 웹용 파일 — 움직임 하나로 묶어 내보낸다
